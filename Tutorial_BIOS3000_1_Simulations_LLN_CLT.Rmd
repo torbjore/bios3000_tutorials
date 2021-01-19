@@ -150,7 +150,7 @@ Here `i` is the iteration counter. The first time R runs through the loop, `i` e
 
 ---
 
-<div class = "green"> If you are new to loops, you may want to pause here and make a simpler loop to make sure you understand how it works (you can for example compute `i^2` (`i` to the power of 2) and `2^i` (2 to the power of `i`) in a loop where you let `i` go from 0 to 10; you should get the same result as running `(0:10)^2` and `2^(0:10)`). You may also watch this [YouTube video from the Google Developers][loops].</div>
+<div class = "green"> If you are new to loops, you may want to pause here and make a simpler loop to make sure you understand how it works (you can for example compute `i^2` (`i` to the power of 2) and `2^i` (2 to the power of `i`) in a loop where you let `i` go from 1 to 10; you should get the same result as running `(1:10)^2` and `2^(1:10)`). You may also watch this [YouTube video from the Google Developers][loops].</div>
 
 [loops]: https://www.youtube.com/watch?v=djI-yfk-DZM&list=PLOU2XLYxmsIK9qQfztXeybpHvru-TrqAP&index=12&t=0s 
 
@@ -186,8 +186,20 @@ In the previous section we saw that the mean of a sample of values drawn from a 
 
 ## Exercises
 
-1. Compute 
 
+1. Draw one 10 random values from a normal distribution with mean 12 and standard deviation 2.
+
+    a) What do you expect the variance of the random values to be?
+    b) Compute the empirical variance of the random values. Is the variance close to what you expected? If not, why not? Repeat this with 10 new random values.
+    c) Compute the variance of one million values drawn from the same distribution. Is this closer to the expected value? Why?
+
+2. Compute the values `2^i` when `i` goes from 1 to 10 in a for-loop (you should get the same results as when running `2^(1:10)` in R).
+
+3. Do the same as above, but with `i` going from 0 to 10.
+
+4. Use R to simulate the probability distribution of the sum of two independent dice throws and plot a histogram. **HINTS:**
+    + You can simulate one dice throw with `sample(1:6, 1)` and two independent dice throws with `sample(1:6, 2, replace = T)` (Why do we need to use `replace = T`? Remember that you can look up the description of any R-function in the 'help' (e.g. type `?sample`))
+    + The `hist()` function (using default arguments) does not produce a nice histogram with integer values. Instead, you can use `table` to count how any vector elements you have of each value (try e.g. `table(c(1,1,2,3))`), and then make a barplot of these counts (table values) using `barplot()`.
 
 ## Assignment
 
