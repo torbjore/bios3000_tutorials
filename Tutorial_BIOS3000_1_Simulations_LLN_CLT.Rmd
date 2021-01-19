@@ -1,26 +1,50 @@
 ---
-title: Tutorial and assignment week 2 - Simulations, the law of large numbers and
+title: Tutorial week 2 - Simulations, the law of large numbers and
   the central limit theorem
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
-  pdf_document: default
   html_document:
     toc: yes
     toc_float: true
+  pdf_document:
+    toc: yes
   df_print: paged
 urlcolor: blue
 ---
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+
+<style>
+div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Summary
+## Key terms and concepts covered in this tutorial
+
+* Simulations in R
+* for-loops
+* Law of large numbers
+* Central limit theorem
+* Sampling distribution
+* Numerical convergence
+
+## Summary
 
 We will here show how you can draw random values from a probability distribution and how you can repeat calculations by the use of loops in R. We will use this to investigate the important central limit theorem as well as the law of large numbers.
 
-# Drawing random values in R
+## Preparations
+
+We assume that you are familiar with histograms and probability distributions. You may want to refresh these concepts from earlier course work or look at the [resources we refer to on Canvas](https://uio.instructure.com/courses/30115/pages/review-statistical-concepts-and-use-of-r).
+
+We recommend that you download the R Markdown file (*.Rmd) for each tutorial to a local folders on your computer. Later tutorials may also include datasets that you need to download. Name the folders "Week01", "Week02", and so on. Using "...01" instead of just "...1" ensures that the folder gets sorted before "Week10". Change the name of the file if you modify the document!
+
+## Drawing random values in R
 
 In R we can draw random values from a normal distribution with the `rnorm`-function. For example, the following draws 10 values from a normal distribution with mean 2 and standard deviation 3:
 
@@ -42,9 +66,13 @@ mean(x)
 sd(x)
 ```
 
-Since the sample size is so large (one million), the mean and standard deviation of the sample is very close to the mean and standard deviation of the distribution we drew them from (2 and 3 respectively) - this is due to the "Law of large numbers" which states the properties of the sample will be close to the properties of the population it is drawn from when sample size is large. Note, however, that if you rerun the above code, you will get slightly different numbers because you will draw different values. Go ahead - try this out in the Rmd file for this document. [Download it from Canvas to a local folder called "Week02" to keep things organized. Using "...02" instead of just "...2" ensures that the folder gets sorted before "Week10". Change the name of the file if you modify the document!] First find the R chunk that calculates the mean and standard deviation above and click on the downward pointing triangle on the right side to run all R code prior to this chunk. Then click on the green triangle pointing to the right to run the code in the current chunk.
+Since the sample size is so large (one million), the mean and standard deviation of the sample is very close to the mean and standard deviation of the distribution we drew them from (2 and 3 respectively) - this is due to the "Law of large numbers" which states the properties of the sample will be close to the properties of the population it is drawn from when sample size is large.
 
-If you draw fewer numbers (say 10), then the mean and standard deviation of the sample may deviate more from the mean and standard deviation of the distribution you draw from. Try this by modifying the code above! Try it several times!
+---
+
+<div class="green"> Note, that if you rerun the above code, you will get slightly different numbers because you will draw different values. If you draw fewer numbers (say 10), then the mean and standard deviation of the sample may deviate more from the mean and standard deviation of the distribution you draw from. Go ahead - try this out in the Rmd file for this document: First find the R chunk that calculates the mean and standard deviation above and click on the downward pointing triangle on the right side to run all R code prior to this chunk. Then click on the green triangle pointing to the right to run the code in the current chunk. Try this by modifying the code! Try it several times!</div>
+
+---
 
 Also the *distribution* of values in the sample will approach the distribution of the population it is drawn from (a theoretical normal distribution in this case) when sample size is large (as stated by the "Law of large numbers"). We can show this by first using the `freq = FALSE` argument in the `hist` function to make the area of the histogram equal to 1 (as in a distribution), and then overlaying the distribution of the population:
 
@@ -58,7 +86,7 @@ lines(xx, dnorm(xx, mean = 2, sd = 3), col="red") # using mean and sd of populat
 
 In the above plot there is a red line for the normal distribution with the mean and standard deviation of the *population*. We have also plotted a blue line for the normal distribution with the mean and standard deviation of the *sample*. However, with sample size of one million, the red line completely covers the blue line. Try running the above chunk several times with smaller sample size!
 
-Another way of assessing whether the values in a sample seem to follow a particular theoretical distribution is a so called "quantile-quantile plot" or a "qq-plot" for short. When the theoretical distribution is a normal distribution, we can use the function `qqnorm` to produce such a plot (it takes a bit of time to do this with a sample of a million so a sample of 10,000 has been used below instead)
+Another way of assessing whether the values in a sample seem to follow a particular theoretical distribution is a so called "quantile-quantile plot" or a "qq-plot" for short. When the theoretical distribution is a normal distribution, we can use the function `qqnorm` to produce such a plot (it takes a bit of time to do this with a sample of a million, so a sample of 10,000 has been used below instead)
 
 ```{r}
 x = rnorm(n = 10000, mean = 2, sd = 3)
@@ -68,7 +96,10 @@ qqline(x) # this just adds the line in the plot
 
 If the distribution of the sample resembles the theoretical distribution, then all points in the plot should be close to the line (there will usually be some deviations due to chance for the extreme low and high values as in the plot above). Note that we have not specified the mean and standard deviation of the theoretical normal distribution, so the plot assesses whether the sample seems to be normally distributed or not in general (without specifying the mean and standard deviation). 
 
-<!-- Could mark that the text below is "For a deeper understanding", perhaps in a box -->
+---
+
+<div class = "blue">
+**FOR A DEEPER UNDERSTANDING:**
 
 The qq-plot above is made in the following way (studying this helps you understand what a qq-plot is and how it can be interpreted):
 
@@ -88,13 +119,18 @@ plot(x~q)     # step 3 above
 abline(mean(x), sd(x)) # Plot a line with intercept = mean(x) and slope = sd(x)
 ```
 
-To understand what the code chunk above (or any code you see) does it is a good idea to try it out with a small example. Set `x2 = rnorm(n = 10000, mean = 2, sd = 3)`, replace `x` with `x2` (you don't want to overwrite `x`) and then run line by line in the Console window and look at the result.
+For further help to interpret qq-plots, see [this external resource](https://towardsdatascience.com/q-q-plots-explained-5aa8495426c0).
 
-# Loops and simulations
+To understand what the code chunk above (or any code you see) does, it is a good idea to try it out with a small example. Set `x2 = rnorm(n = 10000, mean = 2, sd = 3)`, replace `x` with `x2` (you don't want to overwrite `x`) and then run line by line in the Console window and look at the result.
+</div>
+
+---
+
+## Loops and simulations
 
 Loops are useful for repeating a set of calculations. As an example, the code chunk below repeats the following 10,000 times:
 
-1. Draw 10 random numbers from a normal distribution stored in a vector `x`.
+1. Draw 10 random numbers from a normal distribution and store this in a vector `x`.
 
 2. Compute the mean of `x` and store this in a vector `means`.
 
@@ -110,10 +146,15 @@ for(i in 1:n_iter){        # Start of the loop
 }                          # End of loop
 ```
 
-Here `i` is the iteration counter. The first time R runs through the loop `i` equals 1, the second time `i` equals 2, and so on until `i` equals `n_iter`. If you are new to loops, you may want to pause here and make a simpler loop to make sure you understand how it works (you can for example compute `i^2` (`i` to the power of 2) and `2^i` (2 to the power of `i`) in a loop where you let `i` go from 0 to 10; you should get the same result as running `(0:10)^2` and `2^(0:10)`). You may also watch this [YouTube video from the Google Developers][loops] (see the full list of their R videos [here][full list])
+Here `i` is the iteration counter. The first time R runs through the loop, `i` equals 1, the second time `i` equals 2, and so on until `i` equals `n_iter`. `x`is a vector of length `r n` that is overwritten with new random values in every iteration of the loop, and `means` is a vector of length `r n_iter` that stores the results (mean of the `r n` random values for each iteration). 
+
+---
+
+<div class = "green"> If you are new to loops, you may want to pause here and make a simpler loop to make sure you understand how it works (you can for example compute `i^2` (`i` to the power of 2) and `2^i` (2 to the power of `i`) in a loop where you let `i` go from 0 to 10; you should get the same result as running `(0:10)^2` and `2^(0:10)`). You may also watch this [YouTube video from the Google Developers][loops].</div>
 
 [loops]: https://www.youtube.com/watch?v=djI-yfk-DZM&list=PLOU2XLYxmsIK9qQfztXeybpHvru-TrqAP&index=12&t=0s 
-[full list]: https://www.youtube.com/playlist?list=PLOU2XLYxmsIK9qQfztXeybpHvru-TrqAP
+
+---
 
 Let us look at the distribution of the means computed above:
 
@@ -121,7 +162,7 @@ Let us look at the distribution of the means computed above:
 hist(means)
 ```
 
-What we have done in the loop above is to simulate the *sampling distribution* of mean(x) when there are 10 values of x drawn from a normal distribution with mean 2 and standard deviation 3. Note that increasing the number of iterations (this is the sample size of mean(x) while the sample size of x is 10) will get us closer and closer to the sampling distribution of mean(x) due to the "Law of large numbers" which we investigated in the previous section. Since 10,000 is already a large number, increasing the number of iterations (sample size of mean(x)) will not change the above histogram much (you can try it!). 
+What we have done in the loop above is to simulate the *sampling distribution* of mean(x) when there are 10 values of x drawn from a normal distribution with mean 2 and standard deviation 3. Note that increasing the number of iterations (this is the sample size of mean(x) while the sample size of x is 10) will get us closer and closer to the sampling distribution of mean(x) due to the "Law of large numbers" which we investigated in the previous section. Since 10,000 is already a large number, increasing the number of iterations (sample size of mean(x)) will not change the above histogram much (you can try it!). When increasing number of iterations further will not change the results of the simulations in a noticeable way, we say that the simulation has *converged*.
 
 Perhaps not surprisingly, this distribution looks quite "bell-shaped" like a normal distribution. The mean seems to be around 2 which is what we used as the mean of the normal distribution for which all the 10,000 samples of 10 were drawn from. However, if you compare the width of the histogram to the histogram we plotted earlier (note that we used the same standard deviation of 3 also here), we see that the histogram above is much narrower (look at the values on the x-axis). You may remember from your earlier statistics course that the standard deviation of the mean of $n$ values drawn independently from the same distribution is sd(x)/$\sqrt{n}$ where sd(x) is the standard deviation of the distribution that the values are drawn from (sd(x)/$\sqrt{n}$ is often called the "standard error of the mean"). Let us check if this is correct:
 
@@ -130,7 +171,7 @@ Perhaps not surprisingly, this distribution looks quite "bell-shaped" like a nor
 (sem_simulated = sd(means)) # Standard error of the mean from the above simulation
 ```
 
-The parentheses around the assignments above is a trick to get R to print the value at the same time as the value is assigned to a new variable. The difference between the simulated standard error of the mean, `r sem_simulated`, and theoretical value, `r sem_theoretical`, is about `r round(100*(sem_simulated - sem_theoretical)/sem_theoretical, 2)`% of the theoretical value when number of iterations (samples of mean(x)) is `r n_iter`. This difference will be even smaller if you increase the number of iterations (you can try!).
+The parentheses around the assignments above is a trick to get R to print the value at the same time as the value is assigned to a new variable. The difference between the simulated standard error of the mean, `r sem_simulated`, and theoretical value, `r sem_theoretical`, is about `r round(100*(sem_simulated - sem_theoretical)/sem_theoretical, 2)`% of the theoretical value when number of iterations (samples of mean(x)) is `r n_iter`. This difference will be even smaller if you increase the number of iterations (you can try - the values in this paragraph change if you do).
 
 Finally, we can confirm that the distribution of the mean is indeed close to a normal distribution:
 
@@ -139,15 +180,16 @@ qqnorm(means)
 qqline(means)
 ```
 
-# The central limit theorem
+## The central limit theorem
 
-In the previous section we saw that the mean of a sample of values drawn from a normal distribution is itself normally distributed (we showed this by simulation). The important central limit theorem states that this will be the case no matter what the distribution the values are drawn from *as long as the sample size is large enough*. For example, you can try to replace the normal distribution in the above simulation with a uniform distribution by replacing `rnorm(n, mux, sdx)` with `runif(n, min, max)`. In a uniform distribution, all values between `min` and `max` are equally likely. With a sample size of only `n = 10` you will see a slight deviation from a normal distribution, but as you increase `n` this deviation will be smaller.
+In the previous section we saw that the mean of a sample of values drawn from a normal distribution is itself normally distributed (we showed this by simulation). The important central limit theorem states that this will be the case no matter what the distribution the values are drawn from as long as the sample size is large enough. For example, you can try to replace the normal distribution in the above simulation with a uniform distribution by replacing `rnorm(n, mux, sdx)` with `runif(n, min, max)`. In a uniform distribution, all values between `min` and `max` are equally likely. With a sample size of only `n = 10` you will see a slight deviation from a normal distribution, but as you increase `n` this deviation will be smaller.
 
-# Exercises
+## Exercises
+
+1. Compute 
 
 
-
-# Assignment
+## Assignment
 
 The assignment this week is to produce a document in R Markdown that demonstrates the central limit theorem.
 
