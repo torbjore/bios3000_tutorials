@@ -13,6 +13,9 @@ output:
 urlcolor: blue
 ---
 
+<!-- Use the term Monte-Carlo simulations? -->
+
+
 <style>
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
 </style>
@@ -205,7 +208,7 @@ In the previous section we saw that the mean of a sample of values drawn from a 
 
 The assignment this week is to produce a document in R Markdown that demonstrates the central limit theorem.
 
-Pick a hypothetical example that you describe in words. You can for example look at the distribution of the mean height of trees in a forest or the mean number of parasites per individual in a sample of individuals (specify the distribution of tree heights or number of parasites in an individual and try the simulation for different sample sizes). Some distributions that you can consider using are uniform (`runif()`), binomial (`rbinom()`), exponential (`rexp()`) or Poisson (`rpois()`) (read about the distributions in Wikipedia (English version) and see how you specify the parameters in the R help). You may also use the `sample()` function to draw from a set of values (with different probabilities. Do not draw values from a normal distribution (because the central limit theorem says that the mean of a sample of values drawn from *any* distribution (not just the normal distribution) will be normally distributed).
+Pick a hypothetical example that you describe in words. You can for example look at the distribution of the mean height of trees in a forest or the mean number of parasites per individual in a sample of individuals (specify the distribution of tree heights or number of parasites in an individual and try the simulation for different sample sizes). Some distributions that you can consider using are uniform (`runif()`), binomial (`rbinom()`), exponential (`rexp()`) or Poisson (`rpois()`) (read about the distributions in Wikipedia (English version) and see how you specify the parameters in the R help). You may also use the `sample()` function to draw from a set of values (with different probabilities). Do not draw values from a normal distribution (because the central limit theorem says that the mean of a sample of values drawn from *any* distribution (not just the normal distribution) will be normally distributed).
 
 Demonstrate the central limit theorem by using a series of simulations with increasing sample size (try for example a sample size of 2, 5, 10, 20, ...). Make sure you use high enough number of iterations for the distribution to converge (10 000 iterations will usually be sufficient). Write some explanations and interpretations in words - don't just include the simulations.
 
