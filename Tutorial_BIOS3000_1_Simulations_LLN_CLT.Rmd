@@ -40,7 +40,7 @@ We will here show how you can draw random values from a probability distribution
 
 ## Preparations
 
-We assume that you are familiar with histograms and probability distributions. You may want to refresh these concepts from earlier course work or look at the [resources we refer to on Canvas](https://uio.instructure.com/courses/30115/pages/review-statistical-concepts-and-use-of-r).
+We assume that you are familiar with histograms and probability distributions. You may want to refresh these concepts from earlier course work or look at the [resources we refer to on Canvas](https://uio.instructure.com/courses/30115/pages/review-of-statistical-concepts-and-use-of-r).
 
 We recommend that you download the R Markdown file (*.Rmd) for each tutorial to a local folders on your computer. Later tutorials may also include datasets that you need to download. Name the folders "Week01", "Week02", and so on. Using "...01" instead of just "...1" ensures that the folder gets sorted before "Week10". Change the name of the file if you modify the document!
 
