@@ -13,9 +13,6 @@ output:
 urlcolor: blue
 ---
 
-<!-- Use the term Monte-Carlo simulations? -->
-
-
 <style>
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
 </style>
@@ -202,7 +199,7 @@ In the previous section we saw that the mean of a sample of values drawn from a 
 
 4. Use R to simulate the probability distribution of the sum of two independent dice throws and plot a histogram. **HINTS:**
     + You can simulate one dice throw with `sample(1:6, 1)` and two independent dice throws with `sample(1:6, 2, replace = T)` (Why do we need to use `replace = T`? Remember that you can look up the description of any R-function in the 'help' (e.g. type `?sample`))
-    + The `hist()` function (using default arguments) does not produce a nice histogram with integer values. Instead, you can use `table` to count how any vector elements you have of each value (try e.g. `table(c(1,1,2,3))`), and then make a barplot of these counts (table values) using `barplot()`.
+    + The `hist()` function (using default arguments) does not produce a nice histogram with integer values. Instead, you can use `table` to count how any vector elements you have of each value (try e.g. `table(c(1,1,2,3))`), and then make a bar-plot of these counts (table values) using `barplot()`.
 
 ## Assignment
 
