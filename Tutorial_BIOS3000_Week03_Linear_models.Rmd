@@ -1,0 +1,644 @@
+---
+title: Tutorial and Assignment Week 3 - Introduction to linear statistical models
+author: Torbjørn Ergon
+date: '`r Sys.Date()`'
+output:
+  pdf_document: default
+  html_document:
+    toc: yes
+    toc_float: true
+  df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Key terms and concepts covered in this tutorial
+
+* Statistical models
+* Linear models
+* Response variables
+* Categorical and continuous predictor variables 
+* Parameters and parameter estimates
+* Intercept and slope
+* Interaction effects
+* Predictions
+* Residuals
+* Confidence intervals
+* Parametric and non-parametric bootstrapping
+* (Re-)parameterization
+* Goodness-of-fit (GOF)
+* R-squared (coefficient of determination)
+
+
+## Prerequisites
+
+This tutorial includes computation of confidence intervals - you may want to refresh this concept by reading the tutorial on 'Confidence intervals' available under Week 1 on Canvas. We also assume that you have a general understanding of the following terms and concepts (from STK1000 or similar):
+
+* Normal distribution
+* Law of large numbers
+* Central limit theorem
+* Standard deviation, variance, covariance and correlation
+
+## Preparations
+
+In this week's tutorial we will get introduced to linear statistical models and analyse the morphometric data we collected in last week's group work.I suggest you run the code below by either copy-pasting into an empty R script file or by running each chuck in the R Markdown (Rmd-file).
+
+I suggest you create sub-directories "Week01", "Week02", "Week03" and so on somewhere on your hard-drive. Download the Rmd-file and the data-file "MeasurementData.txt" to the "Week03" folder. Open the Rmd-file from this folder and go into "Sessions > Set Working Directory" in the top menu in R Studio and select "To Source File" (you can see the R command that this issues in the Console window). In this way you don't need to write the full path to access or create any files in this directory.
+
+I also suggest that you save this Rmd-file under another name if you want to write your own annotations in the file or modifying the R-code. In that way you don't risk overwriting the original html/pdf files.
+
+I have copy-pasted the data from the 9 groups into a single Excel-sheet and standardized the labeling etc. before saving the data as a tab-delimited text-file (such files can be read with the `read.delim` function using default arguments - see `?read.delim`). Start by reading in the data and assign it to an object:
+
+```{r}
+students = read.delim("MeasurementData.txt")
+```
+
+Look at a summary of the data:
+
+```{r}
+summary(students)
+```
+
+This shows a summary of the distribution of each of the variables in the data.
+
+Let's make a scatter plot of `Height` against `Length_of_right_foot`:
+
+```{r}
+plot(students$Length_of_right_foot, students$Height)
+```
+
+Note that the data points appears to be clustered in many groups. This is because we have three values of each person and the only thing that separates them is measurement error (some groups also rounded off to closest cm so some points are plotted on top of each other and appear as one).
+
+In this tutorial we will mainly work with the means for each person (but we will look at the measurement later). We will also ignore the categorical measurements (classifications). To compute the means of the numerical measurements for each person, we can use the `agregate()` function. We do this here and use the `head()` to see the first lines in the new data frame:  
+
+```{r}
+summary(students[,3:13])
+students_means = aggregate(students[,6:13], by=list(students$ID), FUN=mean, na.rm = TRUE)
+head(students_means)
+```
+
+The first argument in the `agregate()` function specifies what should be aggregated (we use columns 6 to 13 in `students`), the second argument is a list of grouping variables (we only use one here), and the last argument specifies what function should be applied to each group. The argument `na.rm = TRUE` specifies that missing values should be removed before the function is applied to each group.
+
+Now we have a new data frame `students_means` that only has one value for each person (the mean of the three measurements). We have however lost the variable `Sex`. A trick to retain this variable in the new data frame is to include it as a grouping variable (although it will not refine the groupings because each person only has one sex). Below, we also set the names of the two first variables.
+
+```{r}
+students_means = aggregate(students[,6:13], by=list(students$ID, students$Sex), FUN=mean, na.rm = TRUE)
+names(students_means)[1:2] = c("ID", "Sex")
+head(students_means)
+```
+
+Let's also compute the average of the measurements of the left and right foot and store this in a new variable called `Foot` in `students_means`:
+
+```{r}
+students_means$Foot = (students_means$Length_of_right_foot + students_means$Length_of_left_foot)/2
+```
+
+We want to use these aggregated data in later tutorials, so let's save it to your working directory:
+
+```{r}
+write.csv(students_means, "students_means.csv")
+```
+
+
+## An introductions to (linear) statistical models
+
+We make a scatter plot of `Height` against `Foot` again with the means of each person:
+
+```{r}
+plot(students_means$Foot, students_means$Height)
+```
+
+Here we see that those with longer feet tend to be taller than the ones with shorter feet. We can look closer at this relationship by adding a regression line to the plot. Below, we also add a red horizontal line at the mean of `Height` (if you do this in a normal R script instead of in a R Markdown document, you don't have to create the plot again)
+
+```{r}
+plot(students_means$Height ~ students_means$Foot) # An alternative way of plotting
+lin_reg = lm(Height ~ 1 + Foot, data = students_means) # lm() is a function for fitting a linear model with normal residuals
+abline(lin_reg, col="blue")
+abline(h = mean(students_means$Height), col="red")
+```
+
+The linear regression is here done with the `lm()` function and the lines are drawn with the versatile `abline()` function (remember that you can look at the documentation for these functions by typing e.g. `?abline` in the Console window).
+
+Both these lines represent what we call **"statistical models"** of the data. More precisely, these lines are the **predictions** from two different models fitted to the data (using linear regression). Even though we did not fit a model with the `lm()` function to draw the red line here, we would have got the same line if we did. You can confirm this by removing the predictor variable `Foot` from the above model specification (i.e., use `lin_reg = lm(Height ~ 1, data = students_means)`)
+
+The red line shows the prediction from a model that mathematically can be formulated as
+$$
+y_i = \beta_0 + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+
+We need some terminology to describe the different components of this model formulation:
+
+* $y_i$ is the value of the **response variable** (in this case `Height`) for a given person $i$ (but the model applies to all persons).
+* $\beta_0$ is a **parameter** in the "**fixed part**" (i.e., non-random or systematic part) of the model. In this case, $\beta_0$ is the mean `Height` among all persons in the data set.
+* $\varepsilon_i$ is the deviation between the person's height ($y_i$) and $\beta_0$. This constitutes the **random part** of this model.
+* $\varepsilon_i \sim N(0, \sigma)$ specifies that the residuals are assumed to be drawn from a normal distribution with mean 0 and standard deviation $\sigma$.
+* We can write the **prediction** from this model as $\hat{y_i} = E[y_i] = \beta_0$. [$E[y_i]$ means "the **expectation** of  $y_i$". The "hat" above the $y_i$ is used both for predictions (as in this case) and for parameter **estimates** (see below)].
+* The **residuals** are defined as $y_i - \hat{y_i}$. [In this model, the residuals equals the $\varepsilon_i$'s since $E[\varepsilon_i]=0$. This would not have been the case if we used a non-symmetrical distribution for $\varepsilon_i$ (such as the log-normal distribution)]
+
+The model is here formulated for one person (person $i$), but it is assumed that this model applies for all persons in the data and that the individual measurements are independent of each other (to be more correct we should have specified that all $\varepsilon_i$ are *iid* $N(0, \sigma)$ where *iid* stands for "independent and identically distributed").
+
+This model can also be formulated hierarchically as
+$$
+y_i \sim N(\mu_i, \sigma)
+\\
+\mu_i = \beta_0
+$$
+
+This hierarchical structure may seem a bit cumbersome here, but hierarchical model formulations is a tidy and useful way to formulate more complex models that we get to later in the course. 
+
+You may recognize that we simulated data from this model by using the `rnorm()` function in the computer exercises last week. We can simulate height of 100 individuals from this model when $\beta_0 = 170$ cm and $\sigma=5$ cm, we use
+
+```{r}
+n = 100
+beta_0 = 170
+sigma = 5
+
+epsilon = rnorm(n, mean=0, sd=sigma)
+height = beta_0 + epsilon
+
+# or just
+
+height = rnorm(n, mean=beta_0, sd=sigma)
+```
+
+There are two parameters in this model; $\beta_0$ and $\sigma$. When we say that we "fit this model to the data" we mean that we use a procedure to find the values of the parameters that are most consistent with the data according to some criteria/principle. The most widely used principle for model fitting is the "maximum likelihood principle" (the main alternative is Bayesian statistics, which we will not use in this course). According to the likelihood principle, we choose the values of the parameters that maximize the "likelihood" of obtaining the observed data. You can think of the word "likelihood" as meaning "probability" in a loose sense (note however that a random continuous variable can take an infinite number of values so the probability of one specific value is infinitesimally small (zero) - for continuous variables it only makes sense to talk about probabilities of values being in an interval). When the residuals are assumed to come from a normal distribution, the "maximum likelihood principle" leads us to minimize the sum of the squared residuals (i.e., we minimize $\sum_{i=1}^{n} \varepsilon_i^2$). This is what the function `lm()` does here:
+
+```{r}
+fit_1 = lm(Height ~ 1, data = students_means)
+```
+
+We look at a summary of this model fit:
+```{r}
+summary(fit_1)
+```
+First we see a summary of the distribution of the residuals. Then we see the estimate of parameters in the fixed part of the model with a standard error (a measure of uncertainty). We also get some test statistics for the null-hypothesis that the true mean height is zero (which is totally meaningless here). Finally, we also get the estimate of the residual standard deviation (it says "standard error" which is misleading). I.e., the parameter estimates are: $\hat{\beta_0} =$ `r round(coef(fit_1), 2)` cm and $\hat {\sigma} =$ `r round(summary(fit_1)$sigma, 2)` cm. You can confirm that these estimates are the same as the mean and standard deviation in the data (try running `mean(students_means$Height)` and `sd(students_means$Height)` -- note that the latter is the same as the standard deviation of the residuals, `sd(students_means$Height - mean(students_means$Height))` since subtracting a constant does not change the variance or the standard deviation).
+
+We will expand on this very simple statistical model shortly, but first we will stop to think about why we fit models to data in the first place.
+
+## Samples and inference about a population
+
+The mean and standard deviation of body height that we have computed above apply to this year's class in BIOS-3000/4000. If we are only interested in this group of people, the only reason to call them "estimates" is that there are measurement uncertainties (repeated measurements on the same individual was not always the same), and it may be that some course participants were not present when the measurements were taken. However, these "estimates" are of little general interest.
+
+It would be more (biologically) interesting to estimate the distribution of body height in, say, all current students at the University of Oslo (we could then compare these estimates with estimates of other student populations or cohorts). However, it can be difficult to get measurements of all people in this group. This is where the "Law of large numbers" that we investigated in last week's exercise comes in handy; If we take a representative sample of the statistical population, we know that the properties of the sample will become more and more similar to the properties of the population as sample size increase, and we don't have to take a very large sample to get sufficiently good precision. When using a statistical model we can also quantify the precision in the parameters we estimate by computing confidence intervals (as we will get to shortly).
+
+The best way to ensure that a sample is representative is to sample at random. To do this all people in the target population should have an equal probability of being included in the sample. This is not the case here, but we may assume that people taking this course is not very different from the rest of the University of Oslo students with respect to body height (our inference would then be contingent on this assumption being true). If we regard the students in this course as a representative sample of some population, then the mean and standard deviation that we computed are estimates of the whole population.
+
+But, wait! Is this reasonable? We see from the summary of the data above that there are `r table(students_means$Sex)[1]` females and only `r table(students_means$Sex)[2]` males in the data set (i.e., `r  round(table(students_means$Sex)[1]/nrow(students_means), 2)*100` % females). We also know that females are on average shorter than males. Since we have unbalanced data with respect to sex, the mean we have computed above is more influenced by females than males, and this mean is not very meaningful.
+
+Instead we can compute the mean and standard deviation of each sex separately (here I show a few different ways of doing this):
+
+```{r}
+#mean(students_means$Height[students_means$Sex=="female"])
+#sd(students_means$Height[students_means$Sex=="female"])
+
+#with(students_means[students_means$Sex=="male",], mean(Height))
+#with(students_means[students_means$Sex=="male",], sd(Height))
+
+(means = tapply(students_means$Height, list(students_means$Sex), mean))
+(SDs = tapply(students_means$Height, list(students_means$Sex), sd))
+```
+
+We have now estimated that the mean height of females in the population is `r round(means[1] ,1)` cm, and for males the mean height is `r round(means[2], 1)` cm. The standard deviation for females and males are respectively `r round(SDs[1] ,1)` cm and  `r round(SDs[2], 1)` cm. These estimates are associated with some uncertainty. You may remember from last week that the standard error of the mean is the standard deviation divided by $\sqrt{n}$ (where $n$ is sample size). Using this we get:
+
+```{r}
+(SEs = SDs/sqrt(table(students_means$Sex)))
+```
+
+The 95% confidence intervals are approximately $\pm 2$ SE's around the mean. Hence, the 95% confidence intervals for mean height of females are
+
+```{r}
+means[1] + c(-2,2)*SEs[1]
+```
+
+and for males we get
+
+```{r}
+means[2] + c(-2,2)*SEs[2]
+```
+
+In 2005 the mean height of men entering the mandatory military service in southern Norway was 180.2 cm, which is slightly lower than the confidence interval we have estimated here (see https://www.ssb.no/a/publikasjoner/pdf/sa94/del-v-1b.pdf).
+
+The confidence intervals for the parameters in the fixed part of the model can be computed with the `confint()` function. We can do that separately for each sex:
+
+```{r}
+fit_F = lm(Height ~ 1, data = students_means, subset = Sex=="female")
+summary(fit_F)
+confint(fit_F)
+```
+
+```{r}
+fit_M = lm(Height ~ 1, data = students_means, subset = Sex=="male")
+summary(fit_M)
+confint(fit_M)
+```
+
+We can confirm that the mean and standard deviations are exactly the same as computed above. The confidence limits deviate slightly due to different approximating methods.
+
+## Expanding the linear model (with alternative parameterizations) and confidence intervals of predictions
+
+The standard deviation in body height appears to be somewhat lower for males than for females (`r round(sd(students_means$Height[students_means$Sex=="male"]),2)`  vs. `r round(sd(students_means$Height[students_means$Sex=="female"]),2)`). This difference can partly be due to sampling error (you will address this in the Assignment this week. Since they are not hugely different, we may justify fitting a model where residual standard deviation is the same for the two sexes (remember that any model is a simplification of reality, and we, as researchers have to decide how much we want to simplify). We can do this in the `lm()` function:
+
+```{r}
+fit_Sex = lm(Height ~ Sex, data = students_means)
+summary(fit_Sex)
+```
+
+You may be surprised that the two fixed effects parameters (i.e., the two parameters in the fixed (systematic) part of the model) here are not mean height for each of the sexes. This is because the model that we have fitted is
+$$
+y_i = \beta_0 + \beta_1x_i + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+where
+
+* $y_i$ is body height of individual $i$ (as before).
+* $\beta_0$ is the mean height of females.
+* $\beta_1$ is the difference between the mean of males and the mean of females.
+* $x_i$ is an indicator variable that equals 0 if person $i$ is a female and 1 if the person is a male.
+* The rest of the model is defined the same way as earlier.
+
+The first parameter, $\beta_0$, is called "the intercept" and is the value of $y_i$ that we get if we set all the predictor variables (in this case only $x$) to zero. The only reason why the intercept is defined as the mean of females, and not males, is that "female" is earlier in the alphabet than "male" (`lm()` sorts factor levels alphabetically).
+
+In this case, we can remove the intercept by specifying `~ -1 + Sex` in the model formula (`1` in the formula specifies an intercept and is added by default if not specified, unless `-1` is specified):
+
+```{r}
+fit_Sex_no_int = lm(Height ~ -1 + Sex, data = students_means)
+summary(fit_Sex_no_int)
+```
+
+The model that we have now fitted is
+$$
+y_i = \beta_1 x_{i,1} + \beta_2 x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+where
+
+* $\beta_1$ is the mean height of females
+* $x_{i,1}$ is an indicator variable taking the value 1 if the person is a female and 0 otherwise.
+* $\beta_2$ is the mean height of males
+* $x_{i,2}$ is an indicator variable taking the value 1 if the person is a male and 0 otherwise.
+
+These two models are exactly equivalent in the sense that all predictions and residuals from the model will be identical. Note that the residual summaries of the two model fits are identical and that estimated $\beta_0 + \beta_1$ in the first model fit equals the estimate of $\beta_2$ in the second model fit (do not worry about the inflated R-squared value in the second model fit - when the intercept is removed `lm()` compares the residual variance to a model with all predicted values equal to zero, which is quite meaningless in this case). We say that these two model formulations are alternative **parameterizations** of the same model - the model is really the same, but we have formulated it in two different ways.
+
+We cannot always remove the intercept without changing the model, and there are good reasons for preferring the first model formulation above (with an intercept). Even though we don't have mean height of males as a parameter in this model, we can still obtain a confidence interval for this by computing confidence intervals for *predictions* from the model.
+
+To compute predictions (with confidence intervals) from a model fit, we first need to create a "`data.frame`" with the the values of the predictor variables that we want to compute the predictions for [A `data.frame` in R is an object class in R that has variables in columns and cases/subjects in rows. The variables may be numerical (as `Height`) or categorical (as `Sex`). The data we have stored in `students_means` is an example of a ´data.frame`]:
+
+```{r}
+PredData = data.frame(Sex = c("female", "male"))
+```
+
+Then we can supply this `data.frame` together with a fitted model object to the `predict()`function to compute predictions:
+
+```{r}
+(Predictions = predict(fit_Sex, newdata = PredData, interval = "confidence"))
+```
+
+We see that these confidence intervals are quite similar to the intervals we computed earlier, but they are not exactly the same because the models are not identical. Earlier we allowed the residual standard deviation to be different for the two sexes, while here we have constrained them to be the same.
+
+In the above call to the `predict()` function, we specified `interval = "confidence"`. This gives us the 95% confidence intervals of the predicted *mean*. I.e., we have computed the confidence interval for the mean values in the population. If we repeat the sampling with the same sample size and fit the model many times, we expect to get predictions within this interval 95% of the time. The higher the sample size, the narrower these confidence intervals will be. The height of a single individual in the population may be far outside this interval. If the only thing you know about a person is the person's sex, and you want to predict her/his height, the prediction (as a point estimate) would be the same, but the uncertainty is much larger. We can compute the confidence interval for such predictions by using `interval = "prediction"`: 
+
+```{r}
+(Predictions = predict(fit_Sex, newdata = PredData, interval = "prediction"))
+```
+
+These intervals account for both uncertainty of the mean and the variation around the mean. E.g., if we measure the height of a random female in the population, we expect to get a value between `r round(Predictions[1,2],1)` and `r round(Predictions[1,3], 1)` 95% of the time. Such confidence intervals for predictions for random individual study units are often called "prediction intervals".
+
+## Confidence intervals and an introduction to bootstrapping
+
+The meaning of a 95% confidence interval is that, if you repeat the sampling and estimation procedure, you should get point estimates (or predictions) that are within this interval 95% of the time. We can check this by simulating data and estimating the parameters many times in a loop (as in last week's exercise). Below, we do this for the `fit_Sex` model with the estimated parameter values, using 10,000 iterations (this will take a few seconds):
+
+```{r}
+n_iter = 10000 # Number of iterations
+beta = fit_Sex$coef # The parameters in the fixed part of the model (to see what the model object contains, use `str(fit_Sex)`)
+res_sd = sd(fit_Sex$residuals) # Residual standard deviation
+Sex = students_means$Sex
+n = length(Sex)  # Sample size
+
+samples_beta = matrix(nrow=n_iter, ncol=2)  # Empty matrix for storing resampled beta-estimates
+for(i in 1:n_iter){
+  fixed = beta[1] + (as.numeric(Sex)-1)*beta[2]  # Another way: fixed = ifelse(fit_Sex$model$Sex=="female", beta[1], sum(beta))
+  random = rnorm(n, 0, res_sd)
+  y = fixed + random
+  refit = lm(y ~ Sex)
+  samples_beta[i,] = refit$coef
+}
+```
+
+Note that this simulation is essentially the same as the one you did last week when you demonstrated the central limit theorem. The only difference is that we in every iteration here re-fit the model to the simulated data instead of just computing a mean. In every iteration, we now store two parameter estimates. 
+
+The 10,000 new "re-sampled" values of the fixed effects parameters is now stored in the matrix `samples_beta`; $\beta_0$ is in the first column and $\beta_1$ is in the second column. To compute the 95% confidence interval of $\beta_0$ (mean female height), we can use the `quantile()` function to find the 2.5% and 97.5% quantiles of the values we have obtained:
+
+```{r}
+quantile(samples_beta[,1], prob=c(0.025, 0.975)) # The 2.5% and 97.5% quantiles of beta0 (mean height of females)
+```
+
+This interval is almost the same as the confidence interval for mean female height that we computed earlier. If you run the simulation again, you will get slightly different values. You should set number of iterations (`n_iter`) high enough that the interval stays the same when rounded off to the precision (number of decimals) you want (i.e., high enough for the Monte Carlo simulations to converge).
+
+To compute an equivalent interval for males, we need to add the two parameter values *for every sample* before we compute the quantiles:
+
+```{r}
+quantile(samples_beta[,1] + samples_beta[,2], prob=c(0.025, 0.975)) # same for males
+```
+
+Again, you can confirm that the interval is virtually identical to the confidence interval we have computed earlier. This demonstrates that we can generate confidence intervals through simulations. This method of computing confidence intervals is called *parametric bootstrapping*. In this example it is easier to compute the confidence interval as the estimate (or prediction) $\pm 2$ standard errors (or using quantiles of the Student's t-distribution to be more exact). However, bootstrapping is very useful because it is a general method that can be used to compute a confidence interval for any model parameter or a combination of parameters (predictions or contrasts). For example, the least square method does not give us any estimate of uncertainty in the residual standard deviation. However, we can compute the confidence interval for this parameter through bootstrapping. Below, we do this through parametric bootstrapping in exactly the same way as above (I have however simplified the code by using the `simluate()` function to simulate new data, which I avoided above to better show how the simulations are done):
+
+```{r}
+n_iter = 10000 # Number of iterations
+Y = simulate(fit_Sex, nsim = n_iter)
+
+samples_sd = rep(NA,n_iter)  # Empty vectors for storing results
+for(i in 1:n_iter){
+  refit = lm(Y[,i] ~ students_means$Sex)
+  samples_sd[i] = sd(refit$residuals)
+}
+(CI_sd = quantile(samples_sd, prob=c(0.025, 0.975)))
+```
+
+This shows that a 95% confidence interval for the residual standard deviation in this model range from `r round(CI_sd[1], 1)` cm to `r round(CI_sd[2], 1)` cm.
+
+We can also look at the whole confidence distribution by plotting a histogram of the re-sampled values:
+
+```{r}
+hist(samples_sd, 20)
+```
+
+In this case, the confidence distribution looks very symmetrical and bell-shaped (as a normal distribution). When standard deviations are small (close to zero), and sample size is small, we often get confidence distributions that are skewed with a heavy tail to the right. In such cases, constructing a confidence interval based on $\pm 2$ standard errors may give you a lower limit below zero which makes no sense (standard deviations cannot be below zero).
+
+Bootstrapping can also be done by re-sampling new data (with replacements) directly from the observed data instead of generating new data from a fitted model; this is called  "*non-parametric bootstrapping*". Here, we do this to compute a confidence interval for how many % higher mean height of males are than mean height of females (here we do not assume that the standard deviations in height among females and among males are the same, so we compute the means of the sample):
+
+```{r}
+n_iter = 10000 # Number of iterations
+n = nrow(students_means)
+
+samples_males_vs_females = rep(NA,n_iter)  # Empty vectors for storing results
+for(i in 1:n_iter){
+  resamp_rows = sample(1:n, n, replace = TRUE)
+  resamp_data = students_means[resamp_rows,]
+  resamp_means = tapply(resamp_data$Height, list(resamp_data$Sex), mean)
+  samples_males_vs_females[i] = (resamp_means["male"]/resamp_means["female"] - 1)*100
+}
+(mean_samples_males_vs_females = mean(samples_males_vs_females))
+(CI_samples_males_vs_females = quantile(samples_males_vs_females, prob=c(0.025, 0.975)))
+```
+
+Here we have computed that mean height of males is `r round(mean_samples_males_vs_females, 1)` % higher than the mean height of females, with a 95% confidence interval of `r round(CI_samples_males_vs_females[1], 1)` % to  `r round(CI_samples_males_vs_females[2], 1)` %.
+
+## Confidence intervals versus p-values
+
+A p-value is the probability of getting the observed result, or something "more extreme", **given** that the null-hypothesis is true ("more extreme" here means something that is less likely than what you have observed). A p-value always relates to a null-hypothesis defined by the researcher. Often p-values refer to a null-hypothesis of "no difference", i.e., that some parameter representing a difference is zero. For example, in the summary of the `fit_Sex` model above, we got the following table:
+
+```{r echo = FALSE}
+(table = summary(fit_Sex)$coef)
+```
+
+The values in the last column to the right are p-values referring to a null-hypothesis that the parameter is zero. The first one tests whether the intercept (i.e., the mean height of females) is zero, which is obviously non-sense. The second one tests whether mean height of males are higher than mean height of females. This p-value is rather non-informative too because we already know that this null-hypothesis is false. Hence, the p-value just reflects how much data you have and how precisely you can estimate this difference. However, a confidence interval gives you better information about the precision of the estimate, as it gives you a range of plausible values in cm. If we construct a 95% confidence interval based on $\pm$ 2 SE, we get an interval from `r round(table[2,1] - 2*table[2,2], 2)` cm to `r round(table[2,1] + 2*table[2,2], 2)` cm. If the lower interval of the 95% confidence interval had been 0 cm, we would have got a p-value of 0.05 (i.e., 5%). Hence, if it is stated that a p-value for a difference is <0.05 we know that the 95% confidence interval for the difference does not include zero, but we know nothing else about the difference unless we see the confidence interval (or at least the point estimate).
+
+
+## Dependency between parameters
+
+Bootstrapping and simulations in general are very useful for investigating (and learning) statistical methods.
+
+The parameters in a statistical model are generally not independent. In the `fit_Sex` model we used in the parametric bootstrap example above we should expect that if we by chance have estimated mean female height ($\beta_0$) too low, then our estimate of the difference between mean height of males and females ($\beta_1$) is too high. We can see this by plotting the re-sampled parameter estimates against each other:
+
+```{r}
+plot(samples_beta[,1], samples_beta[,2])
+correlation = cor(samples_beta[,1], samples_beta[,2])
+title(paste("Correlation = ", round(correlation,2)))
+```
+
+The correlation between the parameter estimates is here printed above the plot. Of course, when you fit the model to the real data you only get a single value (point estimate) for each of the parameters, and you have no idea if you would tend to get smaller or larger values if you collected new data. However, before you have collected any data, the parameter estimates that you will get (the estimators) are unknown stochastic (random) variables. What the simulation (parametric bootstrapping) have shown here is that these stochastic variables are not independent (they are correlated, and the bootstrap procedure estimates that the correlation coefficient is `r round(correlation,2)`).
+
+When computing confidence intervals for model predictions, it is essential to know this sample correlation among the parameter estimators in addition to the standard errors. For this reason, the fitted model object `fit_Sex` contains information about the whole variance-covariance matrix of the parameter estimates, which can be extracted with the `vcov()` function:
+
+```{r}
+(vcov_lm = vcov(fit_Sex))
+```
+
+We can also estimate this variance-covariance matrix through bootstrapping; it is simply the variance-covariance of the re-sampled parameter estimates (the values will differ slightly due to different methods):
+
+```{r}
+(vcov_boot = var(samples_beta))
+```
+
+The diagonal of this matrix holds the variances of the parameter estimates, and the square root of these are the standard errors of the parameter estimates.
+
+```{r}
+sqrt(diag(vcov_lm))
+```
+
+You may confirm that these values are exactly the same as the standard errors reported by `summary(fit_Sex)`. We can also transform the variance-covariance matrix to a correlation matrix and check that the correlation we get is almost the same as the correlation we computed from the bootstrap re-samples above (`r round(correlation,2)`):
+
+```{r}
+cov2cor(vcov_lm)
+```
+
+## Including continuous predictor variables in the linear model
+
+We started this tutorial by plotting `Height` (y-axis) against `Foot` (x-axis) from our morphometric data and then fitting a linear regression model.
+
+```{r}
+fit_Foot = lm(Height ~ Foot, data = students_means)
+```
+
+I here omitted the `1` in the model formula (specifying an intercept) as this is added by default. Unlike the variable `Sex` which is a categorical variable, `Foot` is a continuous variable of the length of the foot in cm.
+
+We can also use both `Sex`and `Foot` as predictor variables in the same model:
+
+```{r}
+fit_Sex_Foot = lm(Height ~ Sex + Foot, data = students_means)
+summary(fit_Sex_Foot)
+```
+
+This model gives predictions of a person's height based on the persons sex and length of the feet, and can be formulated as 
+
+$$
+y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+
+where
+
+* $\beta_0$ is the intercept
+* $\beta_1$ is the effect of `Sex` (difference between males and females)
+* $x_{i,1}$ is an indicator variable taking the value 1 if the person is a male and 0 otherwise.
+* $\beta_2$ is the effect of `Foot` (the slope of the regression)
+* $x_{i,2}$ is the variable `Foot` (the length of the foot in cm).
+
+If we set $x_{i,1}$ and $x_{i,2}$ to zero, we get $\hat{y}_i = \beta_0$. Hence, the intercept ($\beta_0$) is the predicted height of a female with foot length equal to zero cm. This parameter is not directly interpretable. If you want this parameter to be directly interpretable, you could subtract the mean foot length of females from $x_{i,2}$ and instead fit the model
+
+$$
+y_i = \beta_0' + \beta_1 x_{i,1} + \beta_2 (x_{i,2} -\mu_F) + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+
+where $\mu_F$ is the mean foot length of females. The intercept $\beta_0'$ is now the mean height of females with foot length equal to the mean in the sample. The other parameters remain the same. This is a reparameterization of the original model, meaning that the predictions and residuals from the model will remain the same. Note that  $\beta_0 = \beta_0' - \beta_2 \mu_F$.
+
+We can fit this model with the redefined intercept in the following way:
+
+```{r}
+mu_F = mean(students_means$Foot[students_means$Sex=="female"])
+fit_Sex_Foot = lm(Height ~ Sex + I(Foot-mu_F), data = students_means)
+summary(fit_Sex_Foot)
+```
+
+The `I()` is used to compute predictor variables within the model formula. Note that the only thing that has changed in this output is the estimate of the intercept as it has been redefined.
+
+In this model (irrespective of parameterization), we assume that the effects of `Sex` and `Foot` are additive. This means that the difference between the sexes is the same regardless of foot length. Equivalently, the slope $\beta_2$ is the same for the two sexes (i.e., the prediction lines are parallel).
+
+The code below plots the prediction lines for the two sexes
+
+```{r}
+model_fit = fit_Sex_Foot
+Title = "Additive model"
+x_range_F = range(students_means$Foot[students_means$Sex=="female"])
+x_range_M = range(students_means$Foot[students_means$Sex=="male"])
+pred_data_F = data.frame(Sex = "female", Foot = seq(x_range_F[1], x_range_F[2], length.out = 50))
+pred_data_M = data.frame(Sex = "male", Foot = seq(x_range_M[1], x_range_M[2], length.out = 50))
+pred_data = rbind(pred_data_F, pred_data_M)
+pred = predict(model_fit, pred_data, interval = "confidence")
+pred = cbind(pred_data, pred)
+
+with(students_means,
+     plot(Foot, Height, type="n", xlab="Foot length (cm)", ylab = "Height (cm)")
+     )
+with(students_means, points(Foot, Height, col=ifelse(Sex=="female", "red", "blue")))
+with(pred[pred$Sex=="female",], lines(Foot, fit, col="red"))
+with(pred[pred$Sex=="female",], lines(Foot, lwr, col="red", lty=2))
+with(pred[pred$Sex=="female",], lines(Foot, upr, col="red", lty=2))
+with(pred[pred$Sex=="male",], lines(Foot, fit, col="blue"))
+with(pred[pred$Sex=="male",], lines(Foot, lwr, col="blue", lty=2))
+with(pred[pred$Sex=="male",], lines(Foot, upr, col="blue", lty=2))
+legend("topleft", legend=c("Females", "Males"), pch=c(1,1), col = c("red", "blue"))
+title(Title)
+```
+
+The stippled lines in the plot shows the 95% confidence intervals for the prediction lines. Take a moment to study this plot. What interpretations can you make?
+
+The fact that the two prediction lines are parallel is not a result of the analysis. It is a constraint in the model. To make the model more flexible such that the two sexes are allowed to have different slopes, we need to add one parameter to the model. Again, there are several ways to parameterize this model. We will stick to the default parameterization in R and fit the following model:
+
+$$
+y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,3} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+Here, the definitions of all parameters and variables in the three first terms are the same as in the additive model above (except that $\beta_1$ has a different interpretation, which we will get back to soon). In the fourth term we have:
+
+* $\beta_3$ the difference in the slope between males and females
+* $x_{i,3} = x_{i,1} x_{i,2}$ (explanation below)
+
+That is, $\beta_3$ is what you need to add to the female slope to get the male slope. Hence, the slope for females is $\beta_2$ and the slope for males is $\beta_2 + \beta_3$. The variable $x_{i,3}$ has the value of variable `Foot` only when person $i$ is a male. Otherwise it has the value 0. This is what we get when multiplying $x_{i,1}$ and $x_{i,2}$. The difference in slope of males and females ($\beta_3$) is called an **interaction effect** and is generally the effect of products of predictor variables. In R we specify this by using the `*` symbol instead of `+`.
+
+Let us fit this model and look at the summary:
+
+```{r}
+fit_Sex_Foot_interaction = lm(Height ~ Sex*Foot, data = students_means)
+summary(fit_Sex_Foot_interaction)
+```
+
+We can also use the code above for plotting the predictions (note that only the two first lines needs to be changed):
+
+```{r echo=FALSE}
+model_fit = fit_Sex_Foot_interaction
+Title = "Interaction model"
+x_range_F = range(students_means$Foot[students_means$Sex=="female"])
+x_range_M = range(students_means$Foot[students_means$Sex=="male"])
+pred_data_F = data.frame(Sex = "female", Foot = seq(x_range_F[1], x_range_F[2], length.out = 50))
+pred_data_M = data.frame(Sex = "male", Foot = seq(x_range_M[1], x_range_M[2], length.out = 50))
+pred_data = rbind(pred_data_F, pred_data_M)
+pred = predict(model_fit, pred_data, interval = "confidence")
+pred = cbind(pred_data, pred)
+
+with(students_means,
+     plot(Foot, Height, type="n", xlab="Foot length (cm)", ylab = "Height (cm)")
+     )
+with(students_means, points(Foot, Height, col=ifelse(Sex=="female", "red", "blue")))
+with(pred[pred$Sex=="female",], lines(Foot, fit, col="red"))
+with(pred[pred$Sex=="female",], lines(Foot, lwr, col="red", lty=2))
+with(pred[pred$Sex=="female",], lines(Foot, upr, col="red", lty=2))
+with(pred[pred$Sex=="male",], lines(Foot, fit, col="blue"))
+with(pred[pred$Sex=="male",], lines(Foot, lwr, col="blue", lty=2))
+with(pred[pred$Sex=="male",], lines(Foot, upr, col="blue", lty=2))
+legend("topleft", legend=c("Females", "Males"), pch=c(1,1), col = c("red", "blue"))
+title(Title)
+```
+
+Take a moment to study this plot and the model summary above, and compare this to the result from the additive model.
+
+Note that n this model, $\beta_1$ is the difference between the two sexes *only at the intercept* (when foot length is zero) as we no longer assume that the two prediction lines are parallel. 
+
+You may have noticed that the confidence intervals for the predictions are slightly wider for the more complex interaction model. This is a general phenomenon; If we add more parameters to a model, we reduce bias (increase accuracy) but we also loose precision (get wider confidence intervals). The summary of the model shows that the difference between the slopes of the two sexes is not statistically significant at the 5% level, meaning that the 95% confidence interval will overlap with zero (even the 60% confidence interval will overlap with zero). This justifies preferring the simpler additive model **if** we are only interested in using the model for predicting a person's height from the person's sex and foot length (we will look closer at such data-based model selection next week). However, it is important to realize that this **does not** justify a conclusion that females and males have the same slope. Only the confidence interval for the difference in slope provides information about how different the slopes may be.
+
+## Assessing "goodness of fit"
+
+Before we use a fitted model to make any inference we should assess how well the model fits the data. Procedures for doing this are referred to as "goodness of fit" (GOF) assessments. This involves assessing whether there is reasonable agreement between the structure of the model (or the model "assumptions") and the data - do the data look like they could have been generated from the model? If the answer is "no" we should reconsider the structure of the model and perhaps fit a different kind of model (e.g. a non-linear one) if this is biologically reasonable and the model is able to give us the information we need to address our research questions. If the "lack of fit" is severe (i.e., there are some structures in the data that are very unlikely to occur by chance if we simulated data from the model), our inferences from the model fit will be rather questionable.
+
+In the model we plotted above, we have used straight lines to represent the mean height at different foot lengths for each of the sexes. The data-points are evenly scattered around these lines, so this seems fine. There are no patterns in the plot suggesting that the data are unlikely to have occurred if they were drawn from a normal distribution with a constant standard deviation either. To study this more closely, we can use the `plot` function on the fitted model object. I.e., type `plot(fit_Sex_Foot_interaction)` - try this!. [The `plot` function, and many other functions in R (such as `summary()`) is a generic function, meaning that it can be used on many different object classes, and exactly what it does depends on the object class. To see what class an object belongs to, use e.g. `class(fit_Sex_Foot_interaction)`, and to see the help for the `plot` function applied to e.g. an object of class 'lm', type `?plot.lm` (such varieties of a generic function are called 'methods').]
+
+The first plot we get from `plot(fit_Sex_Foot_interaction)` shows the residuals plotted against the fitted values and can be used to assess whether there are any patterns in the residuals that indicate non-linearity, the next plot is a Normal qq-plot that you will recognize from last week's tutorial (to assess the assumption of normal residuals), and the last two plots can be used to assess whether there are any outliers or any particularly influential data-points.
+
+## Proportion of variance explained
+
+In the summary of the interaction model above, we see that the "Multiple R-squared" ($R^2$) value is `r round(summary(fit_Sex_Foot_interaction)$r.squared, 2)` (this is also called the "Coefficient of determination"). This is the proportion of the variance in the response variable explained by the model (we will get to the meaning of the "Adjusted R-squared" next week). The observed values of the response variable is the predicted value plus the residual ($\hat{y}_i + \varepsilon_i$). The covariance between the residuals and the predicted values of a linear model fitted with by maximum likelihood will always be zero (although there may be patterns in the residuals if the model does not fit the data well). Hence, the variance of this sum is the sum of the variances (since the covariance is zero). I.e., 
+$$
+\text{Var(observed values)} = \text{Var(predicted values)} + \text{Var(residuals)}
+$$
+and
+$$
+R^2 = \text{Var(predicted values)}/\text{Var(observed values)}
+$$
+
+Note that it is not possible to decompose the standard deviation in such a sum because
+$$
+\text{SD(observed values)} = \sqrt{\text{SD(predicted values)}^2 + \text{SD(residuals)}^2}
+$$
+Hence, it does not make sense to talk about "proportion of standard deviation explained".
+
+We can compute the R-squared (reported in the summary above) in many ways. For example, directly from the fitted model object as:
+```{r}
+var_res = var(residuals(fit_Sex_Foot_interaction))
+var_pred = var(fitted(fit_Sex_Foot_interaction))
+var_tot = var_res + var_pred
+var_pred/var_tot # (var_tot - var_res)/var_tot 
+```
+or from the residuals of the model and the variance of the observed data:
+```{r}
+var_res = var(residuals(fit_Sex_Foot_interaction))
+var_tot = var(residuals(fit_1)) # = var(students_means$Height)
+(var_tot - var_res)/var_tot # = 1-var_res/var_tot 
+```
+
+## Measurement error in the response variable
+
+The variance in the observed values, and hence the residual variance, consists of both random (unexplained) variation among students and measurement error. The $R^2$ values we computed above is the proportion of the total variance (including measurement error) explained by the model, which is lower that the proportion of the random biological variation among students explained. Since we have three repeated measurements of each student in our body height data, we can estimate the measurement error variance. The easiest way to do this is to fit a model of `Height` with student specific expectations in the original data (before we aggregated to student specific means). The residual variance from this model is then an estimate of the measurement error variance of the *individual measurements* (not the individual means). Here we compute the the standard deviation instead since this is in units of cm and can be interpreted directly.
+
+```{r}
+fit_measurements = lm(Height ~ ID, data = students)
+(sd_merr = sd(residuals(fit_measurements)))
+```
+
+Hence we should expect that 95% of all repeated measurements of a single individual are within $\pm$ 2 times this value (i.e., $\pm$ `r round(2*sd_merr, 2)` cm) from the mean. However, in our analysis, we have used the mean values of three repeated measurements, and the variance of three *iid* measurements is one third of the variance of each of them. We can subtract this from the total variance to get an estimate of the unexplained biological variance among individuals (this is often called "the process variance"). Further, we can compute how large a proportion of this variance that the model explains:
+
+```{r}
+var_merr_mean = (sd_merr^2)/3
+var_process = var_tot - var_merr_mean
+var_pred/var_process
+```
+
+This value is only a tiny bit higher than the $R^2$ values we computed above because the measurement error variance is merely `r round(100*var_merr_mean/var_tot,2)` % of the total variance. The measurement error variance is of course a higher proportion of the residual variance, but the estimated process standard deviation is also only marginally smaller than the residual standard deviation (in cm):
+
+```{r}
+(sd_res = sd(residuals(fit_Sex_Foot_interaction)))
+(sd_res_process = sqrt(sd_res^2 - var_merr_mean))
+```
+
+This difference is less than `r round((sd_res - sd_res_process)*10, 2)` mm, which is negligible. But at least, now we know, and can show, that this is the case. By taking repeated measurements we can both reduce the measurement error by using the mean value in the analysis, and we can correct the estimates of random (unexplained) process variation and $R^2$. Importantly, repeated measurements also allow us to more easily find mistakes in the data. Mistakes when recording large amounts of data always occur. E.g., after a long day in the field or in the lab, one may write down a value that is 1 or 10 units off the measured value. Without repeated measurements, it may be impossible to discover (and verify with certainty) such mistakes, and some mistakes may cause large biases. Hence, it is always a good idea to take repeated measurements when this is practically possible. At least, one ought to take repeated measurements on a random subset of the study units such that measurement error variance can be estimated.
+
+Measurement error in the response variable does not cause any bias in other parameter estimates than the residual variance (when interpreted as a biological process variance). However, later in the course, we will see that measurement error in the predictor variables will also bias the estimated effects (slopes) of the predictor variable towards zero.
+
+## Assignment
+
+Before starting this week's assignment, you should work your way through the text in this document. If you are unsure about the meaning of some terms, you can check the Glossary on Canvas. Try also to run and understand the R code. It may help to print out objects in the Console window (or mark the text and hit Ctrl-r) or use the `str()` function to look at the structure of the objects. If there is something you are unsure about or don't understand, you can try to modify the code to see what it does or look up functions in the R help (or use Google). It is also a good idea to work together with fellow students. We are of course also available to help at the Help Desk.
+
+**Assignment:**
+
+Write a R-mark document where you include the following:
+
+1. Use bootstrapping (parametric or non-parametric) to compute a 95% confidence interval for the ratio between standard deviation in male and female height (SD(height of males)/SD(height of females)). Do the same with residual standard deviation when accounting for the linear effect of foot length (you need to fit one model with `lm()` for each sex). How do you interpret the differences? 
+
+2. Fit both a model with additive effects and a model with interaction effects to predict body height from a person's sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
