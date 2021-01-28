@@ -48,7 +48,7 @@ This tutorial includes computation of confidence intervals - you may want to ref
 ## Preparations
 
 In this week's tutorial we will get introduced to linear statistical models.
-<!-- and analyse the morphometric data we collected in last week's group work. -->
+<!-- and analyze the morphometric data we collected in last week's group work. -->
 I suggest you run the code below by either copy-pasting into an empty R script file or by running each chuck in the R Markdown (Rmd-file).
 
 I suggest you create sub-directories "Week01", "Week02", "Week03" and so on somewhere on your hard-drive. Download the Rmd-file and the data-file 
@@ -128,7 +128,7 @@ Here, each row is a different student. The first column is a personal ID ('g' st
 
 <!-- We make a scatter plot of `Height` against `Foot` again with the means of each person: -->
 
-Let's start by making a scatter plot of `Height` against `Foot of each person:
+Let's start by making a scatter plot of `Height` against `Foot` of each person:
 
 
 ```{r}
@@ -678,7 +678,27 @@ var_tot = var(residuals(fit_1)) # = var(student_means$Height)
 
 ## Exercises
 
-...to come...
+1. Write down the model fitted by the following calls to the `lm()` function with mathematical notation.
+
+    A. `fit_Foot = lm(Height ~ Foot, data = student_means)`
+    
+    B. `fit_Sex = lm(Height ~ Sex, data = student_means)`
+    
+    C. `fit_Sex_Foot = lm(Height ~ Sex + Foot, data = student_means)`
+    
+    D. `fit_Sex_Foot_int = lm(Height ~ Sex*Foot, data = student_means)`
+    
+    E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = student_means)`
+    
+2. For each of the above models, identify the response variable, the predictor variable, the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model.
+
+3. What is the intercept for each of the models and what do their values mean? [remember that the intercept is the value of the predictor variable when all response variables are set to zero].
+
+4. Fit each of the models above and interpret the point estimates of each parameter.
+
+6. Use `confint()` to get confidence intervals for the parameters in the above models and interpret them (what do they tell you?).
+
+7. Which parameter is not included when you use `confint()` on these models?
 
 ## Assignment
 
