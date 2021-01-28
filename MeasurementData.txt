@@ -1,0 +1,130 @@
+ID	Sex	Measurement_number	Eye_colour	Hair_colour	Height	Length_of_right_underarm	Length_of_right_underarm_and_hand	Length_of_right_foot	Length_of_left_foot	Neck_circumference	Height_of_mother	Height_of_father	Comments
+g1p1	female	1	blue	dark	165	24	42.5	25	25	31	165	177	
+g1p1	female	2	blue	dark	165	24	43	25	25	32	165	177	
+g1p1	female	3	blue	dark	165	24	43	25	25	31	165	177	
+g1p2	female	1	blue	dark	170	26	45	25	25	37	171	173	
+g1p2	female	2	blue	dark	170	26	45.5	25	25	38	171	173	
+g1p2	female	3	blue	dark	170	26	45.5	25	25	37	171	173	
+g1p3	female	1	blue	light	164	25	43	23	23	31.5	165	172	
+g1p3	female	2	blue	light	164	25	43.5	23	23	31	165	172	
+g1p3	female	3	blue	light	164	25	43.5	23	23	31.5	165	172	
+g1p4	female	1	blue	light	174	25.5	45	25	24.5	33	164.5	192	
+g1p4	female	2	blue	light	174	25.5	45.5	25	24.5	33	164.5	192	
+g1p4	female	3	blue	light	174	25.5	45.5	25	24.5	33	164.5	192	
+g1p5	male	1	brown	dark	182	28	47.5	27	27	40	174	193	
+g1p5	male	2	brown	dark	182	28	47.5	27	27	40.5	174	193	
+g1p5	male	3	brown	dark	182	28	47.5	27	27	40	174	193	
+g2p1	male	1	blue	dark	181	30	50	26	26.5	38	169	176	
+g2p2	male	1	brown	dark	180	30	50	27	27	36	NA	NA	
+g2p3	female	1	brown	dark	166	27.5	42	25.5	25.5	33.5	NA	NA	
+g2p4	male	1	blue	dark	175.5	27.5	43.5	25	25.5	37	NA	NA	
+g2p5	female	1	brown	dark	170.5	25	42	24	24	32.5	168	180	
+g2p6	female	1	blue	dark	171	26.5	44.5	22.5	24	31	160	192	
+g2p1	male	2	blue	dark	180.4	30.2	50	26	26.3	38	169	176	
+g2p2	male	2	brown	dark	181	30.2	50	27.5	27.2	34	NA	NA	
+g2p3	female	2	brown	dark	167	27.7	42.2	25.5	25.9	34	NA	NA	
+g2p4	male	2	blue	dark	176	28	44	24.4	25.2	37	NA	NA	
+g2p5	female	2	brown	dark	170.4	25.2	42	24.6	24	32.2	168	180	
+g2p6	female	2	blue	dark	169	26.3	45	23	23.9	31	160	192	
+g2p1	male	1	blue	dark	181.3	29.6	50	25.5	26.3	38.1	169	176	
+g2p2	male	1	brown	dark	182.1	30	50.5	26.5	27.1	36	NA	NA	
+g2p3	female	1	brown	dark	166.2	27.6	42	25.4	25.4	33.4	NA	NA	
+g2p4	male	1	blue	dark	175.8	27.6	44.1	24.9	25.8	38	NA	NA	
+g2p5	female	1	brown	dark	172.2	25.1	42.1	24	24	32.3	168	180	
+g2p6	female	1	blue	dark	171.1	26.5	44.6	22.5	23.5	31.3	160	192	
+g3p1	female	1	blue	light	164.3	26	42.2	22.6	21.5	31.5	164.5	175	
+g3p1	female	2	blue	light	163.8	26	42	23.2	23.2	30.4	164.5	175	
+g3p1	female	3	blue	light	163.5	25.5	42.3	23.5	23	31.6	164.5	175	
+g3p2	female	1	blue	dark	161.2	24.9	40.3	20.5	21	31.4	165	177	
+g3p2	female	2	blue	dark	161.4	24.9	40.3	21.9	22	31.6	165	177	
+g3p2	female	3	blue	dark	160.9	24.9	40.7	21.5	21.7	31.5	165	177	
+g3p3	male	1	blue	dark	182	29	48	27.5	27	34.9	171	189.5	
+g3p3	male	2	blue	dark	181.5	29	48.2	27.4	28	34.8	171	189.5	
+g3p3	male	3	blue	dark	181.8	29.5	48	27.5	27.4	34.6	171	189.5	
+g3p4	female	1	blue	dark	168.5	27.2	44.1	23	22.5	36.2	169	184	
+g3p4	female	2	blue	dark	168	27.4	43.5	23.7	23.7	33.3	169	184	
+g3p4	female	3	blue	dark	168.3	28	44.5	24.2	23.8	34.9	169	184	
+g4p1	female	1	blue	dark	165	21.2	38.3	22.2	23.3	32	165	185.4	"frh, frf, trsn, trsa"
+g4p1	female	2	blue	dark	163	22.3	38.2	22.3	22.7	33.8	NA	NA	"tmh, tmf, trbn, trba"
+g4p1	female	3	blue	dark	162.4	22.5	39.8	22.5	22.7	33.5	NA	NA	"tmh, trbf, trbn, trba"
+g4p2	female	1	blue	light	160.5	22.1	39.6	23.8	24.6	31.7	171	183	"frh, frf, trbn, trsa"
+g4p2	female	2	blue	light	159.8	21.6	39.7	24.4	24.9	31.2	NA	NA	"tmh, tmf, trsn, trba"
+g4p2	female	3	blue	light	160.8	20.2	38.3	24.5	24.5	32.2	NA	NA	"tmh, frf, trbn, trba"
+g4p3	male	1	blue	light	187.3	24.8	44.6	27.3	27.6	40.5	170	182	"tmh, trbf, trsn, trba"
+g4p3	male	2	blue	light	189.5	24.4	44.5	27	27.7	41.6	NA	NA	"frh, frf, trbn, trsa"
+g4p3	male	3	blue	light	189.5	23.5	42.9	27.5	27.3	42	NA	NA	"tmh, tmf, trbn, trba"
+g4p4	male	1	blue	dark	180.2	26.2	45.3	25.5	26.4	42.5	NA	NA	"frh, tmf, trbn, trsa"
+g4p4	male	2	blue	dark	181.4	24	44.2	27	26.7	42.2	NA	NA	"tmh, trbf, trsn, trba"
+g4p4	male	3	blue	dark	181.5	25.9	45.1	25.9	26.3	42.2	NA	NA	"tmh, frf, trsn, trba"
+g4p5	female	1	blue	light	161.6	22.3	39.2	23.6	23	34.1	160	180	"tmh, tmf, trbn, trsa"
+g4p5	female	2	blue	light	161.4	21.8	39.2	23.4	23	33.5	NA	NA	"tmh,trbf, trsn, trba"
+g4p5	female	3	blue	light	159.9	23.2	39.8	23	23.2	34	NA	NA	"frh, frf, trbn, trba"
+g5p1	female	1	blue	dark	174.1	24.6	43.2	23.9	23.9	31.1	170.0	193.0	
+g5p1	female	2	blue	dark	176.0	25.2	44.4	24.2	24.1	30.1	170.0	193.0	
+g5p1	female	3	blue	dark	174.5	24.4	44.4	24.0	24.2	28.7	170.0	193.0	
+g5p2	male	1	blue	dark	180.2	27.3	46.2	26.8	25.7	36.1	168.0	183.0	
+g5p2	male	2	blue	light	179.8	26.5	44.9	27.1	26.6	36.4	168.0	183.0	
+g5p2	male	3	blue	dark	179.4	26.9	44.8	27.3	27.1	37.0	168.0	183.0	
+g5p3	female	1	brown	dark	158.2	24.0	38.7	22.5	22.8	30.8	NA	NA	
+g5p3	female	2	brown	dark	158.9	23.9	38.4	22.5	22.7	30.8	NA	NA	
+g5p3	female	3	brown	dark	159.0	25.4	39.1	22.1	22.9	30.9	NA	NA	
+g5p4	female	1	blue	dark	164.5	22.6	38.2	22.0	21.9	31	170.0	186.0	
+g5p4	female	2	blue	dark	165.1	23.6	38.8	22.2	21.7	30.2	170.0	186.0	
+g5p4	female	3	blue	dark	165.1	23.6	39.8	22.1	22.1	30.1	170.0	186.0	
+g6p1	male	1	blue	dark	182	30	49	27	28	36	170	174	
+g6p1	male	2	blue	dark	181	30	48	26	28	38	170	174	
+g6p1	male	3	blue	dark	182	30	48	27	28	37	170	174	
+g6p2	male	1	blue	dark	180	26	44	25	25	37	NA	NA	
+g6p2	male	2	blue	dark	178	24	43	25	25	36	NA	NA	
+g6p2	male	3	blue	dark	179	25	44	25	25	37	NA	NA	
+g6p3	female	1	brown	dark	177	25	41	24	24	29	162	183	
+g6p3	female	2	brown	dark	175	25	44	24	24	28	162	183	
+g6p3	female	3	brown	dark	176	25	45	24	24	30	162	183	
+g6p4	female	1	blue	dark	175	25	43	25	25	30	173	180	
+g6p4	female	2	blue	dark	173	25	46	25	25	33	173	180	
+g6p4	female	3	blue	dark	174	25	45	25	25	33	173	180	
+g6p5	female	1	brown	dark	159	25	40	24	23	38	162	182	
+g6p5	female	2	brown	dark	160	24	39	24	24	37	162	182	
+g6p5	female	3	brown	dark	159	25	40	24	23	37	162	182	
+g7p1	female	1	blue	light	157.4	23.3	38.4	20.8	20.7	29.2	164	177	
+g7p1	female	2	blue	light	157.4	24.5	38.7	21.2	21.9	30.0	NA	NA	
+g7p1	female	3	blue	light	156.0	23.5	38.7	20.7	20.3	29.5	NA	NA	
+g7p2	male	1	blue	light	184.8	26.7	46.4	25.5	24.4	37.5	160	183	
+g7p2	male	2	blue	light	184.1	26.0	44.4	25.9	25.0	38.2	NA	NA	
+g7p2	male	3	blue	light	182.8	27.3	45.8	24.7	25.0	37.1	NA	NA	
+g7p3	female	1	blue	light	166.0	26.5	42.6	24.0	24.1	32.5	164	180	
+g7p3	female	2	blue	light	165.3	24.9	41.7	23.9	24.2	32.3	NA	NA	
+g7p3	female	3	blue	light	165.9	25.5	43.2	24.7	24.1	30.5	NA	NA	
+g7p4	male	1	blue	light	189.0	26.3	45.2	25.3	26.0	39.5	163	174	
+g7p4	male	2	blue	light	189.6	26.5	46.2	26.9	26.9	40.5	NA	NA	
+g7p4	male	3	blue	light	188.5	25.4	45.5	27.3	27.0	37.7	NA	NA	
+g7p5	female	1	blue	dark	164.9	24.0	41.6	23.5	23.9	30.5	165	172	
+g7p5	female	2	blue	dark	163.6	23.8	41.5	22.9	23.9	31.7	NA	NA	
+g7p5	female	3	blue	dark	164.4	24.3	42.6	23.5	23.5	32.5	NA	NA	
+g7p6	female	1	blue	light	170.6	26.00	44.9	21.8	21.2	27.5	176	178	
+g7p6	female	2	blue	light	170.9	24.50	42.8	23.4	23.2	31.1	NA	NA	
+g7p6	female	3	blue	light	171.1	27.00	44.5	23.7	23.2	30.5	NA	NA	
+g8p1	female	1	blue	light	176	24.2	42.4	21.6	22	30.7	176	188	
+g8p1	female	2	blue	light	175.5	23.9	42.2	22	22.3	31	176	188	
+g8p1	female	3	blue	light	176	24	41.8	21.5	21.60	30.5	176	188	
+g8p2	male	1	blue	light	182.3	27	46.3	24.3	23.9	36.5	176	181.5	
+g8p2	male	2	blue	light	182.5	26.5	45.6	25.4	24.7	35	176	181.5	
+g8p2	male	3	blue	light	182.5	26.7	45.8	25.4	25.1	36	176	181.5	
+g8p3	male	1	brown	light	178	26	45	23	23	37.6	168	168	
+g8p3	male	2	brown	light	177.8	25.7	44.8	23.5	23	37.7	168	168	
+g8p3	male	3	brown	light	178	25.8	45	23.5	22.8	37.8	168	168	
+g9p1	female	1	blue	dark	163.60	22.7	40.2	23.3	23	40	169	180	
+g9p1	female	2	blue	dark	162.4	23.1	40.90	23.1	23	39.5	NA	NA	
+g9p1	female	3	blue	dark	163.1	23.2	41.3	23.4	23.1	40.1	NA	NA	
+g9p2	female	1	brown	dark	160.7	21.8	40.3	22.5	22.2	31.2	156	NA	
+g9p2	female	2	brown	dark	161.2	20.6	40.5	22.5	22.3	31	NA	NA	
+g9p2	female	3	brown	dark	161.1	20.8	39.3	22.3	22.4	31.1	NA	NA	
+g9p3	male	1	blue	dark	187.4	26.8	47.3	28	28.2	33.8	NA	NA	
+g9p3	male	2	blue	dark	187.9	27	47.5	27.9	28	34	NA	NA	
+g9p3	male	3	blue	dark	187.8	26.5	47	27.9	27.9	33.5	NA	NA	
+g9p4	male	1	blue	dark	183	26.1	45	26.4	26.7	38.5	NA	NA	
+g9p4	male	2	blue	dark	182.8	26.1	45.7	26.3	26.7	39.5	NA	NA	
+g9p4	male	3	blue	dark	182.9	26.5	45.3	26.3	26.7	38.6	NA	NA	
+g9p5	female	1	brown	dark	168.8	23	42.7	22.6	22.6	31	NA	NA	
+g9p5	female	2	brown	dark	168.6	22.9	42.9	22.8	23	30.9	NA	NA	
+g9p5	female	3	brown	dark	168.8	22.6	43.3	22.8	23	30.7	NA	NA	

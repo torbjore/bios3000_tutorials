@@ -1,0 +1,526 @@
+---
+title: Tutorial and Assignment Week 4 - More on linear statistical models
+author: Torbjørn Ergon
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<span style="color:blue"> This tutorial includes some questions in blue text (NB! Only visible when knitted to a html file). You should try to answer them for yourself, but they should not be included in the assignment that you submit. If you are unsure about the answers, you should discuss with other students or come to Help Desk and ask for guidance.</span>
+
+## Key terms and concepts covered in this tutorial
+
+* Matrix formulation of linear models
+* Design matrices
+* Confidence intervals for combinations of parameters
+* Contrasts
+* The delta-method
+* Adjusted R-squared
+* Model selection
+* Akaike's Information Criterion (precision-accuracy/bias-variance trade-off)
+
+## Preparations
+
+This tutorial makes use of matrices and vectors as well as matrix multiplication. If you are not familiar with this, this external resource explains what you need to know: https://www.mathsisfun.com/algebra/matrix-multiplying.html. There is also a short note on ["Vectors and matrix operations in R"](https://uio.instructure.com/courses/25860/files/588689/download?wrap=1) made available under Week 1 on Canvas. We also assume that you know what is meant by *variance* and *covariance* of stochastic variables. 
+
+We will return to the students morphometric data that we used last week, so we might as well start by reading in the data with mean individual measurements that we created in last week's tutorial:
+
+```{r}
+students_means = read.csv("../Week3/students_means.csv")
+```
+
+The partial path `../Week3` tells R to first go one level back and then look for a directory (folder) called `Week3`. This assumes that R's current working directory is e.g. `Week4` and that `Week3`and `Week4` are both sub-directories under the same directory on your computer (remember that you can set the working directory under "Session > Set Working Directory" in R Studio).
+
+## Matrix formulation of linear models
+
+The most complex model we fitted last week was
+
+$$
+y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,3} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+where $y_i$ is the response and the $x_i$'s are the predictors for study unit $i$ (the three $x_i$'s were respectively 'sex' (0 = female, 1 = male), 'foot length', and the product of the two former predictors (i.e., 0 for females and 'foot length' for males)).
+
+If we add more predictors in the model, we would just add more $\beta$'s and $x$'s. Hence, the fixed (systematic) part of a linear model with $n$ parameters can always be written on the form $\beta_0 x_{i,0} + \beta_1 x_{i,1} + \dots + \beta_n x_{i,n} = \sum_{i=1}^{n} \beta_j x_{i,j}$. Note that I have here included $x_{i,0}$ in the first term of the sum so each term is written on a general format. The variable $x_{i,0}$ equals 1 for all study units. With matrix notation, we write this sum of products as $\mathbf{x}_i\boldsymbol{\beta}$ and in R we do this operation as `x %*% beta`. Here we assume that $\mathbf{x}_i$ is a row-vector and $\boldsymbol{\beta}$ is a column-vector, but in R, vectors do not necessarily need to be specified as either row- or column-vectors (R interprets vectors created with `c()` as either a row-vector or a column vector depending on what is possible to compute).
+
+The row-vectors $\mathbf{x}_i$ for all of $N$ study units can be stacked on top of each other in a matrix $\mathbf{X}$ with $N$ rows and $n$ columns. If we also define a vector $\mathbf{y}$ as a vector of responses for all $N$ study units, such that $\mathbf{y} = \left[ y_1, y_2, \dots, y_N \right]$ is the response variable in a column-vector, we can write the the full linear statistical model as
+
+$$
+\mathbf{y} = \mathbf{X} \boldsymbol{\beta} + \boldsymbol{\varepsilon}
+$$
+
+where $\boldsymbol{\varepsilon}$ is a column-vector of $N$ elements drawn independently from a normal distribution with mean zero and standard deviation $\sigma$.
+
+<span style="color:blue"> You should pause here and make sure you understand this formulation of the linear model. Make your own example with e.g. 3 study units and 2 parameters (e.g. intercept and slope in a linear regression). If you struggle with understanding the notation, you should revisit the tutorial on "Vectors and matrices" made available under Week 1 on Canvas.</span>
+
+## The design matrix
+
+The matrix $\mathbf{X}$ above is called a **design matrix** and is specific to the data you use and the model you define. In the case of the model we specified above, the first column of $\mathbf{X}$ is a column of ones, the second column is `students_means$foot`, the third column has 0 for females and 1 for males, and the fourth column has 0 for females and the value of `students_means$foot` for males (i.e., the product of the two previous columns). In R, we can create the design matrix with the function `model.matrix()` [In R the symbol `.` (period) has no particular meaning - it is just like any other character in the name. This may be confusing for Python users as `.` in Python has more or less the same meaning as `$` in R]. Let's do this for the `students_means` data:
+
+```{r}
+X = model.matrix( ~ Sex * Foot, students_means)
+```
+
+Type `X` in the Console window in R Studio to see this matrix (note that the columns have been given some informative names). If we wanted to fit an additive model (see last week's tutorial), we can simply delete the last column of `X`. If we delete the two last columns we end up with only `Sex` as the predictor variable and if we leave only the first column in the design matrix we have a model with only the intercept (specified as `~ 1` in R). Note that it seldom makes much sense to leave one of the main effects (`SexM` or `Foot`) out while the interaction effect (`SexM:Foot`) is still in the model (<span style="color:blue">what would the predictions from these models look like in a plot?</span>).
+
+## Linear predictions with matrix notation
+
+If you have the parameter estimates in a vector $\boldsymbol{\hat{\beta}}$ you get the fitted predictions simply as the matrix product
+
+$$
+\mathbf{\hat{y}} = \mathbf{X} \boldsymbol{\hat{\beta}} 
+$$
+
+In R, you can extract the parameter estimate vector from many types of fitted model objects with the generic `coef` function,
+
+```{r}
+fit_Sex_Foot_interaction = lm(Height ~ Sex*Foot, data = students_means)
+beta_hat = coef(fit_Sex_Foot_interaction)
+```
+
+and then use this to compute the fitted predictions
+
+```{r}
+y_hat = X %*% beta_hat
+```
+
+## Categorical predictor variables with more than two levels
+
+In the above model `Sex` is a categorical predictor variable with two categories; 'Females' and 'Males' (for categorical predictor variables, the different categories are often called "levels"). How do we construct a linear model when there are more than two categories in a predictor variable? Let's use `model.matrix()` to see how R does this by default.
+
+Suppose we have data from Norway, Denmark and Sweden and want to see how body height differ among the three countries. We can create a `data.frame` with all possible combinations of `Sex` and `Country` with the `expand.grid` function in R:
+
+```{r}
+(D = expand.grid(Sex = c("female", "male"), Country = c("Denmark", "Norway", "Sweden")))
+```
+
+Then we use `model.matrix` to create a design matrix for an additive model:
+
+```{r}
+(X = model.matrix(~ Sex + Country, D))
+```
+
+(The attributes in the end just keeps the information about what parameterization (contrast types) the design matrix is based on. We will only use the default (and most commonly used) "control-treatment" contrasts parameterization.)
+
+To better understand this design matrix, we can multiply this matrix with the $\boldsymbol{\beta}$ vector (I omit zeros here):
+$$
+\left[
+\begin{array}{cccc}
+\beta_0
+\\
+\beta_0 & +\beta_1
+\\
+\beta_0 && +\beta_2         
+\\
+\beta_0 & +\beta_1 & +\beta_2
+\\
+\beta_0 &&& +\beta_3
+\\
+\beta_0 & +\beta_1 && +\beta_3
+\end{array}
+\right]
+$$
+
+Here we see that $\beta_1$ is added for all rows representing males, $\beta_2$ is added for all rows representing Norway, and $\beta_3$ is added for all rows representing Sweden.
+
+<span style="color:blue"> Pause here and draw a diagram of this model on a piece of paper; Have the response variable on the y-axis and country marked off along the x-axis at equal distances and draw "female" in the plot for females and "male" for males. Since this is an additive model, the six points should be on parallel lines. Where do you find the distances represented by the four parameters? Draw the same diagram with Sex along the x-axis instead of country. </span> This diagram is just a sketch of the model that you haven't fitted to any data (yet). If you fit this model to data, you may find that some of the parameters will be estimated to be negative. You would, of course, have many more than 6 study units (= rows in the design matrix) before you would think about fitting a model to the data. The rows in the design matrix representing persons of the same sex and nationality would then be identical.
+
+<span style="color:blue"> What do you think the design matrix will look like if you include an interaction effect between Sex and Country? Add this to the diagram you drew. Where do you place the distances that the new parameters represent? Use `model.matrix()` to see if you were right. </spa> You can specify an interaction effect by either adding `+ Sex:Country` to the formula or replacing the formula with `~ Sex * Country`. The latter formula is a quick way to specify all main effects and interaction effects.
+
+Note that the design matrix of the interaction model is the same as the one for the additive model with two new columns added to it, and that the two new columns are just the Sex effect ($\beta_1$) multiplied with each of the two country specific effects ($\beta_2$ and $\beta_3$).
+
+Could you have formulated this model with another set of parameters? Yes, there are many ways to parameterize this model (<span style="color:blue">have a look at your diagram and see if you can come up with a few alternatives! </span>). All parameterizations of this model must have six parameters (if you try to describe 6 values with more than 6 parameters, you have parameter redundancy). You could for example use one parameter for each of the six groups.
+
+With the default "control-treatment" contrasts parameterization, however, it is easy to see that you can formulate more constrained models by fixing some of the parameters to zero (or removing columns of the design matrix). For example, if you remove the two last columns of the design matrix, you get the additive model. If you remove the two next columns from the right, you get a model with no difference between the countries. A set of models that can be constructed by removing columns in the design matrix of the most complex model in the set (the model with the most parameters) is called a set of **nested models**.
+
+A more complex model will always give you more "fine grained" predictions from the model and you estimate more differences. However, there are several reasons for sometimes preferring simpler (more constrained/restricted) models. For example, with a limited amount of data, too fine-grained predictions may be very imprecise (confidence intervals become very wide). There may also be good reasons for including effects in the model even when they are not estimated precisely or are of particular interest in the study (for example to control for confounding effects).
+
+## Standard errors of predictions with matrices
+
+You may remember from earlier courses that, if $\beta_0$ and $\beta_1$ are two stochastic variables and $x_0$ and $x_1$ are constants, then the variance of the sum $x_0 \beta_0 + x_1 \beta_1$ is
+
+$$
+Var(x_0\beta_0+x_1\beta_1) = x_0^2 \ Var(\beta_0) + x_1^2 \ Var(\beta_1) + 2x_0x_1 \ Cov(\beta_0,\beta_1)
+$$
+
+With matrix multiplication, we can write this as
+
+$$
+Var \left(
+\left[
+\begin{array}{cc}
+x_0 & x_1 
+\end{array}
+\right]
+\left[
+\begin{array}{cc}
+\beta_0 \\ \beta_1 
+\end{array}
+\right]
+\right) =
+\left[
+\begin{array}{cc}
+x_0 & x_1 
+\end{array}
+\right]
+\left[
+\begin{array}{cc}
+Var(\beta_0) & Cov(\beta_0,\beta_1) 
+\\
+Cov(\beta_0,\beta_1) & Var(\beta_1)
+\end{array}
+\right]
+\left[
+\begin{array}{c}
+x_0 \\ x_1 
+\end{array}
+\right]
+$$
+
+<span style="color:blue"> Pause here and check that this is correct. </span>
+
+For short, we write
+
+$$
+Var \left(
+\mathbf{x}
+\boldsymbol{\beta}
+\right) =
+\mathbf{x}
+\mathbf{\Sigma}
+\mathbf{x}^{T}
+$$
+
+Here $\mathbf{\Sigma}$ is the variance-covariance matrix (this is the capital Greek letter 'sigma' which should not be confused with the 'sum' symbol) and $\mathbf{x}^{T}$ is the transpose of $\mathbf{x}$ (see the tutorial on “Vectors and matrices”).
+
+The nice thing about writing this with matrices is that it applies to any length of the vectors $\mathbf{x}$ and $\boldsymbol{\beta}$! (you would have to write down a very long sum of variances and covariances if these vectors are long).
+
+We may also replace the vector $\mathbf{x}$ above with the whole design matrix $\mathbf{X}$. We then get the variance-covariance matrix of the predictions. The diagonal of this matrix holds the variances of the predictions, and the square-root of these are the standard errors of the predictions.
+
+In R, we can extract the variance-covariance matrix of the parameters for most fitted model objects with the `vcov` function:
+
+```{r}
+Sigma = vcov(fit_Sex_Foot_interaction)
+```
+
+and then use this to compute the standard errors of the predictions 
+
+```{r}
+X = model.matrix( ~ Sex * Foot, students_means)
+se_y_hat = sqrt(diag(X %*% Sigma %*% t(X)))
+```
+
+You may check that you these are the standard errors you get from `predict(fit_Sex_Foot_interaction, se=TRUE)`[Note that we here, unlike last week, did not specify a 'newdata', so the predictions will then be the "fitted predictions"].
+
+## Standard errors of other linear parameter combinations
+
+So far we haven't used the matrix formulations to compute something that we cannot do with the `predict` function. If you want to compute the standard error of other parameter combinations than predictions, you have to compute these "from scratch". For example, in the `~ Sex * Foot` model above, the slope for females is $\beta_2$ while the slope for males is $\beta_2 + \beta_3$. Using the same procedure as we used for calculating the variances of the predictions above, we calculate the variance of the slope for males as
+$$
+Var(\beta_2 + \beta_3) =
+\mathbf{x}
+\mathbf{\Sigma}
+\mathbf{x}^{T}
+$$
+with $\mathbf{x} = \left[\begin{array}{cccc} 0 & 0 & 1 & 1\end{array}\right]$
+
+In R, we do this with
+
+```{r}
+x = c(0,0,1,1)
+var_slope_male = x %*% Sigma %*% x
+slope_male = x %*% coef(fit_Sex_Foot_interaction)
+se_slope_male = sqrt(var_slope_male)
+c(slope_male, se_slope_male)
+```
+
+You have now computed that males increase on average `r round(slope_male, 2)` cm in height per 1 cm increase in foot length. Using the $\pm$ 2 SE rule, the approximate 95% confidence interval for this is [`r round(slope_male - 2*se_slope_male, 2)`, `r round(slope_male + 2*se_slope_male, 2)`] cm.
+
+<span style="color:blue"> Can you compute the same for increase in height per increase in neck circumference, for both males and females? </span>
+
+## Contrasts
+
+Parameters in models often represent differences that are meaningful and may be of interest to quantify. For example, in the additive model that we specified as `~ Sex + Foot`, the second parameter is the difference between mean of the sexes and the model assumes that this difference is the same regardless of foot length. This parameter would, however, not have been very meaningful in the interaction model as it is the difference in height when foot length is zero -- unless the `Foot` variable had been centered by subtracting the mean (or any other value in the range of reasonable foot lengths). However, regardless of how the model is parameterized, we can compute any difference between predicted values that we are interested in. Such a difference is called a **contrast** whether it is represented by a parameter or not.
+
+As an example, let's compute the predicted difference (contrast) between mean height of males and mean height of females at the median foot length of females (have a look at the figure for the interaction model in the last weeks tutorial to see where this is in the plot). Let us call the median foot length of females for $\alpha_F$. You could perhaps figure out how to compute this difference from the parameter estimates directly, but it might be easier to keep things straight if you first find the prediction for males and then subtract the prediction for females. The prediction for males is $\mathbf{x}_M \boldsymbol{\beta}$ where
+$$
+\mathbf{x}_M =
+\left[
+\begin{array}{cccc}
+1 & 1 & \alpha_F & \alpha_F 
+\end{array}
+\right]
+$$
+and the prediction for females is $\mathbf{x}_F \boldsymbol{\beta}$ where
+$$
+\mathbf{x}_F =
+\left[
+\begin{array}{cccc}
+1 & 0 & \alpha_F & 0 
+\end{array}
+\right]
+$$
+
+The contrast that we are interested in is the difference between the predictions, $\mathbf{x}_M \boldsymbol{\beta} - \mathbf{x}_F \boldsymbol{\beta}$, which is the same as $\mathbf{x} \boldsymbol{\beta}$ where
+$$
+\mathbf{x} = \mathbf{x}_M -\mathbf{x}_F = 
+\left[
+\begin{array}{cccc}
+0 & 1 & 0 & \alpha_F 
+\end{array}
+\right]
+$$
+
+We can use this in R to compute the contrast with a confidence interval
+
+```{r}
+alpha_F = median(students_means$Foot[students_means$Sex == "female"])
+beta = coef(fit_Sex_Foot_interaction)
+Sigma = vcov(fit_Sex_Foot_interaction)
+x = c(0, 1, 0, alpha_F)
+contrast = x %*% beta
+se = sqrt(x %*% Sigma %*% x)
+out = c(contrast, se, contrast - 2*se, contrast + 2*se)
+names(out) = c("contrast", "se", "lwr95", "upr95")
+out
+```
+
+<span style="color:blue"> What is the unit of measurement for these numbers? Compute also this contrast at at the median foot length of males. How do you interpret the difference? </span>
+
+It is useful to be able to quickly compute contrasts with confidence intervals from a fitted model, so let's include the entire procedure we used above in a function that only takes two arguments; a `data.frame` that specifies the contrast (the contrast is the prediction from the first row minus the prediction from the second row) and a fitted model object:
+
+```{r}
+predict_contrast = function(data, fit){
+  if(nrow(data) < 2) stop("'data' must have exactly two rows \n")
+  if(nrow(data) > 2) warning("WARNING: Only two first rows of 'data' used \n")
+  tt = terms(fit)
+  Terms = delete.response(tt) # Extracts the right hand side of the formula
+  X = model.matrix(Terms, data)
+  x = X[1,] - X[2,]
+  beta = coef(fit)
+  Sigma = vcov(fit)
+  contrast = x %*% beta
+  se = sqrt(x %*% Sigma %*% x)
+  out = c(contrast, se, contrast - 2*se, contrast + 2*se)
+  names(out) = c("contrast", "se", "lwr95", "upr95")
+  return(out)
+}
+```
+
+Example of use:
+
+```{r}
+D = data.frame(Sex=c("male", "female"), Foot = alpha_F)
+predict_contrast(D, fit_Sex_Foot_interaction)
+```
+
+Note that the slope for males ($\beta_2 + \beta_3$) that we computed above can be formulated as a contrast (any linear combination of parameters can). This slope is the difference in predicted body height of males with foot length $x$ and of males with foot length $x-1$, where $x$ can be any value. Hence, we can compute this slope with the function we created above:
+
+```{r}
+D = data.frame(Sex=c("male", "male"), Foot = c(26, 25))
+D$Sex = factor(D$Sex, levels=c("female","male")) # model.matrix requires factors to have 2 or more levels
+predict_contrast(D, fit_Sex_Foot_interaction)
+```
+
+## Standard error of non-linear parameter combinations with the delta-method
+
+A linear combination of parameters is any combination of parameters that can be written on the form $\mathbf{x}\boldsymbol{\beta}$ where $\mathbf{x}$ and $\boldsymbol{\beta}$ are vectors. Any other combination of parameters is non-linear. Last week we computed the confidence interval for how many percent mean height of males are than mean height of females by the means of bootstrapping. This is an example of a non-linear combination of parameters as it includes a ratio of two predicted values. Let's fit the model with only `Sex` as a predictor variable again and extract the parameter estimates and their variance-covariance matrix:
+
+```{r}
+fit_Sex = lm(Height ~ Sex, data = students_means)
+(beta = coef(fit_Sex))
+(Sigma = vcov(fit_Sex))
+```
+
+The estimator we are interested in, written as a function of the two parameters, is
+
+$$
+f = \frac{\beta_1}{\beta_0}100
+$$
+
+We call this an estimator when the parameters are unspecified. The estimator is a stochastic variable and the point estimate is
+
+$$
+\hat{f} = \frac{\hat{\beta_1}}{\hat{\beta_0}}100
+$$
+In R, we get
+
+```{r}
+(f_hat = (beta[2]/beta[1])*100)
+```
+
+
+There is a very useful way of computing an approximate standard error of such non-linear parameter combinations called the "**Delta method**". According this method, we can calculate the approximate standard error as $\sqrt{\mathbf{x}\mathbf{\Sigma}\mathbf{x}^{T}}$ as before if we construct $\mathbf{x}$ as a vector of first derivatives of $f$ with respect to each of the parameters (in the order they appear in $\boldsymbol{\Sigma}$). I.e.,
+
+$$
+\mathbf{x} =
+\left[
+\begin{array}{cc}
+\frac{\partial f}{\partial \beta_0} & \frac{\partial f}{\partial \beta_1}
+\end{array}
+\right]
+$$
+
+Remember that the derivative of $x^{n}$ is $nx^{n-1}$. Hence the derivative of $\beta_0^{-1}$ is $-\beta_0^{-2}$ and 
+
+$$
+\frac{\partial f}{\partial \beta_0} = \frac{-100 \beta_1}{\beta_0^2}
+$$
+
+and 
+
+$$
+\frac{\partial f}{\partial \beta_1} = \frac{100}{\beta_0}
+$$
+
+If you are unsure about derivation rules, you can check this resource: https://www.mathsisfun.com/calculus/derivatives-rules.html
+
+We can use this in R to compute the approximate standard error:
+
+```{r}
+x = c(-100*beta[2]/beta[1]^2, 100/beta[1])
+(se = sqrt(x %*% Sigma %*% x))
+```
+
+Using the $\pm$ 2SE rule, we get that the mean height of males are `r round(f_hat, 1)` % higher than females, and the approximate 95% confidence interval estimate is [`r round(f_hat - 2*se,1)`, `r round(f_hat + 2*se,1)`] % (this is very close to the confidence interval we computed with bootstrapping last week).
+
+You should always remember that confidence interval computed with the delta-method is an approximation. The delta-method often works well and is sufficiently accurate. However, if interpretation of the confidence interval is essential for your research, it is a good idea to use simulations to check the 95% confidence interval estimator covers the true value in approximately 95% of simulations (see the simulation code in the [tutorial on Confidence intervals](https://uio.instructure.com/files/562515/download?wrap=1) provided at the end of Week 1 on Canvas).
+
+## Exercises
+
+The following exercises should *not* be included in this week's assignment but we will go through them during the Thursday lecture. We will introduce some new concepts as part of the exercises, so it is important that you do them before you do the assignment.
+
+In these exercises, you will analyze data from a growth experiment of wheat seedlings that was conducted by students in the BIO2150 course during the fall of 2018. With an increasing human population and limited space for food production there is a strong interest in increasing yield per unit area. With fast growing plants one may harvest the wheat twice per year even in climates with a shorter growing season. It is possible to increase plant growth by both breeding new genetic varieties and by supplying the right type of fertilizers at sufficient amounts.
+
+The experiment included 6 varieties of wheat and 3 types of nitrogen fertilizer (Kristalon) given at 2 different concentrations in addition to a control treatment with just water (the solvent). I.e., there are 7 treatment types. The seedlings grew in pots in a standardized medium, under standardized temperature and light conditions (by "standardized" we mean that these factors were kept the same for all pots, although small random variation may always occur). Each group of students had all six varieties in six separate pots. At 14 days after seeding, 5 randomly selected plants from each pot were cut for measurements of mean length and weight (wet mass). Plants were then re-potted and received different fertilizer treatments. At the end of the experiment, 5 randomly selected plants were cut for measurements of mean length and all plans were used for measuring mean plant weight of each pot.
+
+The aim of the analysis is to find out which wheat variety grows the fastest under the standardized conditions and which fertilizer promotes the fastest growth. We also want to estimate the degree to which different varieties respond differently to different fertilizers (i.e., the interaction effects).
+
+You may either do the exercise in an R Markdown document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script (or Markdown document) does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
+
+1. Read the data into R with `read.csv("wheatlings_bio2150_F18.csv")` and give it the name `wheat` (you can give it whatever name you want, but this is what we will call it in the guidance later). Have a first glance at the data by using `summary()` and `head()`.
+
+2. The variables are:
+* `student_gr`: Student group. Each group of students used one type of fertilizer. The plants from each group were also placed close together in the growth room.
+* `variety`: 6 different varieties of wheat
+* `fertype`: Type of nitrogen fertilizer (varies somewhat with respect to composition of micro-nutrients), or control
+* `conc`: Fertilizer concentration ('C0' = 0% (control), 'C1' = 1%, and 'C10' = 10%)
+* `length`: Mean length of the plants at the end of the experiment in cm
+* `wetmass`: Mean wet mass of the plants at the end of the experiment in gram
+* `startlength`: Mean length of the plants at the start of the experiment in cm
+* `startwetmass`: Mean we mass of the plants at the start of the experiment in gram
+
+  Use the `table` function on the first four variables to get an overview of the experimental design (you can apply this function to one or more variables at a time). Is the design completely "crossed" with respect to all these variables (i.e., all combinations of levels exist in the data), or are some variables nested under others (i.e., the levels of one variable only exist in combination with one level of another variable each)?
+  
+3. To start with, we will for simplicity ignore `student_gr` and `fertype` (all fertilizer types mainly contained nitrogen, but differed with respect to concentrations of some micro-nutrients). Note that the levels of these two factor variables were distributed equally among the levels of the other factors (`variety` and `conc`), so ignoring these two factors (`student_gr` and `fertype`) will not induce any bias. We will also just use the length of the plants at the end of the experiment (`length`) as the response variable. Start by making a boxplot for each combination of `variety` and `conc`. If you use `plot()` and have a factor on the x-axis, you'll get a boxplot for each factor level. The code below shows you how to do this - make sure you understand what it does (you won't get this much help later :)).
+
+```{r eval=FALSE}
+treatment = factor(paste(wheat$variety, wheat$conc))
+plot(wheat$length ~ treatment, col=rep(2:7, each=3) )
+```
+
+You can also produce a nice multi-panel plot with `bwplot()` in the `lattice` package:
+
+```{r eval=FALSE}
+library(lattice)
+bwplot(length ~ conc|variety, data = wheat, as.table=TRUE)
+```
+
+What patterns do you see in the plot?
+
+4. Let's fit some models to quantify predictions and differences (contrasts) with confidence intervals. Fit a model with additive effects of `variety` and `conc` and a model with interaction effects. Try also models with and without `startlength` as a covariate (i.e., fit 4 models). Store each of the fitted models in an object and look at summaries of each of the models with the `summary` function. Look at the R-squared values (these can also be extracted from the fitted models with `summary()$r.squared`; you can find out what is stored in any R object with the functions `str()` and `names()` - or you can click on the object name under the 'Environment' tab in the top-right window in R Studio). How do you interpret these, and what can you conclude from comparing the values from the different models?
+
+<!--- NB! leave line-breaks and indentations like this to get several paragraphs indented under the same numbered item-->
+5.
+
+  The R-squared value will *always* increase when adding more parameters to a model. The "Adjusted R-squared" value in the `summary` output adjust the R-squared value with the aim that this value will only increase when the new parameters added to the model increase the proportion of variance explained "more than should be expected by chance" (i.e., when the new terms are statistically significant). For this reason, the adjusted R-squared is sometimes used to decide whether covariates such as `startlength` should be included in the model or not (i.e. in "model selection").
+
+  Before we go on, we should stop to think about why we want to do any model selection at all.  This is a complex issue, but as researchers you will frequently be faced with the choice of several models, so we will start addressing some guiding principles here and return to this issue later in the course. First you need to be clear on what the purpose of the statistical model is. If you want to study how differently wheat varieties respond to supplemental nitrogen, you need to use a model where the interaction effect is included and then estimate confidence intervals for predictions or contrasts related to your research question. Getting a statistically "non-significant" interaction effect does not tell you to what degree different varieties respond differently to different treatments - it just tells you the these differences are not unlikely to be small (but they could also be large!). Secondly, you should be aware that you sometimes want to include a covariate to control for confounding effects whether the effects of the covariate are "statistically significant" or not (we will return to this later in the course). Thirdly, you don't want to control for covariates when this is not in line with your research question (even if the effects of the covariate is "highly significant"). E.g., if you want to estimate the mean and standard deviation in body height of males and females in a population, you don't want to include feet length in the model (you don't want to control for feet length by estimating height at a specified (standardized) feet length).
+  
+  If *prediction* is the aim of the study, model selection can be guided based on the principle of **precision-accuracy trade-off** (= bias-variance trade-off). For example, in the current study you may want to report how much the different varieties of wheat grow when supplemented with a given amount of nitrogen fertilizer. In this case you are only interested in predicting a mean value (under the current laboratory conditions) for each wheat variety. You may use either of the four models you have already fitted to compute such predictions. But which one is best? In general, adding parameters to the model increases the accuracy of the predictions (you will on average be closer to the truth), but it also decreases the precision of the predictions (the predictions will be more variable if you repeat the study many times -- i.e., the confidence intervals get wider). It is possible to show this trade-off through simulations, but we will not take the time to do this here. For those interested, I recommend [this online book chapter by David Dalpiaz](https://daviddalpiaz.github.io/r4sl/biasvariance-tradeoff.html#simulation).
+  
+  The Akaike's Information Criterion (AIC) is designed to help us to select the model that most likely gives us the "best" predictions as an optimal trade-off between simple models that have high precision and more complex models that have lower precision but higher accuracy ("best" in minimizing mean squared prediction error). In general, the more data we have, the more complex model we can fit. Before using AIC to select a model, it is essential to note the following:
+  * The "best" model in a set of models, is the model with the *lowest* AIC.
+  * It is the *absolute* (not relative) difference in AIC values of different models that tells us how close two models are in terms of being "best" for predictions.
+  * AIC values are only comparable among models if you use the *exact* same set of observations (rows in the data set) to fit the alternative models. You can easily make mistakes here if you have missing values for some variables, but not for others. `lm` will by default use complete cases with respect to only those variables that are included in the model. Hence, if you are not careful you can inadvertently use different subsets of the data to fit different models (this is not a problem for prediction and inference, but AIC values will not be comparable).
+  * Ranking by AIC may have high uncertainty (you can compute confidence intervals for AIC values and look at uncertainty of the model ranking through bootstrapping), and AIC may "break down" as a tool when sample size is low. In general, you should avoid considering models that have very many parameters relative to sample size (a good rule of thumb is that sample size should be at least 10 times the number of parameters in the model, but it also depends on the structure of the data and the model - you don't want some model parameters to be informed by only a few data-points). Know the structure of your data before you start to fit models!!
+  * The regular AIC is biased towards selecting too complex models when sample size is lower than about 40 times the number of parameters. When this is the case, it is better to use a correction for small sample size: $AICc = AIC + \frac{2(k^2 + k)}{n-k-1}$.
+  
+  The AIC of a fitted model can be computed with the `AIC` function that takes one or more fitted model objects as arguments. Use this function and make a table of the four fitted models with the following information in different columns: AIC, number of parameters, R-squared and adjusted R-squared, and AICc. Which model should you prefer if you are only interested in predictions? (Tip: If your table is called `model_tab`, you can sort the rows according to AIC value with `model_tab[order(model_tab$AIC),]`)
+  
+6.
+
+  In this case, ranking the models according to AIC, adjusted R-squared and AICc were in agreement, but this is not always the case. It is not surprising that the simplest model was selected since adding more parameters to the model increased the R-squared value very little. Compute all unique predicted values from this model with confidence intervals and present them in a figure. You can use either the `predict` function to do this or use matrix operations and $\pm$ 2 SE to construct confidence intervals. To make the plot, you can use the `plotCI` function in the `plotrix` package. Hint: The code below will make a plot that corresponds to the box plots we made under point 3 (it is not a very pretty plot, but it works for analysis). What patterns do you see in the plot?
+  
+```{r eval = FALSE}
+Newdata = expand.grid(variety = unique(wheat$variety), conc = unique(wheat$conc))
+Pred = cbind(Newdata, predict(fit_ad, newdata = Newdata, interval = "confidence")) # fit_ad is the "best" model
+
+# Plotting all with plotrix::plotCI
+library(plotrix)
+treatment = factor(paste(Pred$variety, Pred$conc))
+with(Pred, plotCI(as.numeric(treatment), fit, ui=upr, li=lwr))
+```
+
+A nicer plot using `xyplot()` in the 'lattice' package:
+
+```{r eval=FALSE}
+library(lattice)
+panel.ci = function(x, y, ly, uy, subscripts)
+{
+  ly = ly[subscripts]
+  uy = uy[subscripts]
+  panel.arrows(x, ly, x, uy,
+               length = 0.05,
+               angle = 90, code=3)
+  panel.xyplot(x, y)
+}
+
+Ylim = c(min(Pred$lwr)-3, max(Pred$upr)+3)
+xyplot(fit ~ conc|variety, data = Pred, ly=Pred$lwr, uy=Pred$upr, panel = panel.ci, ylim=Ylim)
+```
+
+
+7.
+
+  Do the same for the model where `startlength` is added as a covariate by computing predictions at over-all mean start length in the data set. What can be said about the effect of `startlength`? Why does controlling for `startlength` make so little difference?
+  
+8.
+
+  From the plot we see that there is very little difference in final plant length between plants that have been given a 1% nitrogen fertilizer and the control, but there is a small increase in the 10% treatment. Look at the summary of the best model and find the point estimate and a 95% confidence interval (based on $\pm$ 2 SE) of the increased length in the 10% nitrogen treatment compared to the control. Check that you get about the same confidence interval with the `confint` function. What is the unit of measurement for these estimates? What does the confidence interval tell you?
+
+9.
+
+  The contrast between the 1% treatment and the 10% treatment is not a parameter in the model but you can still easily compute a point estimate for it from the estimates listed in the summary of the fitted model. What is it? Compute also a 95% confidence interval for this contrast. Compare this to the effect of the 1% and 10% treatments.
+  
+10. Use the delta-method to compute an approximate 95% confidence interval for the effect of the 10% nitrogen treatment expressed as a percent increase in the final plant length at the end of the experiment compared to the length of the control plants for the varieties "Oberkulmer" and "Bjarne" (Hint: For Oberkulmer, you need to use the chain rule for derivation). Why does this relative difference depend on wheat variety even when you have used an additive model?
+
+## Assignment
+
+You should complete the exercises above before you start on the assignment - you can modify the code you used to do these when doing the assignment. You may of course ask questions about both the exercises and the assignment, or anything else related to data analysis or the course, at Help Desk, but remember that you are not supposed to sit and work at Help Desk. We have had few people coming on Tuesdays, so this is a good time to come.
+
+Remember that the point of the assignments is not to get it right and pass! The point of the assignment is to demonstrate for yourself what you have learned from working through the tutorial, and as a service to you, we will read through it to see if you have understood everything correctly. Please only submit what is specified in the assignment - we don't have capacity to read through answers to the exercises above (come to Help Desk instead!).
+
+Your task in this assignment is to do a similar analysis as you did in the exercises to quantify the different responses to fertilizer type (variable `fertype`). You should only do this analysis for the 10% fertilizer treatment, in addition to the control, as this is where we should expect to see the largest difference between fertilizer types. 
+
+You probably noticed when you tabulated the data (point 2 in the exercise) that each fertilizer type was not used by all student groups; each student group only used one type of fertilizer, but each fertilizer was given to four different groups. If the student groups measured the plants somewhat differently, then this could influence the estimated difference among the fertilizer types if not controlled for (the two predictor variables are partly "confounded"), although the effect of student group is averaged over four groups, which will reduce the influence of student group. Including `student_gr` as a predictor variable adds 11 parameters to the model as there were 12 student groups. The best way to account for variation among student groups would have been to treat `student_gr` as a "random effects factor" in the model (assuming that the effects of `student_gr` are normally distributed and only estimating the standard deviation in this distribution). This is something we will get to later in the course. For now we will just treat `student_gr` as an ordinary "fixed effects factor" in the same way as we have treated other categorical predictor variables so far.
+
+Specifically, you should do the following and submit a short report (pdf created by R Markdown) on Canvas containing the following:
+
+1. Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Look at the data structure by using the `table` function.
+
+2. Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable (four models in total). Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
+
+3. Which student group had the lowest measurements when accounting for the differences between treatments and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
+
+4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess both absolute and relative differences between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
+
