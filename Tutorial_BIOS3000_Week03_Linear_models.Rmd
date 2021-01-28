@@ -3,12 +3,16 @@ title: Tutorial Week 3 - Introduction to linear statistical models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
+  pdf_document: default
   html_document:
     toc: yes
     toc_float: true
-  pdf_document: default
   df_print: paged
 ---
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -326,6 +330,11 @@ In the above call to the `predict()` function, we specified `interval = "confide
 
 These intervals account for both uncertainty of the mean and the variation around the mean. E.g., if we measure the height of a random female in the population, we expect to get a value between `r round(Predictions[1,2],1)` and `r round(Predictions[1,3], 1)` 95% of the time. Such confidence intervals for predictions for random individual study units are often called "prediction intervals".
 
+---
+
+<div class = "blue">
+**FOR A DEEPER UNDERSTANDING:**
+
 ## Confidence intervals and an introduction to bootstrapping
 
 The meaning of a 95% confidence interval is that, if you repeat the sampling and estimation procedure, you should get point estimates (or predictions) that are within this interval 95% of the time. We can check this by simulating data and estimating the parameters many times in a loop (as in last week's exercise). Below, we do this for the `fit_Sex` model with the estimated parameter values, using 10,000 iterations (this will take a few seconds):
@@ -455,6 +464,10 @@ You may confirm that these values are exactly the same as the standard errors re
 cov2cor(vcov_lm)
 ```
 
+</div>
+
+---
+
 ## Including continuous predictor variables in the linear model
 
 We started this tutorial by plotting `Height` (y-axis) against `Foot` (x-axis) from our morphometric data and then fitting a linear regression model.
@@ -465,14 +478,14 @@ fit_Foot = lm(Height ~ Foot, data = student_means)
 
 I here omitted the `1` in the model formula (specifying an intercept) as this is added by default. Unlike the variable `Sex` which is a categorical variable, `Foot` is a continuous variable of the length of the foot in cm.
 
-We can also use both `Sex`and `Foot` as predictor variables in the same model:
+We can also use both `Sex` and `Foot` as predictor variables in the same model:
 
 ```{r}
 fit_Sex_Foot = lm(Height ~ Sex + Foot, data = student_means)
 summary(fit_Sex_Foot)
 ```
 
-This model gives predictions of a person's height based on the persons sex and length of the feet, and can be formulated as 
+This model gives predictions of a person's height based on the persons sex and length of the foot, and can be formulated as 
 
 $$
 y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
@@ -492,7 +505,7 @@ $$
 y_i = \beta_0' + \beta_1 x_{i,1} + \beta_2 (x_{i,2} -\mu_F) + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
 $$
 
-where $\mu_F$ is the mean foot length of females. The intercept $\beta_0'$ is now the mean height of females with foot length equal to the mean in the sample. The other parameters remain the same. This is a reparameterization of the original model, meaning that the predictions and residuals from the model will remain the same. Note that  $\beta_0 = \beta_0' - \beta_2 \mu_F$.
+where $\mu_F$ is the mean foot length of females. The intercept $\beta_0'$ is now the mean height of females with foot length equal to the mean in the sample. The other parameters remain the same. This is a *reparameterization* of the original model, meaning that the predictions and residuals from the model will remain the same (the model is really the same, it is just described in a different way). Note that  $\beta_0 = \beta_0' - \beta_2 \mu_F$.
 
 We can fit this model with the redefined intercept in the following way:
 
@@ -535,7 +548,7 @@ title(Title)
 
 The stippled lines in the plot shows the 95% confidence intervals for the prediction lines. Take a moment to study this plot. What interpretations can you make?
 
-The fact that the two prediction lines are parallel is not a result of the analysis. It is a constraint in the model. To make the model more flexible such that the two sexes are allowed to have different slopes, we need to add one parameter to the model. Again, there are several ways to parameterize this model. We will stick to the default parameterization in R and fit the following model:
+*The fact that the two prediction lines are parallel is not a result of the analysis -- it is a constraint in the model!* To make the model more flexible such that the two sexes are allowed to have different slopes, we need to add one parameter to the model. Again, there are several ways to parameterize this model. We will stick to the default parameterization in R and fit the following model:
 
 $$
 y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,3} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
@@ -587,6 +600,11 @@ Note that n this model, $\beta_1$ is the difference between the two sexes *only 
 
 You may have noticed that the confidence intervals for the predictions are slightly wider for the more complex interaction model. This is a general phenomenon; If we add more parameters to a model, we reduce bias (increase accuracy) but we also loose precision (get wider confidence intervals). The summary of the model shows that the difference between the slopes of the two sexes is not statistically significant at the 5% level, meaning that the 95% confidence interval will overlap with zero (even the 60% confidence interval will overlap with zero). This justifies preferring the simpler additive model **if** we are only interested in using the model for predicting a person's height from the person's sex and foot length (we will look closer at such data-based model selection next week). However, it is important to realize that this **does not** justify a conclusion that females and males have the same slope. Only the confidence interval for the difference in slope provides information about how different the slopes may be.
 
+---
+
+<div class = "blue">
+**HOW GOOD IS THE MODEL?**
+
 ## Assessing "goodness of fit"
 
 Before we use a fitted model to make any inference we should assess how well the model fits the data. Procedures for doing this are referred to as "goodness of fit" (GOF) assessments. This involves assessing whether there is reasonable agreement between the structure of the model (or the model "assumptions") and the data - do the data look like they could have been generated from the model? If the answer is "no" we should reconsider the structure of the model and perhaps fit a different kind of model (e.g. a non-linear one) if this is biologically reasonable and the model is able to give us the information we need to address our research questions. If the "lack of fit" is severe (i.e., there are some structures in the data that are very unlikely to occur by chance if we simulated data from the model), our inferences from the model fit will be rather questionable.
@@ -626,43 +644,52 @@ var_tot = var(residuals(fit_1)) # = var(student_means$Height)
 (var_tot - var_res)/var_tot # = 1-var_res/var_tot 
 ```
 
-## Measurement error in the response variable
+</div>
 
-The variance in the observed values, and hence the residual variance, consists of both random (unexplained) variation among students and measurement error. The $R^2$ values we computed above is the proportion of the total variance (including measurement error) explained by the model, which is lower that the proportion of the random biological variation among students explained. Since we have three repeated measurements of each student in our body height data, we can estimate the measurement error variance. The easiest way to do this is to fit a model of `Height` with student specific expectations in the original data (before we aggregated to student specific means). The residual variance from this model is then an estimate of the measurement error variance of the *individual measurements* (not the individual means). Here we compute the the standard deviation instead since this is in units of cm and can be interpreted directly.
+---
 
-```{r}
-# fit_measurements = lm(Height ~ ID, data = students)
-# (sd_merr = sd(residuals(fit_measurements)))
-sd_merr = 999
-```
+<!-- ## Measurement error in the response variable -->
 
-Hence we should expect that 95% of all repeated measurements of a single individual are within $\pm$ 2 times this value (i.e., $\pm$ `r round(2*sd_merr, 2)` cm) from the mean. However, in our analysis, we have used the mean values of three repeated measurements, and the variance of three *iid* measurements is one third of the variance of each of them. We can subtract this from the total variance to get an estimate of the unexplained biological variance among individuals (this is often called "the process variance"). Further, we can compute how large a proportion of this variance that the model explains:
+<!-- The variance in the observed values, and hence the residual variance, consists of both random (unexplained) variation among students and measurement error. The $R^2$ values we computed above is the proportion of the total variance (including measurement error) explained by the model, which is lower that the proportion of the random biological variation among students explained. Since we have three repeated measurements of each student in our body height data, we can estimate the measurement error variance. The easiest way to do this is to fit a model of `Height` with student specific expectations in the original data (before we aggregated to student specific means). The residual variance from this model is then an estimate of the measurement error variance of the *individual measurements* (not the individual means). Here we compute the the standard deviation instead since this is in units of cm and can be interpreted directly. -->
 
-```{r}
-var_merr_mean = 999#(sd_merr^2)/3
-var_process = 999 #var_tot - var_merr_mean
-#var_pred/var_process
-```
+<!-- ```{r} -->
+<!-- fit_measurements = lm(Height ~ ID, data = students) -->
+<!-- (sd_merr = sd(residuals(fit_measurements))) -->
+<!-- ``` -->
 
-This value is only a tiny bit higher than the $R^2$ values we computed above because the measurement error variance is merely `r round(100*var_merr_mean/var_tot,2)` % of the total variance. The measurement error variance is of course a higher proportion of the residual variance, but the estimated process standard deviation is also only marginally smaller than the residual standard deviation (in cm):
+<!-- Hence we should expect that 95% of all repeated measurements of a single individual are within $\pm$ 2 times this value (i.e., $\pm$ `round(2*sd_merr, 2)` cm) from the mean. However, in our analysis, we have used the mean values of three repeated measurements, and the variance of three *iid* measurements is one third of the variance of each of them. We can subtract this from the total variance to get an estimate of the unexplained biological variance among individuals (this is often called "the process variance"). Further, we can compute how large a proportion of this variance that the model explains: -->
 
-```{r}
-(sd_res = 999)# sd(residuals(fit_Sex_Foot_interaction)))
-(sd_res_process = 999)#sqrt(sd_res^2 - var_merr_mean))
-```
+<!-- ```{r} -->
+<!-- var_merr_mean = (sd_merr^2)/3 -->
+<!-- var_process = var_tot - var_merr_mean -->
+<!-- var_pred/var_process -->
+<!-- ``` -->
 
-This difference is less than `r round((sd_res - sd_res_process)*10, 2)` mm, which is negligible. But at least, now we know, and can show, that this is the case. By taking repeated measurements we can both reduce the measurement error by using the mean value in the analysis, and we can correct the estimates of random (unexplained) process variation and $R^2$. Importantly, repeated measurements also allow us to more easily find mistakes in the data. Mistakes when recording large amounts of data always occur. E.g., after a long day in the field or in the lab, one may write down a value that is 1 or 10 units off the measured value. Without repeated measurements, it may be impossible to discover (and verify with certainty) such mistakes, and some mistakes may cause large biases. Hence, it is always a good idea to take repeated measurements when this is practically possible. At least, one ought to take repeated measurements on a random subset of the study units such that measurement error variance can be estimated.
+<!-- This value is only a tiny bit higher than the $R^2$ values we computed above because the measurement error variance is merely ` round(100*var_merr_mean/var_tot,2)` % of the total variance. The measurement error variance is of course a higher proportion of the residual variance, but the estimated process standard deviation is also only marginally smaller than the residual standard deviation (in cm): -->
 
-Measurement error in the response variable does not cause any bias in other parameter estimates than the residual variance (when interpreted as a biological process variance). However, later in the course, we will see that measurement error in the predictor variables will also bias the estimated effects (slopes) of the predictor variable towards zero.
+<!-- ```{r} -->
+<!-- (sd_res = 999)# sd(residuals(fit_Sex_Foot_interaction))) -->
+<!-- (sd_res_process = 999)#sqrt(sd_res^2 - var_merr_mean)) -->
+<!-- ``` -->
+
+<!-- This difference is less than `round((sd_res - sd_res_process)*10, 2)` mm, which is negligible. But at least, now we know, and can show, that this is the case. By taking repeated measurements we can both reduce the measurement error by using the mean value in the analysis, and we can correct the estimates of random (unexplained) process variation and $R^2$. Importantly, repeated measurements also allow us to more easily find mistakes in the data. Mistakes when recording large amounts of data always occur. E.g., after a long day in the field or in the lab, one may write down a value that is 1 or 10 units off the measured value. Without repeated measurements, it may be impossible to discover (and verify with certainty) such mistakes, and some mistakes may cause large biases. Hence, it is always a good idea to take repeated measurements when this is practically possible. At least, one ought to take repeated measurements on a random subset of the study units such that measurement error variance can be estimated. -->
+
+<!-- Measurement error in the response variable does not cause any bias in other parameter estimates than the residual variance (when interpreted as a biological process variance). However, later in the course, we will see that measurement error in the predictor variables will also bias the estimated effects (slopes) of the predictor variable towards zero. -->
+
+## Exercises
+
+...to come...
 
 ## Assignment
 
-Before starting this week's assignment, you should work your way through the text in this document. If you are unsure about the meaning of some terms, you can check the Glossary on Canvas. Try also to run and understand the R code. It may help to print out objects in the Console window (or mark the text and hit Ctrl-r) or use the `str()` function to look at the structure of the objects. If there is something you are unsure about or don't understand, you can try to modify the code to see what it does or look up functions in the R help (or use Google). It is also a good idea to work together with fellow students. We are of course also available to help at the Help Desk.
+Before starting this week's assignment, you should work your way through the text in this document. If you are unsure about the meaning of some terms, you can check the Glossary on Canvas. Try also to run and understand the R code. It may help to print out objects in the Console window (or mark the text and hit Ctrl-r) or use the `str()` function to look at the structure of the objects. If there is something you are unsure about or don't understand, you can try to modify the code to see what it does or look up functions in the R help (or use Google). We are of course also available to help at the Help Desk.
 
 **Assignment:**
 
-Write a R-mark document where you include the following:
+<!-- Write a R Markdown document where you include the following: -->
 
-1. Use bootstrapping (parametric or non-parametric) to compute a 95% confidence interval for the ratio between standard deviation in male and female height (SD(height of males)/SD(height of females)). Do the same with residual standard deviation when accounting for the linear effect of foot length (you need to fit one model with `lm()` for each sex). How do you interpret the differences? 
+<!-- 1. Use bootstrapping (parametric or non-parametric) to compute a 95% confidence interval for the ratio between standard deviation in male and female height (SD(height of males)/SD(height of females)). Do the same with residual standard deviation when accounting for the linear effect of foot length (you need to fit one model with `lm()` for each sex). How do you interpret the differences?  -->
 
-2. Fit both a model with additive effects and a model with interaction effects to predict body height from a person's sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
+Fit both a model with additive effects and a model with interaction effects to predict body height from a person's sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
+
+The assignment should be submitted as a stand alone document written in R Markdown. 
