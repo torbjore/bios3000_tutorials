@@ -4,11 +4,11 @@ title: Tutorial week 2 - Simulations, the law of large numbers and
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
-  pdf_document:
-    toc: yes
   html_document:
     toc: yes
     toc_float: true
+  pdf_document:
+    toc: yes
   df_print: paged
 urlcolor: blue
 ---
