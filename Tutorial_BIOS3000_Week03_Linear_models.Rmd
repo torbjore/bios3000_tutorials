@@ -30,10 +30,10 @@ knitr::opts_chunk$set(echo = TRUE)
 * Predictions
 * Residuals
 * Confidence intervals
-* Parametric and non-parametric bootstrapping
 * (Re-)parameterization
-* Goodness-of-fit (GOF)
-* R-squared (coefficient of determination)
+* [Parametric and non-parametric bootstrapping]
+* [Goodness-of-fit (GOF)]
+* [R-squared (coefficient of determination)]
 
 
 ## Prerequisites
