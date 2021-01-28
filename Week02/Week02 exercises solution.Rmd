@@ -1,0 +1,116 @@
+---
+title: "Week 2 - Exercises"
+output: html_document
+---
+<style>
+div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercises
+
+1. Draw 10 random values from a normal distribution with mean 12 and standard deviation 2.
+
+<div class="green">
+```{r}
+(x = rnorm(n=10, 12, 2))
+```
+</div>
+
+a) What do you expect the variance of the random values to be?
+
+<div class="green">    
+```{r}
+2^2
+```
+Expected variance = 4
+</div>
+    
+b) Compute the empirical variance of the random values. Is the variance close to what you expected? If not, why not? Repeat this with 10 new random values.
+
+<div class="green">
+```{r}
+# sd(x)^2
+var(x)
+```
+</div>
+
+c) Compute the variance of one million values drawn from the same distribution. Is this closer to the expected value? Why?
+
+<div class="green">    
+```{r}
+x = rnorm(n=1000000, 12, 2)
+var(x)
+```
+Much closer to the expected value due to the "law of large numbers"
+</div>
+
+2. Compute the values `2^i` when `i` goes from 1 to 10 in a for-loop (you should get the same results as when running `2^(1:10)` in R).
+
+<div class="green">
+```{r}
+y = rep(NA,10)
+for(i in 1:10){
+  y[i] = 2^i
+}
+y
+
+2^(1:10)
+
+```
+</div>
+
+3. Do the same as above, but with `i` going from 0 to 10.
+
+<div class="green">
+```{r}
+y = rep(NA,11)
+for(i in 0:10){
+  y[i+1] = 2^i # NB! Index i+1 here as indexing starts on 1 in R
+}
+y
+
+2^(0:10)
+
+```
+</div>
+
+4. Use R to simulate the probability distribution of the sum of two independent dice throws and plot a histogram. **HINTS:**
+    + You can simulate one dice throw with `sample(1:6, 1)` and two independent dice throws with `sample(1:6, 2, replace = T)` (Why do we need to use `replace = T`? Remember that you can look up the description of any R-function in the 'help' (e.g. type `?sample`))
+    + The `hist()` function (using default arguments) does not produce a nice histogram with integer values. Instead, you can use `table` to count how any vector elements you have of each value (try e.g. `table(c(1,1,2,3))`), and then make a bar-plot of these counts (table values) using `barplot()`.
+    
+<div class="green">
+```{r}
+n = 1000000
+
+sum_z = rep(n)
+for(i in 1:n){
+  z = sample(1:6, 2, replace = TRUE)
+  sum_z[i] = sum(z) # z[1] + z[2]
+}
+
+tab = table(sum_z)   # Frequency counts
+probs = tab/sum(tab) # Proportions 
+
+hist(sum_z)
+
+barplot(probs)
+
+# Theoretical probabilities
+# 2: 1+1
+1/6*1/6
+probs[1]
+
+# 3: 1+2, 2+1
+(1/6)^2 + (1/6)^2
+probs[2]
+
+# 4: 1+3, 2+2, 3+1
+3*(1/6)^2
+probs[3]
+
+```
+</div>
