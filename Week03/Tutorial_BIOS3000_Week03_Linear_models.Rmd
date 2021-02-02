@@ -690,9 +690,9 @@ var_tot = var(residuals(fit_1)) # = var(student_means$Height)
     
     E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = student_means)`
     
-2. For each of the above models, identify the response variable, the predictor variable, the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model.
+2. For each of the above models, identify the response variable, the predictor variable(s), the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model.
 
-3. What is the intercept for each of the models and what do their values mean? [remember that the intercept is the value of the predictor variable when all response variables are set to zero].
+3. What is the intercept for each of the models and what do their values mean? [remember that the intercept is the value of the predictor variable when all response variables are set to zero]. What do the values of the other parameters mean?
 
 4. Fit each of the models above and interpret the point estimates of each parameter.
 

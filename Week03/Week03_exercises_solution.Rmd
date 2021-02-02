@@ -13,6 +13,7 @@ div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+student_means = read.csv("student_means.csv")
 ```
 
 ## Exercises
@@ -30,35 +31,228 @@ knitr::opts_chunk$set(echo = TRUE)
     E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = student_means)`
 
 <div class="green">
-
-$$
-\begin{array}{ r l l}
-  \text{A.} & y_i = \beta_0 + \beta_1 x_{i,1} + \varepsilon_i, & \varepsilon_i \sim N(0, \sigma) \\
-  \text{B.} & y_i = \beta_0 + \varepsilon_i, & \varepsilon_i \sim N(0, \sigma) \\
-  \text{C.} & y_i = \beta_0 + \varepsilon_i, & \varepsilon_i \sim N(0, \sigma) \\
-\end{array}
-$$
-
-|      |Call to `lm()`                             | Model                              |                                   | response variable, the predictor variable(s), the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model
-| :--: | :---------------------------------------- |:---------------------------------- | :-------------------------------- |
-| A.   | `lm(Height ~ Foot, data = student_means)` | $y_i = \beta_0 + \varepsilon_i$    | $\varepsilon_i \sim N(0, \sigma)$ |
-
-
-|      |Call to `lm()`                             | Model                               |                                   | Response variable                  | Predictor variable(s) | Parameters | Fixed part | Random part |
-| :--: | :---------------------------------------- |:----------------------------------- | :-------------------------------- | :--------------------------------- | :-------------------- | :--------- | :--------- | :---------- |
-| A.   | `lm(Height ~ Foot, data = student_means)` | $y_i = \beta_0  + \varepsilon_i$     | $\varepsilon_i \sim N(0, \sigma)$ | $y_i=$ Body height of individual i |  $$ 
-
-
-
+See under point 3 below.
 </div>
 
-    
 2. For each of the above models, identify the response variable, the predictor variable(s), the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model.
+
+<div class="green">
+See under point 3 below.
+</div>
 
 3. What is the intercept for each of the models and what do their values mean? [remember that the intercept is the value of the predictor variable when all response variables are set to zero].
 
+<!-- ADDED TO THE TUTORIAL AFTER HAND-OUT IN 2021: "What do the values of the other parameters mean?" -->
+
+<div class="green">
+A. `fit_Foot = lm(Height ~ Foot, data = student_means)`
+
+  - Mathematical notation: $y_i = \beta_0 + \beta_1 x_i + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)$
+
+  - Response variable: `Height`; $y_i =$ Height of individual $i$ in cm.
+  
+  - Predictor variable: `Foot`; $x_i =$ Foot length of individual $i$ in cm.
+  
+  - Parameters:
+  
+    - $\beta_0 =$ Intercept; Where the line crosses the y-axis. I.e., the expected height of people with zero foot length (not biologically meaningful).
+    
+    - $\beta_1 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm.
+    
+    - $\sigma = $ The standard deviation of the normally distributed random component; The standard deviation around the predictions from the fixed part of the model.  
+  
+  - Fixed part: $\beta_0 + \beta_1 x_i$
+  
+  - Random part: $\varepsilon_i$ where $\varepsilon_i \sim N(0, \sigma)$
+    
+
+B. `fit_Sex = lm(Height ~ Sex, data = student_means)`
+
+  - Mathematical notation: $y_i = \beta_0 + \beta_1 x_{i,1} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)$
+
+  - Response variable: `Height`; $y_i =$ Height of individual $i$ in cm.
+  
+  - Predictor variable: `Sex`; $x_{i,1} = 0$ for females and $1$ for males.
+  
+  - Parameters:
+  
+    - $\beta_0 =$ Intercept; The expected height of females.
+    
+    - $\beta_1 =$ Effect of Sex; The expected height of males minus the expected height of females.
+    
+    - $\sigma = $ The standard deviation of the normally distributed random component.
+  
+  - Fixed part: $\beta_0 + \beta_1 x_{i,1}$
+  
+  - Random part: $\varepsilon_i$ where $\varepsilon_i \sim N(0, \sigma)$
+
+C. `fit_Sex_Foot = lm(Height ~ Sex + Foot, data = student_means)`
+
+  - Mathematical notation: $y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)$
+
+  - Response variable: `Height`; $y_i =$ Height of individual $i$ in cm.
+  
+  - Predictor variables:
+  
+    - `Sex`; $x_{i,1} = 0$ for females and $1$ for males.
+    
+    - `Foot`; $x_{i,2} =$ Foot length of individual $i$ in cm.
+  
+  - Parameters:
+  
+    - $\beta_0 =$ Intercept; The expected height of *females* with zero foot length (not biologically meaningful).
+    
+    - $\beta_1 =$ Effect of Sex; The expected height of males minus the expected height of females *with the same foot length* (the regression lines for the two sexes are parallel).
+    
+    - $\beta_2 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm (the same slope for both sexes).
+    
+    - $\sigma = $ The standard deviation of the normally distributed random component.
+  
+  - Fixed part: $\beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2}$
+  
+  - Random part: $\varepsilon_i$ where $\varepsilon_i \sim N(0, \sigma)$
+
+D. `fit_Sex_Foot_int = lm(Height ~ Sex*Foot, data = student_means)`
+
+  - Mathematical notation: $y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,1} x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)$
+
+  - Response variable: `Height`; $y_i =$ Height of individual $i$ in cm.
+  
+  - Predictor variables:
+  
+    - `Sex`; $x_{i,1} = 0$ for females and $1$ for males.
+    
+    - `Foot`; $x_{i,2} =$ Foot length of individual $i$ in cm.
+  
+  - Parameters:
+  
+    - $\beta_0 =$ Intercept; The expected height of *females* with zero foot length (not biologically meaningful).
+    
+    - $\beta_1 =$ Effect of Sex *on the intercept*; The expected height of males with zero foot length minus the expected height of females with zero foot length.
+    
+    - $\beta_2 =$ Slope of the regression line *for females*; How many cm the expected height of *females* increase when foot length is increased with one cm.
+    
+    - $\beta_3 =$ Slope of the regression line for males minus the slope for females; The slope for males is $\beta_2 + \beta_3$.
+    
+    - $\sigma = $ The standard deviation of the normally distributed random component.
+  
+  - Fixed part: $\beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,1} x_{i,2}$
+  
+  - Random part: $\varepsilon_i$ where $\varepsilon_i \sim N(0, \sigma)$
+    
+    
+E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = student_means)`
+
+  - Mathematical notation: $y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)$
+
+  - Response variable: `Height`; $y_i =$ Height of individual $i$ in cm.
+  
+  - Predictor variables:
+  
+    - `Sex`; $x_{i,1} = 0$ for females and $1$ for males.
+    
+    - `Foot`; $x_{i,2} =$ Deviation in foot length of individual $i$ (in cm) from the over all mean in the sample; I.e., foot length of individual $i$ minus mean foot length of the sample.
+  
+  - Parameters:
+  
+    - $\beta_0 =$ Intercept; The expected height of *females* with foot length equal to the over all mean in the sample.
+    
+    - $\beta_1 =$ Effect of Sex; The expected height of males minus the expected height of females *with the same foot length* (the regression lines for the two sexes are parallel).
+    
+    - $\beta_2 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm (the same slope for both sexes).
+    
+    - $\sigma = $ The standard deviation of the normally distributed random component.
+  
+  - Fixed part: $\beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2}$
+  
+  - Random part: $\varepsilon_i$ where $\varepsilon_i \sim N(0, \sigma)$
+  
+**NB!:** Note that model E is the same as model C, but with a different *parameterization*. This means that the predictions from the two models (the $\hat{y}_i$'s) will be exactly the same. The parameters $\beta_1$ and $\beta_2$ also have the same meaning and will be estimated to be exactly the same (you can check it!). The meaning of the intercept ($\beta_0$) is, however, different in the two models.
+
+**Note:** It is essential to understand why the parameters in these models have the meanings specified above - it follows from the mathematical description of the model. If this is not clear, it may help to make a sketch of the models on a piece of paper and mark off distances corresponding to the parameters. See also the prediction plots made below. 
+
+</div>
+
 4. Fit each of the models above and interpret the point estimates of each parameter.
+
+<div class="green">
+Below I fit all models and look at point estimates of the parameters in the fixed part of the model (use `summary` to see standard errors and the estimate of $\sigma$). To help understand the meaning of the parameters, I also plot the predicted body heights for foot length ranging from 0 to maximum in the data (the code for the function `plot_prediction` is not shown here, but it can be found in the Rmd-file). Mark off distances in these plots corresponding to the parameters in the model. 
+
+```{r, echo=FALSE}
+# Making a function for plotting
+plot_prediction = function(fit, x = c(0,max(student_means$Foot)), Xlab = "Foot length", Ylab = "Body height"){
+  D = expand.grid(Sex = c("female", "male"), Foot = x)# data.frame(Sex = rep(c("female", "male"), each = length(x)), Foot = rep(x, times=2))
+  D$Y_hat = predict(fit, D)
+  plot(D$Foot, D$Y_hat, type="n", xlab=Xlab, ylab=Ylab, xaxs="i", ylim=c(70,210))
+  Col = c("red", "blue")[(student_means$Sex=="male")+1]
+  points(student_means$Foot, student_means$Height, col=Col)
+  with(D[D$Sex=="female", ], lines(Foot, Y_hat, col="red"))
+  with(D[D$Sex=="male", ], lines(Foot, Y_hat, col="blue"))
+  legend("topleft", c("females", "males"), lty=1, col=c("red","blue"))
+  title(deparse(fit$call))
+}
+```
+
+```{r}
+# A.
+(fit_Foot = lm(Height ~ Foot, data = student_means))
+plot_prediction(fit_Foot)
+    
+# B.
+(fit_Sex = lm(Height ~ Sex, data = student_means))
+plot_prediction(fit_Sex)
+    
+# C.
+(fit_Sex_Foot = lm(Height ~ Sex + Foot, data = student_means))
+plot_prediction(fit_Sex_Foot)
+
+# D.
+(fit_Sex_Foot_int = lm(Height ~ Sex*Foot, data = student_means))
+plot_prediction(fit_Sex_Foot_int)  
+  
+# E.
+(fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = student_means))
+(fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - 24.44419), data = student_means))
+plot_prediction(fit_Sex_FootCentered)
+abline(v=mean(student_means$Foot))
+```
+
+In the last plot above, a vertical line has been drawn at mean foot length
+
+</div>
 
 6. Use `confint()` to get confidence intervals for the parameters in the above models and interpret them (what do they tell you?).
 
+<div class="green">
+Both the point estimates and the confidence intervals of the parameters in each model are shown below.
+
+```{r}
+# A.
+fit = fit_Foot
+cbind(coef(fit), confint(fit))
+    
+# B.
+fit = fit_Sex
+cbind(coef(fit), confint(fit))
+    
+# C.
+fit = fit_Sex_Foot
+cbind(coef(fit), confint(fit))
+
+# D.
+fit = fit_Sex_Foot_int
+cbind(coef(fit), confint(fit))
+  
+# E.
+fit = fit_Sex_FootCentered
+cbind(coef(fit), confint(fit))
+```
+
+From the confidence intervals from model D we see that the difference in the slope between the two sexes is very uncertain. This does not mean that the true difference is small (or that we are justified in thinking that it is zero because it is "non-significant"). We just need more data to estimate this difference precisely. We can go through other interpretations during the Wednesday lecture.
+</div>
+
 7. Which parameter is not included when you use `confint()` on these models?
+
+<div class="green">
+The confidence intervals for $\sigma$ are not computed by `confint()`. You may use bootstrapping to compute this confidence interval.
+</div>
