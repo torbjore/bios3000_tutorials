@@ -1,0 +1,64 @@
+---
+title: Solution to exercises Week 3
+author: Torbjørn Ergon
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  pdf_document: default
+---
+
+<style>
+div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercises
+
+1. Write down the model fitted by the following calls to the `lm()` function with mathematical notation.
+
+    A. `fit_Foot = lm(Height ~ Foot, data = student_means)`
+    
+    B. `fit_Sex = lm(Height ~ Sex, data = student_means)`
+    
+    C. `fit_Sex_Foot = lm(Height ~ Sex + Foot, data = student_means)`
+    
+    D. `fit_Sex_Foot_int = lm(Height ~ Sex*Foot, data = student_means)`
+    
+    E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = student_means)`
+
+<div class="green">
+
+$$
+\begin{array}{ r l l}
+  \text{A.} & y_i = \beta_0 + \beta_1 x_{i,1} + \varepsilon_i, & \varepsilon_i \sim N(0, \sigma) \\
+  \text{B.} & y_i = \beta_0 + \varepsilon_i, & \varepsilon_i \sim N(0, \sigma) \\
+  \text{C.} & y_i = \beta_0 + \varepsilon_i, & \varepsilon_i \sim N(0, \sigma) \\
+\end{array}
+$$
+
+|      |Call to `lm()`                             | Model                              |                                   | response variable, the predictor variable(s), the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model
+| :--: | :---------------------------------------- |:---------------------------------- | :-------------------------------- |
+| A.   | `lm(Height ~ Foot, data = student_means)` | $y_i = \beta_0 + \varepsilon_i$    | $\varepsilon_i \sim N(0, \sigma)$ |
+
+
+|      |Call to `lm()`                             | Model                               |                                   | Response variable                  | Predictor variable(s) | Parameters | Fixed part | Random part |
+| :--: | :---------------------------------------- |:----------------------------------- | :-------------------------------- | :--------------------------------- | :-------------------- | :--------- | :--------- | :---------- |
+| A.   | `lm(Height ~ Foot, data = student_means)` | $y_i = \beta_0  + \varepsilon_i$     | $\varepsilon_i \sim N(0, \sigma)$ | $y_i=$ Body height of individual i |  $$ 
+
+
+
+</div>
+
+    
+2. For each of the above models, identify the response variable, the predictor variable(s), the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model.
+
+3. What is the intercept for each of the models and what do their values mean? [remember that the intercept is the value of the predictor variable when all response variables are set to zero].
+
+4. Fit each of the models above and interpret the point estimates of each parameter.
+
+6. Use `confint()` to get confidence intervals for the parameters in the above models and interpret them (what do they tell you?).
+
+7. Which parameter is not included when you use `confint()` on these models?
