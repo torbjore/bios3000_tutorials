@@ -59,7 +59,7 @@ A. `fit_Foot = lm(Height ~ Foot, data = student_means)`
     
     - $\beta_1 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm.
     
-    - $\sigma = $ The standard deviation of the normally distributed random component; The standard deviation around the predictions from the fixed part of the model.  
+    - $\sigma =$ The standard deviation of the normally distributed random component; The standard deviation around the predictions from the fixed part of the model.  
   
   - Fixed part: $\beta_0 + \beta_1 x_i$
   
@@ -80,7 +80,7 @@ B. `fit_Sex = lm(Height ~ Sex, data = student_means)`
     
     - $\beta_1 =$ Effect of Sex; The expected height of males minus the expected height of females.
     
-    - $\sigma = $ The standard deviation of the normally distributed random component.
+    - $\sigma =$ The standard deviation of the normally distributed random component.
   
   - Fixed part: $\beta_0 + \beta_1 x_{i,1}$
   
@@ -106,7 +106,7 @@ C. `fit_Sex_Foot = lm(Height ~ Sex + Foot, data = student_means)`
     
     - $\beta_2 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm (the same slope for both sexes).
     
-    - $\sigma = $ The standard deviation of the normally distributed random component.
+    - $\sigma =$ The standard deviation of the normally distributed random component.
   
   - Fixed part: $\beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2}$
   
@@ -134,7 +134,7 @@ D. `fit_Sex_Foot_int = lm(Height ~ Sex*Foot, data = student_means)`
     
     - $\beta_3 =$ Slope of the regression line for males minus the slope for females; The slope for males is $\beta_2 + \beta_3$.
     
-    - $\sigma = $ The standard deviation of the normally distributed random component.
+    - $\sigma =$ The standard deviation of the normally distributed random component.
   
   - Fixed part: $\beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,1} x_{i,2}$
   
@@ -161,7 +161,7 @@ E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = studen
     
     - $\beta_2 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm (the same slope for both sexes).
     
-    - $\sigma = $ The standard deviation of the normally distributed random component.
+    - $\sigma =$ The standard deviation of the normally distributed random component.
   
   - Fixed part: $\beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2}$
   
