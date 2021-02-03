@@ -1,0 +1,259 @@
+---
+title: "Solution and notes for the assignment week 3"
+author: "Svenja and Torbjørn"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+students = read.delim("MeasurementData.txt")
+students_means = read.csv("students_means.csv")
+```
+
+
+## Task 1:
+
+### "Use bootstrapping (parametric or non-parametric) to compute a 95% confidence interval for the ratio between standard deviation in male and female height (SD(height of males)/SD(height of females))."
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">In the tutorial we computed the residual standard deviation as the standard deviation of the residuals from the model fit, `sd(residuals(fit))`. If we want an estimate of the standard deviation in the population, it would have been better to extract the 'sigma' from the summary of the model by using `summary(fit)$sigma` (this is what is printed when using `summary(fit)`). The two are approximately the same only when sample size is large. We will use `summary(fit)$sigma` below, but it is fine to use `sd(residuals(fit))` too. </div>
+
+There are several ways to do the bootstrapping. Parametric and non-parametric bootstrapping are two different methods. When doing non-parametric bootstrapping, you may also decide to keep sex ratio in all the resamples the same as in the original data, or you may resample the whole data set in one operation such that sex ratio will vary among resamples. With a limited sample size, one will get slightly different results from the different approaches, but it is hard to say that one approach is better than the other. There are also many ways of doing the coding in R. Your preference is as good as any.
+
+#### Non-parametric bootstrapping
+
+Resampling from the original data with replacement and calculation of standard deviations from these resampled data. Here we chose to resample the whole data set in one operation such that sex ratio will vary among resamples.
+
+```{r}
+n_iter = 10000 # Number of iterations
+n = nrow(students_means)
+
+samples_males_vs_females = rep(NA,n_iter)  # Empty vectors for storing results
+for(i in 1:n_iter){
+  resamp_rows = sample(1:n, n, replace = TRUE) # create an index vector for resampling the data
+  resamp_data = students_means[resamp_rows,] # resample the data
+  resamp_sd = tapply(resamp_data$Height, list(resamp_data$Sex), sd) # calculate the standard deviation for males and females in the resampled data
+  samples_males_vs_females[i] = resamp_sd["male"]/resamp_sd["female"] # calculate the ratio between male and female sd
+}
+(mean_sd_samples_males_vs_females = mean(samples_males_vs_females)) # calculate the mean ratio
+(CI_samples_males_vs_females = quantile(samples_males_vs_females, prob=c(0.025, 0.975))) # calculate the 95% confidence interval
+```
+
+#### Parametric bootstrapping
+
+A linear model is first fitted to the data to estimate parameters. Then n_iter new response vectors are simulated from the model using these parameter estimates, and the standard deviation for each sex, and their ratio, is computed for each of the resampled response vectors.
+
+```{r}
+n_iter = 10000 # Number of iterations
+males = students_means[students_means$Sex == "male",] # subset the dataset for males
+females = students_means[students_means$Sex == "female",] # subset the dataset for females
+fit_male = lm(Height ~ 1, data = males) # fit a linear model for males
+fit_female = lm(Height ~ 1, data = females) # fit a linear model for females
+# We could have just computed the mean and SD instead of using lm() here
+# but having a model object makes it easy to use the simulate() function in a general way,
+# which we will do below
+
+# Simulate n_iter new response vectors from the modes we fitted
+Y_male = simulate(fit_male, nsim = n_iter)
+Y_female = simulate(fit_female, nsim = n_iter)
+
+# Calculate standard deviations and the ratio in a loop:
+samples_sd_ratio = rep(NA,n_iter)  # Empty vectors for storing results
+for(i in 1:n_iter){
+  sd_male = sd(Y_male[,i]) # calculate the standard deviation of the fitted data in simulation i
+  sd_female = sd(Y_female[,i])
+  samples_sd_ratio[i] = sd_male/sd_female # calculate the ratio between male and female sd
+}
+
+# ...or without loop (much faster):
+sd_male = apply(Y_male,2,sd) # calculate the standard deviation of the fitted data in all columns
+sd_female = apply(Y_female,2,sd) # same for females
+samples_sd_ratio = sd_male/sd_female # calculate the ratio between male and female sd
+
+(mean_samples_sd_ratio = mean(samples_sd_ratio)) # calculate the mean of the ratio
+(CI_sd = quantile(samples_sd_ratio, prob=c(0.025, 0.975))) # calculate the confidence interval
+```
+
+The mean of the ratio between standard deviation of males and females is about 0.65 (non-parametric) - 0.67 (parametric), i.e. female height has a higher variance than male height. The confidence interval is however quite wide - we need more data (a larger sample) to get more precise estimates. The upper confidence limit is close to 1 (above 1 for the parametric) bootstrap, so it may well be that female height is not much more variable in population. It is however more unlikely that male height is much more variable than female height.
+
+### "Do the same with residual standard deviation when accounting for the linear effect of foot length (you need to fit one model with lm() for each sex). How do you interpret the differences?"
+
+#### Non-parametric:
+
+```{r}
+n_iter = 10000 # Number of iterations
+n = nrow(students_means) # sample size
+
+samples_males_vs_females = rep(NA,n_iter)  # Empty vectors for storing results
+for(i in 1:n_iter){
+  resamp_rows = sample(1:n, n, replace = TRUE)
+  resamp_data = students_means[resamp_rows,]  # resample the dataset
+  resamp_fit_males = lm(Height ~ Foot, data = resamp_data, subset = Sex == "male")
+  resamp_fit_females = lm(Height ~ Foot, data = resamp_data, subset = Sex == "female")
+  resamp_sigma_males = summary(resamp_fit_males)$sigma
+  resamp_sigma_females = summary(resamp_fit_females)$sigma
+  samples_males_vs_females[i] = resamp_sigma_males/resamp_sigma_females
+}
+(mean_sd_samples_males_vs_females = mean(samples_males_vs_females)) # determine mean
+(CI_samples_males_vs_females = quantile(samples_males_vs_females, prob=c(0.025, 0.975))) # determine confidence interval
+```
+
+#### Parametric
+
+Parametric: the linear model is defined before the bootstrapping. During bootstrapping the values from the simulations are refitted and the residual standard deviation of the two sexes, and their ratio, is stored in a vector.
+
+```{r}
+n_iter = 10000 # Number of iterations
+males = students_means[students_means$Sex == "male",]
+females = students_means[students_means$Sex == "female",]
+fit_male = lm(Height ~ Foot, data = males) # fit a linear model for the male dataset
+fit_female = lm(Height ~ Foot, data = females) # fit a linear model for the female dataset
+
+Y_male = simulate(fit_male, n_iter) # simulate the male model n_iter times
+Y_female = simulate(fit_female, n_iter) # simulate the female model n_iter times
+
+ratio = rep(NA,n_iter)  # Empty vectors for storing results
+for(i in 1:n_iter){
+  male_lm = lm(Y_male[,i] ~ males$Foot) # refit the fitted data from the simulations
+  female_lm = lm(Y_female[,i] ~ females$Foot)
+  resid_sd_males = summary(male_lm)$sigma
+  resid_sd_females = summary(female_lm)$sigma
+  ratio[i] = resid_sd_males/resid_sd_females  # calculate the ratio between male and female residual standard deviation
+}
+
+(mean_ratio = mean(ratio))
+(CI_ratio = quantile(ratio, prob=c(0.025, 0.975)))
+```
+
+The mean of the ratio between residual standard deviations of males and females when accounting for a linear effect of foot length is slightly lower than when not accounting for foot length. This means that foot lengths explains more of the variation in male heights than in female heights. However, the confidence intervals are so wide that we do not really know if this applies to the whole population or to just the sample.
+
+## Task 2:
+
+### Fit both a model with additive effects and a model with interaction effects to predict body height from a person’s sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
+
+First look at the data:
+
+```{r}
+plot(students_means$Neck_circumference,students_means$Height,col=students_means$Sex)
+```
+
+We will go a bit beyond what you were asked to do her and also fit some simpler models. For each model we will look at the summary of the model and the confidence intervals, as well as the "Multiple R-squared" value, to interpret the results.
+
+#### Only sex as a predictor variable (this was also fitted in the tutorial)
+
+```{r}
+fit_Sex = lm(Height ~ Sex, data = students_means)
+summary(fit_Sex)
+confint(fit_Sex)
+```
+
+Mean height of males is 15.8 cm higher than mean height of females. The 95% confidence interval for this difference is 12.6 cm to 19.0 cm. This confidence interval refers the *statistical population* that the sample of students represent. Since we have not done any random sampling, it is not clear what this statistical population is, but it would not be unreasonable to assume that these students are representative for all students at the University of Oslo - or at least each sex group is (it would be much more questionable to assume that the results are representative for the Norwegian population - why?). The overall mean height in the sample (and the confidence interval for this mean) would *not* be representative for all students at the University of Oslo because there are a higher proportion of females in the course than at the University as a whole.
+
+Sex accounts for 71% of the variance in the height measurements in the data (i.e., the residual variance when accounting for the difference in mean height of the sexes is only 29% of the variance in the height measurements).
+
+#### Only neck_circumference as a predictor variable
+
+```{r}
+fit_Neck = lm(Height ~ Neck_circumference, data = students_means)
+summary(fit_Neck)
+confint(fit_Neck)
+```
+
+Increasing neck circumference with 1 cm increases mean height by 1.5 cm (95% c.i.: 0.8 cm to 2.1 cm). This model explains 34% of the variance.
+
+#### Additive model
+```{r}
+fit_Sex_Neck = lm(Height ~ Sex + Neck_circumference, data = students_means)
+summary(fit_Sex_Neck)
+confint(fit_Sex_Neck)
+```
+
+For any given neck circumference (i.e., when "controlling for" the influence of neck circumference), average height of males is 16.9 cm (95% c.i.: 12.2 cm to 21.6 cm) higher than the average height of females. One cm increase in neck circumference within sexes (i.e., when the difference among sexes are accounted for) is estimated *decrease* height by 0.2 cm. The 95% confidence interval for the effect of increasing neck circumference by 1 cm ranges from a 0.8 cm *decrease* to a 0.4 cm *increase*. Note that this effect of neck circumference is a lot smaller than what we estimated in the previous model where we did not account for the sex difference. This result also indicate that the effect of neck circumference within sexes are more likely negative than positive (but this result is very uncertain). Note also that adding neck circumference as a predictor variable to the model with only sex as a predictor variable only increase the proportion of variance explained from 71.3% to 71.5%, but the estimate for the difference between sexes becomes more uncertain (i.e., less precise); standard error increases from 1.57 cm to 2.33 cm.
+
+To better understand what is going on here, we can make a plot of the fitted predictions with confidence intervals from the additive model. Here we also add black lines for the predictions from the model with only neck circumference as the predictor variable:
+
+```{r}
+model_fit = fit_Sex_Neck
+Title = "Additive model"
+x_range_F = range(students_means$Neck_circumference[students_means$Sex=="female"])
+x_range_M = range(students_means$Neck_circumference[students_means$Sex=="male"])
+pred_data_F = data.frame(Sex = "female", Neck_circumference = seq(x_range_F[1], x_range_F[2], length.out = 50))
+pred_data_M = data.frame(Sex = "male", Neck_circumference = seq(x_range_M[1], x_range_M[2], length.out = 50))
+pred_data = rbind(pred_data_F, pred_data_M)
+pred = predict(model_fit, pred_data, interval = "confidence")
+pred = cbind(pred_data, pred)
+
+with(students_means,
+     plot(Neck_circumference, Height, type="n", xlab="Neck_circumference (cm)", ylab = "Height (cm)")
+     )
+with(students_means, points(Neck_circumference, Height, col=ifelse(Sex=="female", "red", "blue")))
+with(pred[pred$Sex=="female",], lines(Neck_circumference, fit, col="red"))
+with(pred[pred$Sex=="female",], lines(Neck_circumference, lwr, col="red", lty=2))
+with(pred[pred$Sex=="female",], lines(Neck_circumference, upr, col="red", lty=2))
+with(pred[pred$Sex=="male",], lines(Neck_circumference, fit, col="blue"))
+with(pred[pred$Sex=="male",], lines(Neck_circumference, lwr, col="blue", lty=2))
+with(pred[pred$Sex=="male",], lines(Neck_circumference, upr, col="blue", lty=2))
+
+# Adding the fitted predictions from the model with only neck circumference as a predictor variable
+pred_data_Neck = data.frame(Neck_circumference = seq(x_range_F[1], x_range_M[2], length.out = 50))
+pred_Neck = cbind(pred_data_Neck, predict(fit_Neck, pred_data_Neck, interval = "confidence"))
+with(pred_Neck, lines(Neck_circumference, fit))
+with(pred_Neck, lines(Neck_circumference, lwr, lty=2))
+with(pred_Neck, lines(Neck_circumference, upr, lty=2))
+
+legend("topleft", legend=c("Females", "Males", "Overall"), pch=c(1,1, NA), lty = c(NA,NA,1), col = c("red", "blue", "black"))
+title(Title)
+```
+
+It is not really wrong to say that people with thicker necks tend to be taller than people with thinner necks (black line). However, this is only due to a correlation among groups (sexes in this case); males tend to be both taller and have thicker necks than females. There is no evidence of such an association withing groups (the correlation is weak, and it may well be of opposite sign). It is a common mistake in data analysis (and a common mistake by journalists, politicians and common people, as well as professional researchers) to interpret patterns in data to be due to patterns/mechanisms at the individual level, when the patterns are in fact caused by a correlation among groups instead. Such confusions are referred to as "Simpson's paradox" and sometimes the "fallacy of ecological correlations" (the latter often in social sciences). We will give more examples of this in the lectures. This also relates to the concept of "confounding": In the model with only neck circumference, we may say that the effect of neck thickness is confounded by the effect of sex (imagine studying a species where it was difficult to sex the individuals).
+
+Note that there is not a striking lack of fit for the "neck only" model (black line above):
+
+```{r}
+plot(fit_Neck)
+```
+
+
+#### Interaction model
+
+```{r}
+fit_Sex_Neck_inter = lm(Height ~ Sex * Neck_circumference, data = students_means)
+summary(fit_Sex_Neck_inter)
+confint(fit_Sex_Neck_inter)
+```
+
+Here we see that difference in the slope for males and females has a 95% confidence interval that includes zero, so this difference is not statistically significant. However, the confidence interval for the difference between the sexes is very wide (remember that the units is in cm). Hence, we can by no means conclude that males and females have the same (or nearly the same) slope in the population! To misinterpret lack of statistical significance to mean "no difference" is a **very common mistake that is very important to avoid**. We can just conclude that we do not have enough data to estimate the difference precisely enough to make any inference, which is a very different thing. When we don't have enough data to make such "fine grained" inference or predictions, we better use more simplified models.
+
+Plot of fitted predictions with confidence intervals, interaction model:
+```{r}
+model_fit = fit_Sex_Neck_inter
+Title = "Interaction model"
+x_range_F = range(students_means$Neck_circumference[students_means$Sex=="female"])
+x_range_M = range(students_means$Neck_circumference[students_means$Sex=="male"])
+pred_data_F = data.frame(Sex = "female", Neck_circumference = seq(x_range_F[1], x_range_F[2], length.out = 50))
+pred_data_M = data.frame(Sex = "male", Neck_circumference = seq(x_range_M[1], x_range_M[2], length.out = 50))
+pred_data = rbind(pred_data_F, pred_data_M)
+pred = predict(model_fit, pred_data, interval = "confidence")
+pred = cbind(pred_data, pred)
+
+with(students_means,
+     plot(Neck_circumference, Height, type="n", xlab="Neck_circumference (cm)", ylab = "Height (cm)")
+     )
+with(students_means, points(Neck_circumference, Height, col=ifelse(Sex=="female", "red", "blue")))
+with(pred[pred$Sex=="female",], lines(Neck_circumference, fit, col="red"))
+with(pred[pred$Sex=="female",], lines(Neck_circumference, lwr, col="red", lty=2))
+with(pred[pred$Sex=="female",], lines(Neck_circumference, upr, col="red", lty=2))
+with(pred[pred$Sex=="male",], lines(Neck_circumference, fit, col="blue"))
+with(pred[pred$Sex=="male",], lines(Neck_circumference, lwr, col="blue", lty=2))
+with(pred[pred$Sex=="male",], lines(Neck_circumference, upr, col="blue", lty=2))
+legend("topleft", legend=c("Females", "Males"), pch=c(1,1), col = c("red", "blue"))
+title(Title)
+```
+
+Presenting such a figure invites misinterpretations; many people will interpret this as evidence that males and females have different slopes, but such a conclusion is unjustified.
