@@ -57,7 +57,7 @@ A. `fit_Foot = lm(Height ~ Foot, data = student_means)`
   
     - $\beta_0 =$ Intercept; Where the line crosses the y-axis. I.e., the expected height of people with zero foot length (not biologically meaningful).
     
-    - $\beta_1 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm.
+    - $\beta_1 =$ Slope of the regression line; How many cm the expected height of people increase when foot length is increased with one cm. (since `Sex` is not included in the model, and males tend to have both longer feet and be taller, it is possible that the slope in the model will be higher than the slope *within* sexes (the slope when `Sex` is included as a predictor variable) - i.e., the effect of `Foot` and `Sex` is *confounded*)
     
     - $\sigma =$ The standard deviation of the normally distributed random component; The standard deviation around the predictions from the fixed part of the model.  
   
@@ -169,7 +169,7 @@ E. `fit_Sex_FootCentered = lm(Height ~ Sex + I(Foot - mean(Foot)), data = studen
   
 **NB!:** Note that model E is the same as model C, but with a different *parameterization*. This means that the predictions from the two models (the $\hat{y}_i$'s) will be exactly the same. The parameters $\beta_1$ and $\beta_2$ also have the same meaning and will be estimated to be exactly the same (you can check it!). The meaning of the intercept ($\beta_0$) is, however, different in the two models.
 
-**Note:** It is essential to understand why the parameters in these models have the meanings specified above - it follows from the mathematical description of the model. If this is not clear, it may help to make a sketch of the models on a piece of paper and mark off distances corresponding to the parameters. See also the prediction plots made below. 
+**Note:** It is essential to understand why the parameters in these models have the meanings specified above - it follows from the mathematical description of the model. If this is not clear, it may help to make a sketch of the models on a piece of paper and mark off distances corresponding to the parameters. See also the prediction plots made below and the Wednesday lecture slides from Week 3.
 
 </div>
 
@@ -248,8 +248,13 @@ fit = fit_Sex_FootCentered
 cbind(coef(fit), confint(fit))
 ```
 
-From the confidence intervals from model D we see that the difference in the slope between the two sexes is very uncertain. This does not mean that the true difference is small (or that we are justified in thinking that it is zero because it is "non-significant"). We just need more data to estimate this difference precisely. We can go through other interpretations during the Wednesday lecture.
-</div>
+Some points to notice:
+
+  - The slope estimated in model A, where `Sex`is not included in the model is quite a lot higher than in models where `Sex` is included - the confidence intervals for the slopes in model A and in model B are also not overlapping. This is because males tend to be both higher and have longer feet. Hence the slope in model A (the "effect" of `Foot` in this model) is confounded by the sex differences. For the same reason, the effect of `Sex` in model B is higher that the effect of `Sex` in model C where we include `Foot`as a predictor variable (we may say that we "control for" the effect of 'Foot' when estimating the effect of `sex`in model C).
+  
+  - From the confidence intervals from model D we see that the difference in the slope between the two sexes is very uncertain. This does not mean that the true difference is small (or that we are justified in thinking that it is zero because it is "non-significant"). We just need more data to estimate this difference precisely (it can be large and it can be small - we just don't know).
+  
+  - That the estimates in Model E are exactly the same as the estimates in model C the for all parameters but the intercept. The is because these two models are just different parameterizations of the same model. The meaning of the intercept is different in the two models (see how in the text under point 3).</div>
 
 7. Which parameter is not included when you use `confint()` on these models?
 
