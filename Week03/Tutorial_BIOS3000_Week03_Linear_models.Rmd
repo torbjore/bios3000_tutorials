@@ -3,10 +3,10 @@ title: Tutorial Week 3 - Introduction to linear statistical models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
-  pdf_document: default
   html_document:
     toc: yes
     toc_float: true
+  pdf_document: default
   df_print: paged
 ---
 
