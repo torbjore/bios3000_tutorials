@@ -704,7 +704,7 @@ var_tot = var(residuals(fit_1)) # = var(student_means$Height)
 
 Before starting this week's assignment, you should work your way through the text in this document. If you are unsure about the meaning of some terms, you can check the Glossary on Canvas. Try also to run and understand the R code. It may help to print out objects in the Console window (or mark the text and hit Ctrl-r) or use the `str()` function to look at the structure of the objects. If there is something you are unsure about or don't understand, you can try to modify the code to see what it does or look up functions in the R help (or use Google). We are of course also available to help at the Helpdesk.
 
-**Assignment:**
+**Assignment task:**
 
 Fit models to predict body height from a person's sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
 
