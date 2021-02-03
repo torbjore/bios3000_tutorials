@@ -706,10 +706,6 @@ Before starting this week's assignment, you should work your way through the tex
 
 **Assignment:**
 
-<!-- Write a R Markdown document where you include the following: -->
+Fit models to predict body height from a person's sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
 
-<!-- 1. Use bootstrapping (parametric or non-parametric) to compute a 95% confidence interval for the ratio between standard deviation in male and female height (SD(height of males)/SD(height of females)). Do the same with residual standard deviation when accounting for the linear effect of foot length (you need to fit one model with `lm()` for each sex). How do you interpret the differences?  -->
-
-Fit both a model with additive effects and a model with interaction effects to predict body height from a person's sex and neck circumference. Plot the predictions and write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height?
-
-The assignment should be submitted as a stand alone document written in R Markdown. 
+The assignment should be submitted as a stand alone document written in R Markdown.
