@@ -6,12 +6,18 @@ output:
   html_document:
     toc: yes
     toc_float: true
+    toc_depth: 2
   pdf_document:
     toc: yes
   df_print: paged
 header-includes:
   \usepackage{amsmath}
+urlcolor: blue
 ---
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -117,18 +123,18 @@ To better understand this design matrix, we can multiply this matrix with the $\
 $$
 \mathbf{X} \boldsymbol{\beta} = 
 \left[
-\begin{array}{cccc}
+\begin{array}{l}
 \beta_0
 \\
-\beta_0 & +\beta_1
+\beta_0 +\beta_1
 \\
-\beta_0 && +\beta_2         
+\beta_0 +\beta_2         
 \\
-\beta_0 & +\beta_1 & +\beta_2
+\beta_0 +\beta_1 +\beta_2
 \\
-\beta_0 &&& +\beta_3
+\beta_0 +\beta_3
 \\
-\beta_0 & +\beta_1 && +\beta_3
+\beta_0 +\beta_1 +\beta_3
 \end{array}
 \right]
 $$
@@ -203,7 +209,7 @@ Var \left(
 \mathbf{x}^{T}
 $$
 
-Here $\mathbf{\Sigma}$ is the variance-covariance matrix (this is the capital Greek letter 'sigma' which should not be confused with the 'sum' symbol) and $\mathbf{x}^{T}$ is the transpose of $\mathbf{x}$ (see the tutorial on “Vectors and matrices”).
+Here $\mathbf{\Sigma}$ is the variance-covariance matrix (this is the capital Greek letter 'sigma' which should not be confused with the 'sum' symbol) and $\mathbf{x}^{T}$ is the transpose of $\mathbf{x}$ (transposing a matrix means that rows are made into columns - see an example [here](https://www.mathsisfun.com/algebra/matrix-introduction.html)).
 
 The nice thing about writing this with matrices is that it applies to any length of the vectors $\mathbf{x}$ and $\boldsymbol{\beta}$! (you would have to write down a very long sum of variances and covariances if these vectors are long).
 
@@ -247,13 +253,11 @@ c(slope_male, se_slope_male)
 
 You have now computed that males increase on average `r round(slope_male, 2)` cm in height per 1 cm increase in foot length. Using the $\pm$ 2 SE rule, the approximate 95% confidence interval for this is [`r round(slope_male - 2*se_slope_male, 2)`, `r round(slope_male + 2*se_slope_male, 2)`] cm.
 
-<span style="color:blue"> Can you compute the same for increase in height per increase in neck circumference, for both males and females? </span>
-
 ## Contrasts
 
 Parameters in models often represent differences that are meaningful and may be of interest to quantify. For example, in the additive model that we specified as `~ Sex + Foot`, the second parameter is the difference between mean of the sexes and the model assumes that this difference is the same regardless of foot length. This parameter would, however, not have been very meaningful in the interaction model as it is the difference in height when foot length is zero -- unless the `Foot` variable had been centered by subtracting the mean (or any other value in the range of reasonable foot lengths). However, regardless of how the model is parameterized, we can compute any difference between predicted values that we are interested in. Such a difference is called a **contrast** whether it is represented by a parameter or not.
 
-As an example, let's compute the predicted difference (contrast) between mean height of males and mean height of females at the median foot length of females (have a look at the figure for the interaction model in the last weeks tutorial to see where this is in the plot). Let us call the median foot length of females for $\alpha_F$. You could perhaps figure out how to compute this difference from the parameter estimates directly, but it might be easier to keep things straight if you first find the prediction for males and then subtract the prediction for females. The prediction for males is $\mathbf{x}_M \boldsymbol{\beta}$ where
+As an example, let's compute the predicted difference (contrast) between mean height of males and mean height of females at the median foot length of females. Let us call the median foot length of females for $\alpha_F$. You could perhaps figure out how to compute this difference from the parameter estimates directly, but it might be easier to first find the prediction for males and then subtract the prediction for females. The prediction for males is $\mathbf{x}_M \boldsymbol{\beta}$ where
 $$
 \mathbf{x}_M =
 \left[
@@ -282,7 +286,7 @@ $$
 \right]
 $$
 
-We can use this in R to compute the contrast with a confidence interval
+We can use this in R to compute the contrast with a confidence interval:
 
 ```{r}
 alpha_F = median(student_means$Foot[student_means$Sex == "female"])
@@ -325,7 +329,7 @@ D = data.frame(Sex=c("male", "female"), Foot = alpha_F)
 predict_contrast(D, fit_Sex_Foot_interaction)
 ```
 
-Note that the slope for males ($\beta_2 + \beta_3$) that we computed above can be formulated as a contrast (any linear combination of parameters can). This slope is the difference in predicted body height of males with foot length $x$ and of males with foot length $x-1$, where $x$ can be any value. Hence, we can compute this slope with the function we created above:
+Note that the slope for males ($\beta_2 + \beta_3$) that we computed above can be formulated as a contrast (any linear combination of parameters can). This slope is the difference in predicted body height of males with foot length $x$ and of males with foot length $x-1$, where $x$ can be any value. Hence, we can compute this slope with the function we created above (note that the result is exactly the same):
 
 ```{r}
 D = data.frame(Sex=c("male", "male"), Foot = c(26, 25))
@@ -333,9 +337,12 @@ D$Sex = factor(D$Sex, levels=c("female","male")) # model.matrix requires factors
 predict_contrast(D, fit_Sex_Foot_interaction)
 ```
 
-## Standard error of non-linear parameter combinations with the delta-method
+<div class="blue">
+**ADVANCED - For those interested**
 
-A linear combination of parameters is any combination of parameters that can be written on the form $\mathbf{x}\boldsymbol{\beta}$ where $\mathbf{x}$ and $\boldsymbol{\beta}$ are vectors. Any other combination of parameters is non-linear. Last week we computed the confidence interval for how many percent mean height of males are than mean height of females by the means of bootstrapping. This is an example of a non-linear combination of parameters as it includes a ratio of two predicted values. Let's fit the model with only `Sex` as a predictor variable again and extract the parameter estimates and their variance-covariance matrix:
+### Standard error of non-linear parameter combinations with the delta-method
+
+A linear combination of parameters is any combination of parameters that can be written on the form $\mathbf{x}\boldsymbol{\beta}$ where $\mathbf{x}$ and $\boldsymbol{\beta}$ are vectors. Any other combination of parameters is non-linear. For example, we may be interested in computing the confidence interval for how many percent higher mean height of males are than mean height of females. This is an example of a non-linear combination of parameters as it includes a ratio of two predicted values. Let's fit the model with only `Sex` as a predictor variable again and extract the parameter estimates and their variance-covariance matrix:
 
 ```{r}
 fit_Sex = lm(Height ~ Sex, data = student_means)
@@ -359,7 +366,6 @@ In R, we get
 ```{r}
 (f_hat = (beta[2]/beta[1])*100)
 ```
-
 
 There is a very useful way of computing an approximate standard error of such non-linear parameter combinations called the "**Delta method**". According this method, we can calculate the approximate standard error as $\sqrt{\mathbf{x}\mathbf{\Sigma}\mathbf{x}^{T}}$ as before if we construct $\mathbf{x}$ as a vector of first derivatives of $f$ with respect to each of the parameters (in the order they appear in $\boldsymbol{\Sigma}$). I.e.,
 
@@ -395,11 +401,12 @@ x = c(-100*beta[2]/beta[1]^2, 100/beta[1])
 
 Using the $\pm$ 2SE rule, we get that the mean height of males are `r round(f_hat, 1)` % higher than females, and the approximate 95% confidence interval estimate is [`r round(f_hat - 2*se,1)`, `r round(f_hat + 2*se,1)`] % (this is very close to the confidence interval we computed with bootstrapping last week).
 
-You should always remember that confidence interval computed with the delta-method is an approximation. The delta-method often works well and is sufficiently accurate. However, if interpretation of the confidence interval is essential for your research, it is a good idea to use simulations to check the 95% confidence interval estimator covers the true value in approximately 95% of simulations (see the simulation code in the [tutorial on Confidence intervals](https://uio.instructure.com/files/562515/download?wrap=1) provided at the end of Week 1 on Canvas).
+You should always remember that confidence interval computed with the delta-method is an approximation. The delta-method often works well and is sufficiently accurate. However, if interpretation of the confidence interval is essential for your research, it is a good idea to use simulations to check the 95% confidence interval estimator covers the true value in approximately 95% of simulations (see the simulation code in the [tutorial on Confidence intervals](https://uio.instructure.com/courses/30115/files/1024725?fd_cookie_set=1) provided at the end of Week 1 on Canvas).
+</div>
 
 ## Exercises
 
-The following exercises should *not* be included in this week's assignment but we will go through them during the Thursday lecture. We will introduce some new concepts as part of the exercises, so it is important that you do them before you do the assignment.
+We will introduce some new concepts as part of the exercises, so it is important that you do them before you do the assignment.
 
 In these exercises, you will analyze data from a growth experiment of wheat seedlings that was conducted by students in the BIO2150 course during the fall of 2018. With an increasing human population and limited space for food production there is a strong interest in increasing yield per unit area. With fast growing plants one may harvest the wheat twice per year even in climates with a shorter growing season. It is possible to increase plant growth by both breeding new genetic varieties and by supplying the right type of fertilizers at sufficient amounts.
 
@@ -410,6 +417,13 @@ The aim of the analysis is to find out which wheat variety grows the fastest und
 You may either do the exercise in an R Markdown document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script (or Markdown document) does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
 
 1. Read the data into R with `read.csv("wheatlings_bio2150_F18.csv")` and give it the name `wheat` (you can give it whatever name you want, but this is what we will call it in the guidance later). Have a first glance at the data by using `summary()` and `head()`.
+
+```{r eval=FALSE, echo=FALSE}
+wheat = read.csv("wheatlings_bio2150_F18.csv")
+summary(wheat)
+head(wheat)
+```
+
 
 2. The variables are:
 * `student_gr`: Student group. Each group of students used one type of fertilizer. The plants from each group were also placed close together in the growth room.
@@ -423,7 +437,7 @@ You may either do the exercise in an R Markdown document or a plain R script. Wh
 
   Use the `table` function on the first four variables to get an overview of the experimental design (you can apply this function to one or more variables at a time). Is the design completely "crossed" with respect to all these variables (i.e., all combinations of levels exist in the data), or are some variables nested under others (i.e., the levels of one variable only exist in combination with one level of another variable each)?
   
-3. To start with, we will for simplicity ignore `student_gr` and `fertype` (all fertilizer types mainly contained nitrogen, but differed with respect to concentrations of some micro-nutrients). Note that the levels of these two factor variables were distributed equally among the levels of the other factors (`variety` and `conc`), so ignoring these two factors (`student_gr` and `fertype`) will not induce any bias. We will also just use the length of the plants at the end of the experiment (`length`) as the response variable. Start by making a boxplot for each combination of `variety` and `conc`. If you use `plot()` and have a factor on the x-axis, you'll get a boxplot for each factor level. The code below shows you how to do this - make sure you understand what it does (you won't get this much help later :)).
+3. To start with, we will for simplicity ignore `student_gr` and `fertype` (all fertilizer types mainly contained nitrogen, but differed with respect to concentrations of some micro-nutrients). Note that the levels of these two factor variables were distributed equally among the levels of the other factors (`variety` and `conc`), so ignoring these two factors (`student_gr` and `fertype`) will not induce any bias. We will also just use the length of the plants at the end of the experiment (`length`) as the response variable. Start by making a boxplot for each combination of `variety` and `conc`. If you use `plot()` and have a factor on the x-axis, you'll get a boxplot for each factor level. The code below shows you how to do this - make sure you understand what it does.
 
 ```{r eval=FALSE}
 treatment = factor(paste(wheat$variety, wheat$conc))
@@ -504,13 +518,11 @@ xyplot(fit ~ conc|variety, data = Pred, ly=Pred$lwr, uy=Pred$upr, panel = panel.
 
   The contrast between the 1% treatment and the 10% treatment is not a parameter in the model but you can still easily compute a point estimate for it from the estimates listed in the summary of the fitted model. What is it? Compute also a 95% confidence interval for this contrast. Compare this to the effect of the 1% and 10% treatments.
   
-10. Use the delta-method to compute an approximate 95% confidence interval for the effect of the 10% nitrogen treatment expressed as a percent increase in the final plant length at the end of the experiment compared to the length of the control plants for the varieties "Oberkulmer" and "Bjarne" (Hint: For Oberkulmer, you need to use the chain rule for derivation). Why does this relative difference depend on wheat variety even when you have used an additive model?
+<!-- 10. Use the delta-method to compute an approximate 95% confidence interval for the effect of the 10% nitrogen treatment expressed as a percent increase in the final plant length at the end of the experiment compared to the length of the control plants for the varieties "Oberkulmer" and "Bjarne" (Hint: For Oberkulmer, you need to use the chain rule for derivation). Why does this relative difference depend on wheat variety even when you have used an additive model? -->
 
 ## Assignment
 
-You should complete the exercises above before you start on the assignment - you can modify the code you used to do these when doing the assignment. You may of course ask questions about both the exercises and the assignment, or anything else related to data analysis or the course, at Help Desk, but remember that you are not supposed to sit and work at Help Desk. We have had few people coming on Tuesdays, so this is a good time to come.
-
-Remember that the point of the assignments is not to get it right and pass! The point of the assignment is to demonstrate for yourself what you have learned from working through the tutorial, and as a service to you, we will read through it to see if you have understood everything correctly. Please only submit what is specified in the assignment - we don't have capacity to read through answers to the exercises above (come to Help Desk instead!).
+You should complete the exercises above before you start on the assignment - you can modify the code you used to do these when doing the assignment.
 
 Your task in this assignment is to do a similar analysis as you did in the exercises to quantify the different responses to fertilizer type (variable `fertype`). You should only do this analysis for the 10% fertilizer treatment, in addition to the control, as this is where we should expect to see the largest difference between fertilizer types. 
 
@@ -522,7 +534,8 @@ Specifically, you should do the following and submit a short report (pdf created
 
 2. Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable (four models in total). Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
 
-3. Which student group had the lowest measurements when accounting for the differences between treatments and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
+3. Which student group had the lowest measurements when accounting for the differences between treatments (fertilizer type) and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
 
-4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess both absolute and relative differences between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
+4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
 
+(5. **Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentagewise) difference between the fertilizer type with the lowest and highest growth)
