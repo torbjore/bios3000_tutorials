@@ -1,5 +1,5 @@
 ---
-title: Tutorial and Assignment Week 4 - More on linear statistical models
+title: Tutorial Week 4 - More on linear statistical models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
@@ -25,22 +25,21 @@ knitr::opts_chunk$set(echo = TRUE)
 * Design matrices
 * Confidence intervals for combinations of parameters
 * Contrasts
-* The delta-method
 * Adjusted R-squared
 * Model selection
 * Akaike's Information Criterion (precision-accuracy/bias-variance trade-off)
 
 ## Preparations
 
-This tutorial makes use of matrices and vectors as well as matrix multiplication. If you are not familiar with this, this external resource explains what you need to know: https://www.mathsisfun.com/algebra/matrix-multiplying.html. There is also a short note on ["Vectors and matrix operations in R"](https://uio.instructure.com/courses/25860/files/588689/download?wrap=1) made available under Week 1 on Canvas. We also assume that you know what is meant by *variance* and *covariance* of stochastic variables. 
+This tutorial makes use of matrices and vectors as well as matrix multiplication. If you are not familiar with this, this external resource explains what you need to know: https://www.mathsisfun.com/algebra/matrix-multiplying.html. We also assume that you know what is meant by *variance* and *covariance* of stochastic variables. 
 
-We will return to the students morphometric data that we used last week, so we might as well start by reading in the data with mean individual measurements that we created in last week's tutorial:
+We will return to the students morphometric data that we used last week, so we might as well start by reading those data:
 
 ```{r}
-students_means = read.csv("../Week3/students_means.csv")
+student_means = read.csv("../Week03/student_means.csv")
 ```
 
-The partial path `../Week3` tells R to first go one level back and then look for a directory (folder) called `Week3`. This assumes that R's current working directory is e.g. `Week4` and that `Week3`and `Week4` are both sub-directories under the same directory on your computer (remember that you can set the working directory under "Session > Set Working Directory" in R Studio).
+The partial path `../Week03` tells R to first go one level back and then look for a directory (folder) called `Week03`. This assumes that R's current working directory is e.g. `Week04` and that `Week03`and `Week04` are both sub-directories under the same directory on your computer (remember that you can set the working directory under "Session > Set Working Directory" in R Studio).
 
 ## Matrix formulation of linear models
 
@@ -51,7 +50,7 @@ y_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 x_{i,2} + \beta_3 x_{i,3} + \varepsilo
 $$
 where $y_i$ is the response and the $x_i$'s are the predictors for study unit $i$ (the three $x_i$'s were respectively 'sex' (0 = female, 1 = male), 'foot length', and the product of the two former predictors (i.e., 0 for females and 'foot length' for males)).
 
-If we add more predictors in the model, we would just add more $\beta$'s and $x$'s. Hence, the fixed (systematic) part of a linear model with $n$ parameters can always be written on the form $\beta_0 x_{i,0} + \beta_1 x_{i,1} + \dots + \beta_n x_{i,n} = \sum_{i=1}^{n} \beta_j x_{i,j}$. Note that I have here included $x_{i,0}$ in the first term of the sum so each term is written on a general format. The variable $x_{i,0}$ equals 1 for all study units. With matrix notation, we write this sum of products as $\mathbf{x}_i\boldsymbol{\beta}$ and in R we do this operation as `x %*% beta`. Here we assume that $\mathbf{x}_i$ is a row-vector and $\boldsymbol{\beta}$ is a column-vector, but in R, vectors do not necessarily need to be specified as either row- or column-vectors (R interprets vectors created with `c()` as either a row-vector or a column vector depending on what is possible to compute).
+If we add more predictors in the model, we would just add more $\beta$'s and $x$'s. Hence, the fixed (systematic) part of a linear model with $n$ parameters can always be written on the form $\beta_0 x_{i,0} + \beta_1 x_{i,1} + \dots + \beta_n x_{i,n} = \sum_{i=1}^{n} \beta_j x_{i,j}$. Note that I have here included $x_{i,0}$ in the first term of the sum so each term is written on a general format. The variable $x_{i,0}$ equals 1 for all study units. With matrix notation, we write this sum of products as $\mathbf{x}_i\boldsymbol{\beta}$ and in R we do this operation as `x %*% beta`. Here we assume that $\mathbf{x}_i$ is a row-vector and $\boldsymbol{\beta}$ is a column-vector, but in R, vectors do not necessarily need to be specified as either row- or column-vectors (R interprets vectors created with `c()` as either a row-vector or a column vector depending on what is possible to compute). [Note that `x %*% beta` produces the same as `sum(x*beta)`, but as we continue, we need to use the matrix formulation - again, if you are unsure about matrix multiplication, you need to read the resource at Math-is-fun linked to above].
 
 The row-vectors $\mathbf{x}_i$ for all of $N$ study units can be stacked on top of each other in a matrix $\mathbf{X}$ with $N$ rows and $n$ columns. If we also define a vector $\mathbf{y}$ as a vector of responses for all $N$ study units, such that $\mathbf{y} = \left[ y_1, y_2, \dots, y_N \right]$ is the response variable in a column-vector, we can write the the full linear statistical model as
 
@@ -61,17 +60,17 @@ $$
 
 where $\boldsymbol{\varepsilon}$ is a column-vector of $N$ elements drawn independently from a normal distribution with mean zero and standard deviation $\sigma$.
 
-<span style="color:blue"> You should pause here and make sure you understand this formulation of the linear model. Make your own example with e.g. 3 study units and 2 parameters (e.g. intercept and slope in a linear regression). If you struggle with understanding the notation, you should revisit the tutorial on "Vectors and matrices" made available under Week 1 on Canvas.</span>
+<span style="color:blue"> You should pause here and make sure you understand this formulation of the linear model. Make your own example with e.g. 3 study units and 2 parameters (e.g. intercept and slope in a linear regression).</span>
 
 ## The design matrix
 
-The matrix $\mathbf{X}$ above is called a **design matrix** and is specific to the data you use and the model you define. In the case of the model we specified above, the first column of $\mathbf{X}$ is a column of ones, the second column is `students_means$foot`, the third column has 0 for females and 1 for males, and the fourth column has 0 for females and the value of `students_means$foot` for males (i.e., the product of the two previous columns). In R, we can create the design matrix with the function `model.matrix()` [In R the symbol `.` (period) has no particular meaning - it is just like any other character in the name. This may be confusing for Python users as `.` in Python has more or less the same meaning as `$` in R]. Let's do this for the `students_means` data:
+The matrix $\mathbf{X}$ above is called a **design matrix** and is specific to the data you use and the model you define. In the case of the model we specified above, the first column of $\mathbf{X}$ is a column of ones, the second column is `student_means$foot`, the third column has 0 for females and 1 for males, and the fourth column has 0 for females and the value of `student_means$foot` for males (i.e., the product of the two previous columns). In R, we can create the design matrix with the function `model.matrix()` [In R the symbol `.` (period) has no particular meaning - it is just like any other character in the name. This may be confusing for Python users as `.` in Python has more or less the same meaning as `$` in R]. Let's do this for the `student_means` data:
 
 ```{r}
-X = model.matrix( ~ Sex * Foot, students_means)
+X = model.matrix( ~ Sex * Foot, student_means)
 ```
 
-Type `X` in the Console window in R Studio to see this matrix (note that the columns have been given some informative names). If we wanted to fit an additive model (see last week's tutorial), we can simply delete the last column of `X`. If we delete the two last columns we end up with only `Sex` as the predictor variable and if we leave only the first column in the design matrix we have a model with only the intercept (specified as `~ 1` in R). Note that it seldom makes much sense to leave one of the main effects (`SexM` or `Foot`) out while the interaction effect (`SexM:Foot`) is still in the model (<span style="color:blue">what would the predictions from these models look like in a plot?</span>).
+Type `X` in the Console window in R Studio to see this matrix (note that the columns have been given some informative names; these are same names as given to parameters in the fitted model object - you see them when you type e.g. `summary(fit)`). If we wanted to fit an additive model (see last week's tutorial), we can simply delete the last column of `X`. If we delete the two last columns we end up with only `Sex` as the predictor variable and if we leave only the first column in the design matrix we have a model with only the intercept (specified as `~ 1` in R). Note that it seldom makes much sense to leave one of the main effects (`SexM` or `Foot`) out while the interaction effect (`SexM:Foot`) is still in the model (<span style="color:blue">what would the predictions from these models look like in a plot?</span>).
 
 ## Linear predictions with matrix notation
 
@@ -84,7 +83,7 @@ $$
 In R, you can extract the parameter estimate vector from many types of fitted model objects with the generic `coef` function,
 
 ```{r}
-fit_Sex_Foot_interaction = lm(Height ~ Sex*Foot, data = students_means)
+fit_Sex_Foot_interaction = lm(Height ~ Sex*Foot, data = student_means)
 beta_hat = coef(fit_Sex_Foot_interaction)
 ```
 
@@ -94,9 +93,11 @@ and then use this to compute the fitted predictions
 y_hat = X %*% beta_hat
 ```
 
+This is what the `predict()` function applied to the fitted model object would do for you.
+
 ## Categorical predictor variables with more than two levels
 
-In the above model `Sex` is a categorical predictor variable with two categories; 'Females' and 'Males' (for categorical predictor variables, the different categories are often called "levels"). How do we construct a linear model when there are more than two categories in a predictor variable? Let's use `model.matrix()` to see how R does this by default.
+In the above model, `Sex` is a categorical predictor variable with two categories (often called "levels"); 'Females' and 'Males'. How do we construct a linear model when there are more than two categories in a predictor variable? Let's use `model.matrix()` to see how R does this by default.
 
 Suppose we have data from Norway, Denmark and Sweden and want to see how body height differ among the three countries. We can create a `data.frame` with all possible combinations of `Sex` and `Country` with the `expand.grid` function in R:
 
@@ -112,8 +113,9 @@ Then we use `model.matrix` to create a design matrix for an additive model:
 
 (The attributes in the end just keeps the information about what parameterization (contrast types) the design matrix is based on. We will only use the default (and most commonly used) "control-treatment" contrasts parameterization.)
 
-To better understand this design matrix, we can multiply this matrix with the $\boldsymbol{\beta}$ vector (I omit zeros here):
+To better understand this design matrix, we can multiply this matrix with the $\boldsymbol{\beta}$ vector to obtain the predictions as sums of the parameters:
 $$
+\mathbf{X} \boldsymbol{\beta} = 
 \left[
 \begin{array}{cccc}
 \beta_0
@@ -216,7 +218,7 @@ Sigma = vcov(fit_Sex_Foot_interaction)
 and then use this to compute the standard errors of the predictions 
 
 ```{r}
-X = model.matrix( ~ Sex * Foot, students_means)
+X = model.matrix( ~ Sex * Foot, student_means)
 se_y_hat = sqrt(diag(X %*% Sigma %*% t(X)))
 ```
 
@@ -283,7 +285,7 @@ $$
 We can use this in R to compute the contrast with a confidence interval
 
 ```{r}
-alpha_F = median(students_means$Foot[students_means$Sex == "female"])
+alpha_F = median(student_means$Foot[student_means$Sex == "female"])
 beta = coef(fit_Sex_Foot_interaction)
 Sigma = vcov(fit_Sex_Foot_interaction)
 x = c(0, 1, 0, alpha_F)
@@ -336,7 +338,7 @@ predict_contrast(D, fit_Sex_Foot_interaction)
 A linear combination of parameters is any combination of parameters that can be written on the form $\mathbf{x}\boldsymbol{\beta}$ where $\mathbf{x}$ and $\boldsymbol{\beta}$ are vectors. Any other combination of parameters is non-linear. Last week we computed the confidence interval for how many percent mean height of males are than mean height of females by the means of bootstrapping. This is an example of a non-linear combination of parameters as it includes a ratio of two predicted values. Let's fit the model with only `Sex` as a predictor variable again and extract the parameter estimates and their variance-covariance matrix:
 
 ```{r}
-fit_Sex = lm(Height ~ Sex, data = students_means)
+fit_Sex = lm(Height ~ Sex, data = student_means)
 (beta = coef(fit_Sex))
 (Sigma = vcov(fit_Sex))
 ```
