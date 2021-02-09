@@ -1,5 +1,5 @@
 ---
-title: Solution to assignment Week 4
+title: Week 4 - Solution to assignment 
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
@@ -10,29 +10,33 @@ header-includes:
   \usepackage{amsmath}
 ---
 
+<style>
+div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-If you haven't yet completed the assignment but look for guidance on how to do it, you should read the "Solution to exercises - week 4" before reading this. The solution to the exercises will give you all the R code you need to complete the assignment. Try to complete each point of the assignment before you read the following.
-
 ## Assignment
 
-Your task in this assignment was to do a similar analysis as you did in the exercises to quantify the different responses to fertilizer type (variable `fertype`), using only the 10% fertilizer treatment in addition to the control as this is where we should expect to see the largest difference between fertilizer types.
+Your task in this assignment is to do a similar analysis as you did in the exercises to quantify the different responses to fertilizer type (variable `fertype`). You should only do this analysis for the 10% fertilizer treatment, in addition to the control, as this is where we should expect to see the largest difference between fertilizer types. 
 
-You were told to ignore the effect of `startlength` as it was clear from the analysis in the exercises that this had a negligible additional effect when differences among wheat varieties were already accounted for.
+You probably noticed when you tabulated the data (point 2 in the exercise) that each fertilizer type was not used by all student groups; each student group only used one type of fertilizer, but each fertilizer was given to four different groups. If the student groups measured the plants somewhat differently, then this could influence the estimated difference among the fertilizer types if not controlled for (the two predictor variables are partly "confounded"), although the effect of student group is averaged over four groups, which will reduce the influence of student group. Including `student_gr` as a predictor variable adds 11 parameters to the model as there were 12 student groups. The best way to account for variation among student groups would have been to treat `student_gr` as a "random effects factor" in the model (assuming that the effects of `student_gr` are normally distributed and only estimating the standard deviation in this distribution). This is something we will get to later in the course. For now we will just treat `student_gr` as an ordinary "fixed effects factor" in the same way as we have treated other categorical predictor variables so far.
 
 Specifically, you should do the following and submit a short report (pdf created by R Markdown) on Canvas containing the following:
 
 1. Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Look at the data structure by using the `table` function.
 
-2. Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable. Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
+2. Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable (four models in total). Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
 
-3. Which student group had the lowest measurements when accounting for the differences between treatments and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
+3. Which student group had the lowest measurements when accounting for the differences between treatments (fertilizer type) and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
 
-4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess both absolute and relative differences between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
+4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
 
-## Proposed solution
+5. (**Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentagewise) difference between the fertilizer type with the lowest and highest growth)
+
+## FROM 2020: Proposed solution
 
 ### 1. Sub-setting data and looking at the data structure
 
