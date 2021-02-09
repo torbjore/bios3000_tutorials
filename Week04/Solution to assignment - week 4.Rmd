@@ -29,211 +29,231 @@ You probably noticed when you tabulated the data (point 2 in the exercise) that 
 
 Specifically, you should do the following and submit a short report (pdf created by R Markdown) on Canvas containing the following:
 
-1. Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Look at the data structure by using the `table` function.
+1.
 
-```{r}
-rm(list = ls(all = TRUE)) # Clear all objects from the memory (good idea to start all scripts with this).
-wheat = read.csv("wheatlings_bio2150_F18.csv", stringsAsFactors = TRUE)
+  Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Look at the data structure by using the `table` function.
 
-C10 = wheat[wheat$conc %in% c("C10","C0"),]
-summary(C10)
-with(C10, table(student_gr, fertype))
-with(C10, table(variety, fertype))
-```
+  <div class="green">
+  
+  ```{r}
+  rm(list = ls(all = TRUE)) # Clear all objects from the memory (good idea to start all scripts with this).
+  wheat = read.csv("wheatlings_bio2150_F18.csv", stringsAsFactors = TRUE)
+  
+  C10 = wheat[wheat$conc %in% c("C10","C0"),]
+  summary(C10)
+  with(C10, table(student_gr, fertype))
+  with(C10, table(variety, fertype))
+  ```
+  
+  </div>
 
-2. Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable (four models in total). Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
+2.
 
-Fitting the four alternative models and compare them with AICc:
+  Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable (four models in total). Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
 
-```{r}
-# Fitting alternative models
+  <div class="green">
+  Fitting the four alternative models and compare them with AICc:
+  
+  ```{r}
+  # Fitting alternative models
+  
+  fit_int_sg = lm(length ~ variety*fertype + student_gr, C10)
+  fit_ad_sg = lm(length ~ variety + fertype + student_gr, C10)
+  fit_int = lm(length ~ variety*fertype, C10)
+  fit_ad = lm(length ~ variety + fertype, C10)
+  
+  model_tab = AIC(fit_int_sg, fit_ad_sg, fit_int, fit_ad)
+  
+  model_tab$n_parameters = c(
+    length(coef(fit_int_sg)),
+    length(coef(fit_ad_sg)),
+    length(coef(fit_int)),
+    length(coef(fit_ad))
+  ) + 1 # + 1 because the residual standard deviation is not included in the vector given by coef()
+  
+  model_tab$r_sq = c(
+    summary(fit_int_sg)$r.squared,
+    summary(fit_ad_sg)$r.squared,
+    summary(fit_int)$r.squared,
+    summary(fit_ad)$r.squared
+  )
+  
+  model_tab$adj_r_sq = c(
+    summary(fit_int_sg)$adj.r.squared,
+    summary(fit_ad_sg)$adj.r.squared,
+    summary(fit_int)$adj.r.squared,
+    summary(fit_ad)$adj.r.squared
+  )
+  
+  n = nrow(wheat)
+  k = model_tab$n_parameters
+  model_tab$AICc = model_tab$AIC + (2*k^2+2*k)/(n-k-1)
+  
+  model_tab[order(model_tab$AICc),]
+  
+  summary(fit_ad_sg)
+  ```
+  
+  The best model in the set according to the AICc criteria is the model with additive effects of variety and fertilizer type, and where an additive effect of student group is accounted for. From the summary of this model we can see that (remember that the units for all parameter estimates are cm):
+  
+  * A couple of varieties grew much taller than the others; Diamant and Oberkulmer (we already knew that from the exercise)
+  * The effects of fertilizer type are quite small, and the difference to the control is also quite modest compared to the differences between the varieties (smaller than the residual standard deviation).
+  * There is quite large difference between student groups - we'll return to that below.
+  * The residual standard deviation is about 1.95 cm (you could do bootstrapping to compute a confidence interval).
+  * This model explains about 87% of the total variance in the measured plant lengths. The remaining 13% of the variance is due to unexplained variation among pots of plants and measurement error (remember that the response variable is the mean of 5 randomly selected plants from each pot).
+  </div>
 
-fit_int_sg = lm(length ~ variety*fertype + student_gr, C10)
-fit_ad_sg = lm(length ~ variety + fertype + student_gr, C10)
-fit_int = lm(length ~ variety*fertype, C10)
-fit_ad = lm(length ~ variety + fertype, C10)
+3.
 
-model_tab = AIC(fit_int_sg, fit_ad_sg, fit_int, fit_ad)
+  Which student group had the lowest measurements when accounting for the differences between treatments (fertilizer type) and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
 
-model_tab$n_parameters = c(
-  length(coef(fit_int_sg)),
-  length(coef(fit_ad_sg)),
-  length(coef(fit_int)),
-  length(coef(fit_ad))
-) + 1 # + 1 because the residual standard deviation is not included in the vector given by coef()
+  <div class="green">
+  All parameters describing the effects of student groups were positive. This means that the group represented by the intercept, group 1, is the group with the shortest measurements. Group 4 is the group with the highest measurements, and this group has measurements of plants that are about 3 cm higher than the measurements of group 1 when the effects of what variety and fertilizer type has been accounted for. This is a quite substantial difference. Three of the groups have measurements that are less than 0.6 cm from the measurements of group 1, while four other groups have measurements that are more than 2 cm higher than group 1. Could it be that some groups included parts of the below ground stem when measuring the plants while others did not?
+  
+  Since each fertilizer type was given to only four groups (groups are nested under fertilizer type), it is possible that some of the differences among fertilizer types appears as differences among groups instead (i.e., that the effect of fertilizer type is partly confounded by the effect of student group). However, both group 1 (the lowest measurements) and group 4 (the highest measurements) used the "plus" fertilizer type which gave the longest plants, so any such bias can not be large. We can also address this issue by looking at the summary of the model without student group as a predictor variable:
+  
+  ```{r}
+  summary(fit_ad)
+  ```
+  
+  Here we see that the effects of fertilizer type has changed by only a few mm, so we should not worry too much about confounding effects of student group. The ranking of the fertilizer types have changed, but the differences between the fertilizer types are nevertheless small. We will look closer at these differences below. We still prefer the model including student group as a predictor variable for inference.
+  </div>
 
-model_tab$r_sq = c(
-  summary(fit_int_sg)$r.squared,
-  summary(fit_ad_sg)$r.squared,
-  summary(fit_int)$r.squared,
-  summary(fit_ad)$r.squared
-)
+4.
 
-model_tab$adj_r_sq = c(
-  summary(fit_int_sg)$adj.r.squared,
-  summary(fit_ad_sg)$adj.r.squared,
-  summary(fit_int)$adj.r.squared,
-  summary(fit_ad)$adj.r.squared
-)
+  Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
 
-n = nrow(wheat)
-k = model_tab$n_parameters
-model_tab$AICc = model_tab$AIC + (2*k^2+2*k)/(n-k-1)
+  <div class="green">
+  #### Plotting predictions
+  
+  There are 12 student groups, and the model predictions will be different for each of them. However, since the effects of student group is additive, the pattern in the predictions among varieties and fertilizer types will be the same (the differences are the same). Hence, below we will only plot the predictions for group 9 as this is one of the two groups that are closest to the median group with respect to measurement lengths (how can you see that from the summary of the model fit?). You could however also have plotted the predictions for "the mean group effect" by computing the predictions and standard error with matrix multiplications "from scratch" (we will not do that here, but you are welcome to ask us about it at Helpdesk if you want to try).
+  
+  Plotting the predictions for group 9 using `ggplot()`:
+  
+  ```{r}
+  Newdata = expand.grid(variety = unique(C10$variety), fertype = unique(C10$fertype), student_gr = "gr_9")
+  Pred = cbind(Newdata, predict(fit_ad_sg, newdata = Newdata, interval = "confidence"))
+  
+  library(ggplot2)
+  ggplot(data = Pred, aes(x=fertype, y=fit)) +
+      geom_point() +
+      geom_errorbar(aes(ymin=lwr, ymax=upr)) +
+      facet_wrap(~variety)
+  ```
+  
+  #### Looking at the effect of fertilizer type - absolute differences
+  
+  We see from the summary of the model that the 'control' treatment is represented by the intercept (this is just because 'control' is sorted first alphabetically). Hence, the parameters describing the treatment effects are the differences to the control. The fertilizer type 'plus' gives the tallest plants. We can pick out the point estimate for the difference in final plant length for this fertilizer type and the control, and the associated standard error, from the model object and construct a 95% confidence interval:
+  
+  ```{r}
+  (point_est = coef(fit_ad_sg)["fertypeplus"])
+  se = sqrt(vcov(fit_ad_sg)["fertypeplus", "fertypeplus"])
+  
+  # 95% confidence interval
+  point_est + c(-2,2)*se
+  ```
+  
+  We could have computed the confidence interval with the `confint` function too:
+  
+  ```{r}
+  confint(fit_ad_sg)["fertypeplus",]
+  ```
+  
+  (The two ways of computing confidence intervals result in values that are just a little bit more than 1/10 of a mm apart, so they are practically the same).
+  
+  The upper bound of the confidence interval for this effect is less than 3 cm, which is quite small compared to the differences among varieties and within treatments (residual standard deviation is about 2 cm).
+  
+  We can also compute a confidence interval for the difference between the effects of the "best" fertilizer type (plus) and the worst (flow) - this is quite similar to what we did in the exercise under point 9, so you can modify the code from there:
+  
+  ```{r}
+  est = coef(fit_ad_sg)
+  
+  # Point estimate of difference:
+  est["fertypeplus"] - est["fertypeflow"]
+  
+  # contrast vector
+  x = rep(0, length(est))
+  names(x) = names(est)
+  x["fertypeflow"] = -1
+  x["fertypeplus"] = 1
+  
+  # point estimate (check)
+  (point_estimate = coef(fit_ad_sg) %*% x)
+  
+  # standard error
+  SE = sqrt(x %*% vcov(fit_ad_sg) %*% x)
+  
+  # 95% confidence interval
+  point_estimate[1,1] + c(-2,2)*SE[1,1]
+  ```
+  
+  As we have already seen in the figure above, this difference is smaller than the difference to the control. The upper 95% confidence limit is 2.4 cm and the lower limit is -0.8 cm. Hence, we can conclude that the difference is small, and it could well even be of opposite sign of what is suggested by the point estimate.
+  </div>
 
-model_tab[order(model_tab$AICc),]
+5.
 
-summary(fit_ad_sg)
-```
+  (**Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentagewise) difference between the fertilizer type with the lowest and highest growth)
 
-The best model in the set according to the AICc criteria is the model with additive effects of variety and fertilizer type, and where an additive effect of student group is accounted for. From the summary of this model we can see that (remember that the units for all parameter estimates are cm):
-
-* A couple of varieties grew much taller than the others; Diamant and Oberkulmer (we already knew that from the exercise)
-* The effects of fertilizer type are quite small, and the difference to the control is also quite modest compared to the differences between the varieties (smaller than the residual standard deviation).
-* There is quite large difference between student groups - we'll return to that below.
-* The residual standard deviation is about 1.95 cm (you could do bootstrapping to compute a confidence interval).
-* This model explains about 87% of the total variance in the measured plant lengths. The remaining 13% of the variance is due to unexplained variation among pots of plants and measurement error (remember that the response variable is the mean of 5 randomly selected plants from each pot).
-
-3. Which student group had the lowest measurements when accounting for the differences between treatments (fertilizer type) and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
-
-All parameters describing the effects of student groups were positive. This means that the group represented by the intercept, group 1, is the group with the shortest measurements. Group 4 is the group with the highest measurements, and this group has measurements of plants that are about 3 cm higher than the measurements of group 1 when the effects of what variety and fertilizer type has been accounted for. This is a quite substantial difference. Three of the groups have measurements that are less than 0.6 cm from the measurements of group 1, while four other groups have measurements that are more than 2 cm higher than group 1. Could it be that some groups included parts of the below ground stem when measuring the plants while others did not?
-
-Since each fertilizer type was given to only four groups (groups are nested under fertilizer type), it is possible that some of the differences among fertilizer types appears as differences among groups instead (i.e., that the effect of fertilizer type is partly confounded by the effect of student group). However, both group 1 (the lowest measurements) and group 4 (the highest measurements) used the "plus" fertilizer type which gave the longest plants, so any such bias can not be large. We can also address this issue by looking at the summary of the model without student group as a predictor variable:
-
-```{r}
-summary(fit_ad)
-```
-
-Here we see that the effects of fertilizer type has changed by only a few mm, so we should not worry too much about confounding effects of student group. The ranking of the fertilizer types have changed, but the differences between the fertilizer types are nevertheless small. We will look closer at these differences below. We still prefer the model including student group as a predictor variable for inference.
-
-4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
-
-#### Plotting predictions
-
-There are 12 student groups, and the model predictions will be different for each of them. However, since the effects of student group is additive, the pattern in the predictions among varieties and fertilizer types will be the same (the differences are the same). Hence, below we will only plot the predictions for group 9 as this is one of the two groups that are closest to the median group with respect to measurement lengths (how can you see that from the summary of the model fit?). You could however also have plotted the predictions for "the mean group effect" by computing the predictions and standard error with matrix multiplications "from scratch" (we will not do that here, but you are welcome to ask us about it at Helpdesk if you want to try).
-
-Plotting the predictions for group 9 using `ggplot()`:
-
-```{r}
-Newdata = expand.grid(variety = unique(C10$variety), fertype = unique(C10$fertype), student_gr = "gr_9")
-Pred = cbind(Newdata, predict(fit_ad_sg, newdata = Newdata, interval = "confidence"))
-
-library(ggplot2)
-ggplot(data = Pred, aes(x=fertype, y=fit)) +
-    geom_point() +
-    geom_errorbar(aes(ymin=lwr, ymax=upr)) +
-    facet_wrap(~variety)
-```
-
-#### Looking at the effect of fertilizer type - absolute differences
-
-We see from the summary of the model that the 'control' treatment is represented by the intercept (this is just because 'control' is sorted first alphabetically). Hence, the parameters describing the treatment effects are the differences to the control. The fertilizer type 'plus' gives the tallest plants. We can pick out the point estimate for the difference in final plant length for this fertilizer type and the control, and the associated standard error, from the model object and construct a 95% confidence interval:
-
-```{r}
-(point_est = coef(fit_ad_sg)["fertypeplus"])
-se = sqrt(vcov(fit_ad_sg)["fertypeplus", "fertypeplus"])
-
-# 95% confidence interval
-point_est + c(-2,2)*se
-```
-
-We could have computed the confidence interval with the `confint` function too:
-
-```{r}
-confint(fit_ad_sg)["fertypeplus",]
-```
-
-(The two ways of computing confidence intervals result in values that are just a little bit more than 1/10 of a mm apart, so they are practically the same).
-
-The upper bound of the confidence interval for this effect is less than 3 cm, which is quite small compared to the differences among varieties and within treatments (residual standard deviation is about 2 cm).
-
-We can also compute a confidence interval for the difference between the effects of the "best" fertilizer type (plus) and the worst (flow) - this is quite similar to what we did in the exercise under point 9, so you can modify the code from there:
-
-```{r}
-est = coef(fit_ad_sg)
-
-# Point estimate of difference:
-est["fertypeplus"] - est["fertypeflow"]
-
-# contrast vector
-x = rep(0, length(est))
-names(x) = names(est)
-x["fertypeflow"] = -1
-x["fertypeplus"] = 1
-
-# point estimate (check)
-(point_estimate = coef(fit_ad_sg) %*% x)
-
-# standard error
-SE = sqrt(x %*% vcov(fit_ad_sg) %*% x)
-
-# 95% confidence interval
-point_estimate[1,1] + c(-2,2)*SE[1,1]
-```
-
-As we have already seen in the figure above, this difference is smaller than the difference to the control. The upper 95% confidence limit is 2.4 cm and the lower limit is -0.8 cm. Hence, we can conclude that the difference is small, and it could well even be of opposite sign of what is suggested by the point estimate.
-
-5. (**Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentagewise) difference between the fertilizer type with the lowest and highest growth)
-
-#### Relative differences
-
-Relative effects on growth of the fertilizer types depend on wheat variety as the wheat varieties differ in lengths of the control plants and the additive model assumes that responses are additive on the absolute (arithmetic) scale. [If you say that it would have been better to consider an additive model on the logarithmic scale, such that we would assume that relative differences are the same among varieties instead of absolute differences, I would agree - we get to such log-linear models later in the course].
-
-To compute confidence intervals for these relative differences, we can use the delta-method in the same way as we did in point 10 in the exercises. This case here involves one more parameter due to the effect of student group, which makes it a bit more complex (the tutorial and point 10 in the exercises are simpler examples) . We will do this here for the variety with the slowest growth ("Bjarne") and the fastest growth ("Oberkulmer"). Again we use student group 9 as the "median group".
-
-We are interested in the value $f = \frac{y_{plus} - y_{cont}}{y_{cont}} 100$ where $y_{plus}$ and $y_{cont}$ are the predicted responses for respectively the "plus" fertilizer treatment and the control (of group 9). For Bjarne this becomes $f_B = \frac{\beta_8}{\beta_0 + \beta_{19}} 100$ (this equivalent to the example in the tutorial). For Oberkulmer, this becomes $f_O = \frac{\beta_8}{\beta_0 + \beta_3 + \beta_{19}} 100$. We find the relevant partial derivatives by the use of the chain rule:
-
-$$
-\frac{\partial f_B}{\partial \beta_0} = \frac{\partial f_B}{\partial (\beta_0 + \beta_{19})} \frac{\partial (\beta_0 + \beta_{19})}{\partial \beta_0} = \frac{-100 \beta_8}{(\beta_0 + \beta_{19})^2}1
-$$
-
-$$
-\frac{\partial f_B}{\partial \beta_{19}} = \frac{\partial f_B}{\partial (\beta_0 + \beta_{19})} \frac{\partial (\beta_0 + \beta_{19})}{\partial \beta_{19}} = \frac{-100 \beta_8}{(\beta_0 + \beta_{19})^2}1
-$$
-
-$$
-\frac{\partial f_B}{\partial \beta_8} = \frac{100}{\beta_0 + \beta_{19}}
-$$
-
-$$
-\frac{\partial f_O}{\partial \beta_0} = \frac{\partial f_O}{\partial (\beta_0 + \beta_3 + \beta_{19})} \frac{\partial (\beta_0 + \beta_3 + \beta_{19})}{\partial \beta_0} = \frac{-100 \beta_8}{(\beta_0 + \beta_3 + \beta_{19})^2}1
-$$
-
-$$
-\frac{\partial f_O}{\partial \beta_{3}} = \frac{\partial f_O}{\partial (\beta_0 + \beta_3 + \beta_{19})} \frac{\partial (\beta_0 + \beta_3 + \beta_{19})}{\partial \beta_{3}} = \frac{-100 \beta_8}{(\beta_0 + \beta_3 + \beta_{19})^2}1
-$$
-
-$$
-\frac{\partial f_O}{\partial \beta_{19}} = \frac{\partial f_O}{\partial (\beta_0 + \beta_3 + \beta_{19})} \frac{\partial (\beta_0 + \beta_3 + \beta_{19})}{\partial \beta_{19}} = \frac{-100 \beta_8}{(\beta_0 + \beta_3 + \beta_{19})^2}1
-$$
-
-$$
-\frac{\partial f_O}{\partial \beta_8} = \frac{100}{\beta_0 + \beta_3 + \beta_{19}}
-$$
-
-
-```{r}
-beta = coef(fit_ad_sg)
-Sigma = vcov(fit_ad_sg)
-
-# For Bjarne
-(est = beta[9]/(beta[1] + beta[20])*100)
-x = rep(0, length(beta))
-x[1] = x[20] = -100*beta[9]/(beta[1] + beta[20])^2 
-x[9] = 100/(beta[1] + beta[20])
-se = sqrt(x %*% Sigma %*% x)
-# Approximate 95% c.i.
-est + c(-2,2)*se[1,1]
-
-# For Oberkulmer
-(est = beta[9]/(beta[1]+ beta[4] + beta[20])*100)
-x = rep(0, length(beta))
-x[1] = x[4] = x[20] = -100*beta[9]/(beta[1] + beta[4] + beta[20])^2 
-x[9] = 100/(beta[1] + beta[4] + beta[20])
-se = sqrt(x %*% Sigma %*% x)
-# Approximate 95% c.i.
-est + c(-2,2)*se[1,1]
-```
-
-That is, for variety Bjarne, the final length of the wheat plants that received the 10% treatment of the "flow" fertilizer was 11.2% (95% c.i.: 4.1% to 18.4%) longer than the control. The same effect for variety Oberkulmer was 7.1% (95% c.i.: 2.6% to 11.5%).
-
-
+  <div class="green">
+  #### Relative differences
+  
+  Relative effects on growth of the fertilizer types depend on wheat variety as the wheat varieties differ in lengths of the control plants and the additive model assumes that responses are additive on the absolute (arithmetic) scale. [If you say that it would have been better to consider an additive model on the logarithmic scale, such that we would assume that relative differences are the same among varieties instead of absolute differences, I would agree - we get to such log-linear models later in the course].
+  
+  To compute confidence intervals for these relative differences, we can use the delta-method in the same way as we did in point 10 in the exercises. This case here involves one more parameter due to the effect of student group, which makes it a bit more complex (the tutorial and point 10 in the exercises are simpler examples) . We will do this here for the variety with the slowest growth ("Bjarne") and the fastest growth ("Oberkulmer"). Again we use student group 9 as the "median group".
+  
+  We are interested in the value $f = \frac{y_{plus} - y_{cont}}{y_{cont}} 100$ where $y_{plus}$ and $y_{cont}$ are the predicted responses for respectively the "plus" fertilizer treatment and the control (of group 9). For Bjarne this becomes $f_B = \frac{\beta_8}{\beta_0 + \beta_{19}} 100$ (this equivalent to the example in the tutorial). For Oberkulmer, this becomes $f_O = \frac{\beta_8}{\beta_0 + \beta_3 + \beta_{19}} 100$. We find the relevant partial derivatives by the use of the chain rule:
+  
+  $$
+  \frac{\partial f_B}{\partial \beta_0} = \frac{\partial f_B}{\partial (\beta_0 + \beta_{19})} \frac{\partial (\beta_0 + \beta_{19})}{\partial \beta_0} = \frac{-100 \beta_8}{(\beta_0 + \beta_{19})^2}1
+  $$
+  
+  $$
+  \frac{\partial f_B}{\partial \beta_{19}} = \frac{\partial f_B}{\partial (\beta_0 + \beta_{19})} \frac{\partial (\beta_0 + \beta_{19})}{\partial \beta_{19}} = \frac{-100 \beta_8}{(\beta_0 + \beta_{19})^2}1
+  $$
+  
+  $$
+  \frac{\partial f_B}{\partial \beta_8} = \frac{100}{\beta_0 + \beta_{19}}
+  $$
+  
+  $$
+  \frac{\partial f_O}{\partial \beta_0} = \frac{\partial f_O}{\partial (\beta_0 + \beta_3 + \beta_{19})} \frac{\partial (\beta_0 + \beta_3 + \beta_{19})}{\partial \beta_0} = \frac{-100 \beta_8}{(\beta_0 + \beta_3 + \beta_{19})^2}1
+  $$
+  
+  $$
+  \frac{\partial f_O}{\partial \beta_{3}} = \frac{\partial f_O}{\partial (\beta_0 + \beta_3 + \beta_{19})} \frac{\partial (\beta_0 + \beta_3 + \beta_{19})}{\partial \beta_{3}} = \frac{-100 \beta_8}{(\beta_0 + \beta_3 + \beta_{19})^2}1
+  $$
+  
+  $$
+  \frac{\partial f_O}{\partial \beta_{19}} = \frac{\partial f_O}{\partial (\beta_0 + \beta_3 + \beta_{19})} \frac{\partial (\beta_0 + \beta_3 + \beta_{19})}{\partial \beta_{19}} = \frac{-100 \beta_8}{(\beta_0 + \beta_3 + \beta_{19})^2}1
+  $$
+  
+  $$
+  \frac{\partial f_O}{\partial \beta_8} = \frac{100}{\beta_0 + \beta_3 + \beta_{19}}
+  $$
+  
+  
+  ```{r}
+  beta = coef(fit_ad_sg)
+  Sigma = vcov(fit_ad_sg)
+  
+  # For Bjarne
+  (est = beta[9]/(beta[1] + beta[20])*100)
+  x = rep(0, length(beta))
+  x[1] = x[20] = -100*beta[9]/(beta[1] + beta[20])^2 
+  x[9] = 100/(beta[1] + beta[20])
+  se = sqrt(x %*% Sigma %*% x)
+  # Approximate 95% c.i.
+  est + c(-2,2)*se[1,1]
+  
+  # For Oberkulmer
+  (est = beta[9]/(beta[1]+ beta[4] + beta[20])*100)
+  x = rep(0, length(beta))
+  x[1] = x[4] = x[20] = -100*beta[9]/(beta[1] + beta[4] + beta[20])^2 
+  x[9] = 100/(beta[1] + beta[4] + beta[20])
+  se = sqrt(x %*% Sigma %*% x)
+  # Approximate 95% c.i.
+  est + c(-2,2)*se[1,1]
+  ```
+  
+  That is, for variety Bjarne, the final length of the wheat plants that received the 10% treatment of the "flow" fertilizer was 11.2% (95% c.i.: 4.1% to 18.4%) longer than the control. The same effect for variety Oberkulmer was 7.1% (95% c.i.: 2.6% to 11.5%).
+  </div>
