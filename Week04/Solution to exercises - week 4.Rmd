@@ -1,0 +1,344 @@
+---
+title: Solution to exercises Week 4
+author: Torbjørn Ergon
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  pdf_document:
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+---
+
+<style>
+div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercises
+
+In these exercises, you will analyze data from a growth experiment of wheat seedlings that was conducted by students in the BIO2150 course during the fall of 2018. With an increasing human population and limited space for food production there is a strong interest in increasing yield per unit area. With fast growing plants one may harvest the wheat twice per year even in climates with a shorter growing season. It is possible to increase plant growth by both breeding new genetic varieties and by supplying the right type of fertilizers at sufficient amounts.
+
+The experiment included 6 varieties of wheat and 3 types of nitrogen fertilizer (Kristalon) given at 2 different concentrations in addition to a control treatment with just water (the solvent). I.e., there are 7 treatment types. The seedlings grew in pots in a standardized medium, under standardized temperature and light conditions (by "standardized" we mean that these factors were kept the same for all pots, although small random variation may always occur). Each group of students had all six varieties in six separate pots. At 14 days after seeding, 5 randomly selected plants from each pot were cut for measurements of mean length and weight (wet mass). Plants were then re-potted and received different fertilizer treatments. At the end of the experiment, 5 randomly selected plants were cut for measurements of mean length and all plans were used for measuring mean plant weight of each pot.
+
+The aim of the analysis is to find out which wheat variety grows the fastest under the standardized conditions and which fertilizer promotes the fastest growth. We also want to estimate the degree to which different varieties respond differently to different fertilizers (i.e., the interaction effects).
+
+You may either do the exercise in an R Markdown document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script (or Markdown document) does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
+
+1. <span style="color:blue"> Read the data into R with `read.csv("wheatlings_bio2150_F18.csv", stringsAsFactors = TRUE)` and give it the name `wheat` (you can give it whatever name you want, but this is what we will call it in the guidance later).</span> The argument `stringsAsFactors = TRUE` tells `read.csv` that variables containing characters (not numbers) should be stored as factors - this affects how some R-functions treat these variables (generally, you want to treat categorical predictor variables as 'factors' in R). <span style="color:blue">Have a first glance at the data by using `summary()` and `head()`. </span>
+
+<div class="green">
+  ```{r}
+  wheat = read.csv("wheatlings_bio2150_F18.csv", stringsAsFactors = TRUE)
+  summary(wheat)
+  head(wheat)
+```
+</div>
+
+2. The variables are:
+* `student_gr`: Student group. Each group of students used one type of fertilizer. The plants from each group were also placed close together in the growth room.
+* `variety`: 6 different varieties of wheat
+* `fertype`: Type of nitrogen fertilizer (varies somewhat with respect to composition of micro-nutrients), or control
+* `conc`: Fertilizer concentration ('C0' = 0% (control), 'C1' = 1%, and 'C10' = 10%)
+* `length`: Mean length of the plants at the end of the experiment in cm
+* `wetmass`: Mean wet mass of the plants at the end of the experiment in gram
+* `startlength`: Mean length of the plants at the start of the experiment in cm
+* `startwetmass`: Mean we mass of the plants at the start of the experiment in gram
+
+  <span style="color:blue"> Use the `table` function on the first four variables to get an overview of the experimental design (you can apply this function to one or more variables at a time). Is the design completely "crossed" with respect to all these variables (i.e., all combinations of levels exist in the data), or are some variables nested under others (i.e., the levels of one variable only exist in combination with one level of another variable each)?</span> 
+ 
+  <div class="green"> 
+  ```{r}
+  with(wheat, table(variety, fertype))
+  with(wheat, table(variety, conc))
+  with(wheat, table(variety, student_gr))
+  with(wheat, table(fertype, conc))
+  with(wheat, table(fertype, student_gr))
+  with(wheat, table(conc, student_gr))
+```
+
+  `student_gr`is nested under `fertype` (each group of student only used one fertilizer type, in addition to control). Apart from that, it's a completely crossed design. Note however that `fertype == 'control'` is the same as `conc == 'C0'`.
+  </div>
+
+<!--- NB! leave line-breaks and indentations like this to get several paragraphs indented under the same numbered item-->
+  
+3.
+
+  To start with, we will for simplicity ignore `student_gr` and `fertype` (all fertilizer types mainly contained nitrogen, but differed with respect to concentrations of some micro-nutrients). Note that the levels of these two factor variables were distributed equally among the levels of the other factors (`variety` and `conc`), so ignoring these two factors (`student_gr` and `fertype`) will not induce any bias. We will also just use the length of the plants at the end of the experiment (`length`) as the response variable. <span style="color:blue"> Start by making boxplots of `length` for each combination of `variety` and `conc`.</span> There are many ways you can do this is in R. If you use `plot()` and have a factor on the x-axis, you'll get a boxplot for each factor level. Hence, you may repeat the example below for each of the six varieties:
+
+  ```{r eval=FALSE}
+  plot(length ~ conc, data = wheat, subset = variety=="Bjarne")
+  ```
+
+  You can also produce a nice multi-panel plot with `bwplot()` in the `lattice` package:
+
+  ```{r eval=FALSE}
+  library(lattice)
+  bwplot(length ~ conc|variety, data = wheat, as.table=TRUE)
+  ```
+
+  <span style="color:blue">What patterns do you see in the plot?</span>
+
+  <div class="green">
+  ```{r}
+  library(lattice)
+  bwplot(length ~ conc|variety, data = wheat, as.table=TRUE)
+  ```
+
+  There are large differences among varieties. Except for 'Bjarne', the plants tend to be highest at C10 (10% fertilizer), but the difference is small compared to the variation within and among varieties. [The boxes show the 25% quantile (1st quartile) and the 75% quantile (3rd quartile) (i.e., 50% of the data points are within the box). The filled point within the boxes are the medians (= 50% quantile = 2nd quartile). Whiskers show range of the data within $\pm$ 1.5 times the with of the box (if the data are normally distributed, approximately 95% of the data points should be within these whiskers), and data points outside the whiskers].
+  </div>
+
+4.
+
+  Let's fit some models to quantify predictions and differences (contrasts) with confidence intervals. <span style="color:blue">Fit a model with additive effects of `variety` and `conc` and a model with interaction effects. Try also models with and without `startlength` as a covariate (i.e., fit 4 models). Store each of the fitted models in an object and look at summaries of each of the models with the `summary` function. Look at the R-squared values (these can also be extracted from the fitted models with `summary()$r.squared`</span>. Note that you can find out what is stored in any R object with the functions `str()` and `names()` - or you can click on the object name under the 'Environment' tab in the top-right window in R Studio). <span style="color:blue">How do you interpret these, and what can you conclude from comparing the values from the different models?</span>
+
+  <div class="green">
+  ```{r}
+  fit_int_sl = lm(length ~ variety*conc + startlength, wheat)
+  fit_ad_sl = lm(length ~ variety+conc + startlength, wheat)
+  fit_int = lm(length ~ variety*conc, wheat)
+  fit_ad = lm(length ~ variety+conc, wheat)
+  
+  summary(fit_int_sl)$r.squared
+  summary(fit_ad_sl)$r.squared
+  summary(fit_int)$r.squared
+  summary(fit_ad)$r.squared
+  ```
+  
+  All the models explain about 84-85% of the variance. This means that even the simplest of these models (`~ variety+conc`) does a pretty good job in explaining the variation, and adding the interaction effects and `startlength` increases the proportion of variance explained only by very little.
+  </div>
+
+<!--- NB! leave line-breaks and indentations like this to get several paragraphs indented under the same numbered item-->
+5.
+
+  The R-squared value will *always* increase when adding more parameters to a model (i.e., in a set of *nested* models, the model with the most parameters will always have the highest R-squared). The "Adjusted R-squared" value in the `summary` output adjust the R-squared value with the aim that this value will only increase when the new parameters added to the model increase the proportion of variance explained "more than should be expected by chance" (i.e., when the new terms are statistically significant). For this reason, the adjusted R-squared is sometimes used to decide whether covariates such as `startlength` should be included in the model or not (i.e. in "model selection").
+
+  Before we go on, we should stop to think about why we want to do any model selection at all.  This is a complex issue, but as researchers you will frequently be faced with the choice of several models, so we will start addressing some guiding principles here and return to this issue later in the course. First you need to be clear on what the purpose of the statistical model is. If you want to study how differently wheat varieties respond to supplemental nitrogen, you need to use a model where the interaction effect is included and then estimate confidence intervals for predictions or contrasts related to your research question. Getting a statistically "non-significant" interaction effect does not tell you to what degree different varieties respond differently to different treatments - it just tells you the these differences are not unlikely to be small (but they could also be large!). Secondly, you should be aware that you sometimes want to include a covariate to control for confounding effects whether the effects of the covariate are "statistically significant" or not (we will return to this later in the course). Thirdly, you don't want to control for covariates when this is not in line with your research question (even if the effects of the covariate is "highly significant"). E.g., if you want to estimate the mean and standard deviation in body height of males and females in a population, you don't want to include feet length in the model (you don't want to control for feet length by estimating height at a specified (standardized) feet length).
+  
+  If *prediction* is the aim of the study, model selection can be guided by the principle of **precision-accuracy trade-offs** (= bias-variance trade-offs). For example, in the current study you may want to report how much the different varieties of wheat grow when supplemented with a given amount of nitrogen fertilizer. In this case you are only interested in predicting a mean value (under the current laboratory conditions) for each wheat variety. You may use either of the four models you have already fitted to compute such predictions. But which one is best? In general, adding parameters to the model increases the accuracy of the predictions (you will on average be closer to the truth if you hypothetically repeat the study many times), but it also decreases the precision of the predictions (the predictions will be more variable if you repeat the study many times -- i.e., the confidence intervals get wider). It is possible to show this trade-off through simulations, but we will not take the time to do this here. For those interested, I recommend [this online book chapter by David Dalpiaz](https://daviddalpiaz.github.io/r4sl/biasvariance-tradeoff.html#simulation).
+  
+  The Akaike's Information Criterion (AIC) is designed to help us to select the model that most likely gives us the "best" predictions as an optimal trade-off between simple models that have high precision and more complex models that have lower precision but higher accuracy. In general, the more data we have, the more complex model we can fit. Before using AIC to select a model, it is essential to note the following:
+  * The "best" model in a set of models, is the model with the *lowest* AIC.
+  * It is the *absolute* (not relative) difference in AIC values of different models that tells us how close two models are in terms of being "best" for predictions.
+  * AIC values are only comparable among models if you use the *exact* same set of observations (rows in the data set) to fit the alternative models. You can easily make mistakes here if you have missing values for some variables, but not for others. `lm` will by default use complete cases with respect to only those variables that are included in the model. Hence, if you are not careful you can inadvertently use different subsets of the data to fit different models (this is not a problem for prediction and inference, but AIC values will not be comparable).
+  * Ranking by AIC may have high uncertainty (you can compute confidence intervals for AIC values and look at uncertainty of the model ranking through bootstrapping), and AIC may "break down" as a tool when sample size is low. In general, you should avoid considering models that have very many parameters relative to sample size (a good rule of thumb is that sample size should be at least 10 times the number of parameters in the model, but it also depends on the structure of the data and the model - you don't want some model parameters to be informed by only a few data-points). Know the structure of your data before you start to fit models!!
+  * The regular AIC is biased towards selecting too complex models when sample size is lower than about 40 times the number of parameters. When this is the case, it is better to use a correction for small sample size: $AICc = AIC + \frac{2(k^2 + k)}{n-k-1}$.
+  
+  The AIC of a fitted model can be computed with the `AIC` function that takes one or more fitted model objects as arguments. <span style="color:blue">Use this function and make a table of the four fitted models with the following information in different columns: AIC, number of parameters, R-squared and adjusted R-squared, and AICc. Which model should you prefer if you are only interested in predictions?</span> (Tip: If your table is called `model_tab`, you can sort the rows according to AIC value with `model_tab[order(model_tab$AIC),]`)
+
+  <div class="green">  
+  ```{r}
+  model_tab = AIC(fit_int_sl, fit_ad_sl, fit_int, fit_ad)
+  
+  model_tab$n_parameters = c(
+    length(coef(fit_int_sl))+1,
+    length(coef(fit_ad_sl))+1,
+    length(coef(fit_int))+1,
+    length(coef(fit_ad))+1
+  ) # + 1 to count sigma as a paramterer
+  
+  model_tab$r_sq = c(
+    summary(fit_int_sl)$r.squared,
+    summary(fit_ad_sl)$r.squared,
+    summary(fit_int)$r.squared,
+    summary(fit_ad)$r.squared
+  )
+  
+  model_tab$adj_r_sq = c(
+    summary(fit_int_sl)$adj.r.squared,
+    summary(fit_ad_sl)$adj.r.squared,
+    summary(fit_int)$adj.r.squared,
+    summary(fit_ad)$adj.r.squared
+  )
+  
+  n = nrow(wheat)
+  k = model_tab$n_parameters
+  model_tab$AICc = model_tab$AIC + (2*k^2+2*k)/(n-k-1)
+  
+  model_tab[order(model_tab$AIC),]
+  ```
+  
+  If we are only interested in predictions, we should prefer the model with the *lowest* AICc value (the top ranked model above). In this case, ranking the models according to AIC, adjusted R-squared and AICc were in agreement, but this is not always the case.
+  </div>
+
+6.
+
+  In this case, ranking the models according to AIC, adjusted R-squared and AICc were in agreement, but this is not always the case. It is not surprising that the simplest model was selected since adding more parameters to the model increased the R-squared value very little. <span style="color:blue">Compute all unique predicted values from this model with confidence intervals and present them in a figure.</span> You can use either the `predict` function to do this or use matrix operations and $\pm$ 2 SE to construct confidence intervals.</span> Again, there are many ways to make plots in R. The code below uses `ggplot()` which is a very flexible function for plotting in R although the syntax is quite different from other R functions we use in the course [we don't emphasize teaching you a lot of plotting routines in this course - you can find a lot of plotting examples that you can modify for your use if you search the internet, and as you see more examples, it will be easier for you to produce the plots you like]. <span style="color:blue">What patterns do you see?</blue>
+  
+  ```{r eval = FALSE}
+  Newdata = expand.grid(variety = unique(wheat$variety), conc = unique(wheat$conc))
+  Pred = cbind(Newdata, predict(fit_ad, newdata = Newdata, interval = "confidence")) # fit_ad is the "best" model
+  
+  library(ggplot2)
+  ggplot(data = Pred, aes(x=conc, y=fit)) +
+      geom_point() +
+      geom_errorbar(aes(ymin=lwr, ymax=upr)) +
+      facet_wrap(~variety)
+  ```
+
+  <div class="green">
+  Plotting:
+  
+  ```{r}
+  Newdata = expand.grid(variety = unique(wheat$variety), conc = unique(wheat$conc))
+  Pred = cbind(Newdata, predict(fit_ad, newdata = Newdata, interval = "confidence")) # fit_ad is the "best" model
+  
+  library(ggplot2)
+  ggplot(data = Pred, aes(x=conc, y=fit)) +
+      geom_point() +
+      geom_errorbar(aes(ymin=lwr, ymax=upr)) +
+      facet_wrap(~variety)
+  ```
+  
+  There is naturally some resemblance between this plot and the box-plots of the data plotted earlier (under point 3), but here we plotted the model predictions for the expected values for each combination of wheat variety and fertilizer concentration. We have used an additive model (the model selected by AIC). This means that the effects of nutrient concentration is the same for all wheat varieties (i.e., the difference between the plotted points is the same in all panels).
+  
+  We see that there is large differences between the wheat varieties. The plants given a fertilizer grow taller on average than the plants in the control groups, but the effect of giving the 1% fertilizer solution is small and uncertain (confidence intervals for these groups overlap largely with those of the control groups). The 95% confidence intervals for the 10% fertilizer groups do not overlap with the point estimates for the other groups (roughly equivalent to statistical significance at the 5% level). 
+  </div>
+
+7.
+
+  <span style="color:blue">Do the same for the model where `startlength` is added as a covariate by computing predictions at over-all mean start length in the data set. What can be said about the effect of `startlength`? Why does controlling for `startlength` make so little difference? </span>
+  
+  <div class="green">
+  ```{r}
+  Newdata_sl = expand.grid(variety = unique(wheat$variety), conc = unique(wheat$conc), startlength=mean(wheat$startlength))
+  Pred_sl = cbind(Newdata_sl, predict(fit_ad_sl, newdata = Newdata_sl, interval = "confidence"))
+  
+  ggplot(data = Pred_sl, aes(x=conc, y=fit)) +
+    geom_point() +
+    geom_errorbar(aes(ymin=lwr, ymax=upr)) +
+    facet_wrap(~variety)
+  ```
+  
+  "Controlling for `startlength`" means that we use `startlength` as a predictor variable in the model and then compute prediction for a standardized `startlength` (i.e., use the same value for `startlength` when computing all the predictions, in this case the overall mean value in the data). Differences in the predicted values due to differences in `startlength` among the groups should then have been removed.   
+  
+  Controlling for start length makes hardly any difference in the predictions we have plotted here. This is not so surprising since we already know that adding 'startlength' to the model increases the proportion of the variance in the data explained by only a very small amount. We can also look at the estimated effect size of 'startlength':
+  
+  ```{r}
+  summary(fit_ad_sl)
+  confint(fit_ad_sl)
+  ```
+  
+  Here we see that a head start of 1 cm only gives an increase in the final length of about 0.06 cm (0.6 mm) on average, and the upper 95% confidence limit for this effect is less than 0.27 cm. NB! This effect size is conditional on the other effects in the model. To look at the association between 'startlength' and final 'length' without conditioning on (or controlling for) any other effects, we can plot the data and fit a model with only 'startlength' as the predictor variable:
+  
+  ```{r}
+  with(wheat, plot(length ~ startlength))
+  fit_sl = lm(length ~ startlength, data = wheat)
+  summary(fit_sl)
+  ```
+  
+  Here we see that there is actually a quite strong association between 'startlength' and 'length' at the end of the experiment. However, as we saw above, when the effect wheat variety is accounted for, the effect of 'startlength' is very small. This means that there is a strong association between start length and wheat variety (the varieties that were tall at the end of the experiment were already tall at the start of the experiment when the fertilizer was applied). We can look closer at this by making box plots of start length as we did for length at the end of the experiment earlier:
+  
+  ```{r}
+  bwplot(startlength ~ conc|variety, data = wheat, as.table=TRUE)
+  ```
+  
+  As expected, we see that there is quite large difference in start length among wheat varieties. The fact that the box plots within varieties are identical is because the measurements of start length were taken by each student group before the pants were re-potted to receive the fertilizer treatments. We see that there is some variation in start lengths within varieties, but as we have seen this explains very little of the variation in final length (when the differences among varieties is accounted for). This could partly be due to measurement error.
+  
+  Note that we could have seen little change in the predictions when controlling for `startlength` even if this variable explained more of the variation, IF mean `startlength` differed very little among groups. Controlling for the effects of covariates (`startlenghth` in this case) is particularly relevant when the covariates correlate with the predictor variables of interest (typically in observational studies, not in experimental studies like the one we analyze data from here).   
+  </div>
+
+8.
+
+  From the plot we see that there is very little difference in final plant length between plants that have been given a 1% nitrogen fertilizer and the control, but there is a small increase in the 10% treatment. <span style="color:blue">Look at the summary of the best model and find the point estimate and a 95% confidence interval (based on $\pm$ 2 SE) of the increased length in the 10% nitrogen treatment compared to the control. Check that you get about the same confidence interval with the `confint` function. What is the unit of measurement for these estimates? What does the confidence interval tell you?</span>
+
+  <div class="green">
+  Summary of best model:
+  
+  ```{r}
+  summary(fit_ad)
+  ```
+    
+  Confidence intervals:
+  
+  ```{r}
+  1.5211 + c(-2,2)*0.3367
+  confint(fit_ad)
+  ```
+    
+  Units of measurements are cm since 'length' at the end of the experiment was measured in cm and we use a linear model which basically breaks up the response in a sum of several components. The 95% confidence interval suggest that the 10% fertilizer solution increases the length of the plants at the end of the experiment by somewhere between about 0.8 cm and 2.2 cm. We can be very confident that the increase is larger than zero, and not much higher than 2 cm. This is less than 10% of the final length of the fastest growing varieties. How much this matter for the yield of the crop is another question (perhaps we can gain some insight about that from theory or other studies?). 
+  </div>
+
+9.
+
+  <span style="color:blue">The contrast between the 1% treatment and the 10% treatment is not a parameter in the model but you can still easily compute a point estimate for it from the estimates listed in the summary of the fitted model. What is it? Compute also a 95% confidence interval for this contrast. Compare this to the effect of the 1% and 10% treatments.</span>
+  
+  <div class="green">
+    Computing the point estimate for the contrast:
+  ```{r}
+  # Point extimate:
+  coef(fit_ad)["concC10"] - coef(fit_ad)["concC1"]
+  ```
+  
+    Computing the standard error for the contrast:
+  ```{r}
+  # contrast vector
+  x = c(rep(0,6), -1, 1)
+  
+  # point estimate (check)
+  (point_estimate = coef(fit_ad) %*% x)
+  
+  # standard error
+  (SE = sqrt(x %*% vcov(fit_ad) %*% x))
+  ```
+  
+    Using the standard error to compute an approximate 95% confidence interval:
+  ```{r}
+  point_estimate[1,1] + c(-2,2)*SE[1,1]
+  ```
+  
+  </div>
+
+10.
+
+    <span style="color:blue">(**Optional:** Use the delta-method to compute an approximate 95% confidence interval for the effect of the 10% nitrogen treatment expressed as a percent increase in the final plant length at the end of the experiment compared to the length of the control plants for the varieties "Oberkulmer" and "Bjarne" (Hint: For Oberkulmer, you need to use the chain rule for derivation). Why does this relative difference depend on wheat variety even when you have used an additive model?)</span>
+
+    <div class="green">
+    We are interested in the value $f = \frac{y_{10} - y_0}{y_0} 100$ where $y_{10}$ and $y_0$ are the predicted responses for respectively the 10% treatment and the control. For Bjarne this becomes $f = \frac{\beta_7}{\beta_0} 100$ (this is equivalent to the example in the tutorial above). For Oberkulmer, this becomes $f = \frac{\beta_7}{\beta_0 + \beta_3} 100$. For Oberkulmer, we find the relevant partial derivatives by the use of the chain rule
+  
+    $$
+    \frac{\partial f}{\partial \beta_0} = \frac{\partial f}{\partial (\beta_0 + \beta_3)} \frac{\partial (\beta_0 + \beta_3)}{\partial \beta_0} = \frac{-100 \beta_7}{(\beta_0 + \beta_3)^2}1
+    $$
+  
+    $$
+    \frac{\partial f}{\partial \beta_3} = \frac{\partial f}{\partial (\beta_0 + \beta_3)} \frac{\partial (\beta_0 + \beta_3)}{\partial \beta_3} = \frac{-100 \beta_7}{(\beta_0 + \beta_3)^2}1
+    $$
+  
+    $$
+    \frac{\partial f}{\partial \beta_7} = \frac{100}{\beta_0 + \beta_3}
+    $$
+  
+    Extracting parameter estimates and the variance-covariance matrix:
+    ```{r}
+    beta = coef(fit_ad)
+    Sigma = vcov(fit_ad)
+    ```
+    
+    Computing relative difference and confidence interval for Bjarne (delta-method):
+    ```{r}
+    est = beta[8]/beta[1]*100
+    x = c(-100*beta[8]/beta[1]^2, 0, 0, 0, 0, 0, 0, 100/beta[1])
+    se = sqrt(x %*% Sigma %*% x)
+    # Approximate 95% c.i.
+    est + c(0,-2,2)*se[1,1]
+    ```
+    
+    For the Bjarne plants, the 10% nitrogen treatments gave plants that were on average 9.4% (95% c.i.: 5.0% to 13.7%) taller than the control plants.
+    
+    Computing relative difference and confidence interval for Oberkulmer (delta-method):
+    ```{r}
+    est = beta[8]/(beta[1]+ beta[4])*100
+    x = c(-100*beta[8]/(beta[1]+ beta[4])^2, 0, 0, -100*beta[8]/(beta[1]+ beta[4])^2, 0, 0, 0, 100/(beta[1]+beta[4]))
+    se = sqrt(x %*% Sigma %*% x)
+    # Approximate 95% c.i.
+    est + c(0,-2,2)*se[1,1]
+    ```
+    
+    For the Oberkulmer plants, the 10% nitrogen treatments gave plants that were on average 5.9% (95% c.i.: 3.2% to 8.6%) taller than the control plants.
+    
+    The relative difference depends on wheat variety even when you have used an additive model because the length of the control plants for the two varieties differ. The additive model assumes that the absolute difference is the same for the two varieties, which means that the relative differences must be different when the control plants are not of the same height.
+    
+    </div>
