@@ -3,12 +3,12 @@ title: Tutorial Week 4 - More on linear statistical models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
-  pdf_document:
-    toc: yes
   html_document:
     toc: yes
     toc_float: true
     toc_depth: 2
+  pdf_document:
+    toc: yes
   df_print: paged
 header-includes:
   \usepackage{amsmath}
@@ -76,7 +76,7 @@ The matrix $\mathbf{X}$ above is called a **design matrix** and is specific to t
 X = model.matrix( ~ Sex * Foot, student_means)
 ```
 
-Type `X` in the Console window in R Studio to see this matrix (note that the columns have been given some informative names; these are same names as given to parameters in the fitted model object - you see them when you type e.g. `summary(fit)`). If we wanted to fit an additive model (see last week's tutorial), we can simply delete the last column of `X`. If we delete the two last columns we end up with only `Sex` as the predictor variable and if we leave only the first column in the design matrix we have a model with only the intercept (specified as `~ 1` in R). Note that it seldom makes much sense to leave one of the main effects (`SexM` or `Foot`) out while the interaction effect (`SexM:Foot`) is still in the model (<span style="color:blue">what would the predictions from these models look like in a plot?</span>).
+<span style="color:blue">Type `X` in the Console window in R Studio to see this matrix (note that the columns have been given some informative names; these are same names as given to parameters in the fitted model object - you see them when you type e.g. `summary(fit)`). </span> If we wanted to fit an additive model (see last week's tutorial), we can simply delete the last column of `X`. If we delete the two last columns we end up with only `Sex` as the predictor variable and if we leave only the first column in the design matrix we have a model with only the intercept (specified as `~ 1` in R). Note that it seldom makes much sense to leave one of the main effects (`SexM` or `Foot`) out while the interaction effect (`SexM:Foot`) is still in the model (<span style="color:blue">what would the predictions from these models look like in a plot?</span>).
 
 ## Linear predictions with matrix notation
 
