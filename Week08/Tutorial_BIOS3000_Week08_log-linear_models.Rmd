@@ -1,0 +1,580 @@
+---
+title: Tutorial and Assignment Week 6 - Log-linear log-normal models
+author: Torbjørn Ergon
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Key terms and concepts covered in this tutorial
+
+* Scale types for variables
+* Log-linear models
+* The log-normal distribution
+* Log-linear log-normal models
+* Allometry and the "The power law"
+
+## Preparations
+
+It is essential to have good understanding of logarithms and exponentials before you start to work with this tutorial - please read the [Tutorial on Exponents and Logarithms](https://uio.instructure.com/files/635816/download?download_frd=1) at the end of the Week 1 module on Canvas before you start with this tutorial (you need to be logged into Canvas for this link to work - the html-file will be downloaded). 
+
+## Scale types for variables
+
+So far we have just distinguished between categorical (nominal) and numerical (continuous or discrete) variables. There are however some important subdivisions of these scale types, that we will introduce here:
+
+* **Nominal** (= Categorical)**:**
+Names or labels in no particular order. Examples: sex, species names, fertilizer type.
+
+* **Ordinal:**
+Names or categories in a particular order ranked from low to high. Examples: wind force on the Beaufort scale, age groups, categorical degrees of risk-prone behaviour.
+
+* **Circular ordinal:**
+Names or categories in a particular order, and where the last category precedes the first. Examples: months of the year, compass aspect (N,NE,etc).
+
+* **Interval:**
+Numerical variables with an arbitrary zero-point (i.e., zero does not mean absence of the quantity). Examples:  temperature expressed in degrees Celsius or Fahrenheit, acidity measured as pH.
+
+* **Circular interval:**
+Numerical variables with and arbitrary zero-point, and where the highest value precedes the lowest. Examples: time of day on a 24-hour clock, time of year, compass direction in degrees.
+
+* **Ratio:**
+Numerical variables that represent amounts of a physical entity. Value zero represent total absence of the entity. Examples: height, weight, age (since conception or birth), rates of change, thermodynamic temperature measured in Kelvin.
+
+* **Absolute:**
+Absolute scale variables are unit free-variables that cannot be transformed in any way without changing its meaning. Examples: population sex ratio, probabilities of any kind
+
+It is important to be clear on which of these categories your response and predictor variables belong to. There are some strict "rules" for how variables of different scale types can be treated in models in a sensible way. Many of these are quite intuitive and obvious, but some may not be, and one can easily make mistakes and construct rather nonsensical models or interpretations if one is not clear on which scale types variables belong to. Such mistakes and nonsensical interpretations are unfortunately common in the biological literature (see [this review by David Houle et al.](https://www.journals.uchicago.edu/doi/10.1086/658408)). Here are some rules and advice to help you avoid some of the most common mistakes (some of these points may be a bit advanced at this stage, but pay attention to the points you understand and return to the others later):
+
+1. Don't treat nominal or ordinal scale variables as numerical. For example, it makes no sense to put values 1 to 10 on 10 different species and use this as a continuous variable in a model. To guard against this kinds of mistakes, it is a good idea to always use character strings as labels for such variables (e.g., use 'ind1', 'ind2', etc. as labels for individuals).
+
+2. Be careful when using circular interval scaled variables in linear models. E.g., it makes no sense to consider models that assume a monotonic increase in some quantity over the course of a day such that the highest value is at midnight and the lowest value is immediately after midnight.
+
+3. Don't treat interval-scaled variables as if they were ratio-scaled. Relative differences relating to interval scaled variables are not meaningful. E.g., it does not make sense to say that 20$^\circ$C (68$^\circ$F) is twice as warm than 10$^\circ$C (50$^\circ$F), or that 22$^\circ$C is 10% hotter than 20$^\circ$C.
+
+4. Never log-transform interval scaled variables (since relative differences in interval scaled variables are not meaningful - see the point above). If you use a log-transformed interval scaled variable in a model (as predictor or response variable), the functional form of the model will depend on whether you expressed e.g. temperature in degrees Fahrenheit instead of Celsius. Also note that logarithms of values $<$ 0 do not exist (and $\log(0) = -\infty$).
+
+5. Never transform variables without thinking about how this changes the functional form of the model and if this makes biological sense. Some texts in statistics teach that you can log-transform variables just to make the data fit the assumption of homogeneous and normally distributed residuals. As we will see later in the tutorial, log-transformations changes the functional form of the model, often in a desirable way, but you should not log-transform if this is not the functional form you want in the model.
+
+6. Advanced: Know how transformations of absolute scaled variables lead to other variables (such as log odds and log hazard rates). Know the difference between probabilities that represent frequencies in a population (e.g. sex ratio) and probabilities of events occurring or not occurring during a defined time-interval (e.g. survival probabilities). The latter has no meaning unless the time-interval length is specified. You can transform such probabilities to time-averaged hazard rates (a ratio scaled variable), but any other transformation (e.g. a logit-transformation) leads to another absolute scaled variable that is only meaningful for the specified time-interval length. More on this in [this article](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13059).
+
+7. Don't use models that you don't understand. You don't have to understand how a model has been fitted, but you have to understand what the parameters in the model mean.
+
+8. Try to use models that are biologically meaningful (i.e., models that are based on some theoretically sound mechanisms or principles) rather than models that just describe variation in the data in some rather arbitrary way. Phenomenological models (descriptive models not derived from theory and "first principles") have an important role in science, but they ought to describe the data in a biologically meaningful (informative) way. If the structure of the model is such that it can predict nonsensical values (e.g. negative body mass or probabilities outside the 0 to 1 range) if you apply the model to new cases (out-of-sample predictions), you have a poor model with respect to biological/theoretical reality.
+
+In the remainder of this tutorial, we will focus on ratio-scaled variables in statistical models. In the two previous tutorials we used ratio-scaled variables as response variables, and both ratio scaled and nominal as predictor variables in our models. Arguably, these are the two most common scale types for variables in biological studies.
+
+Unlike for interval scaled variables, values of ratio-scaled variables can be compared as both absolute differences (on an arithmetic scale) and as relative differences (remember that relative differences becomes absolute differences on a logarithmic scale). In the following, we will take a closer look at models that focus on relative differences and see how these differs from the ordinary linear models we have worked with so far.
+
+
+## Log-linear non-random models
+
+In the tutorial on [Exponents and Logarithms](https://uio.instructure.com/files/635816/download?download_frd=1), we mentioned that we could use the logarithmic scale on both the y-axis and/or the x-axis of plots. We can also log-transform both ratio-scaled predictor variables and a ratio-scaled response variable in a linear model. Before we look into such statistical models, we will start with log-linear models without a random component. By "log-linear" models, we mean models that are linear on the logarithmic scale. I.e. models on the following form (here with two predictor variables and without a random component)
+
+$$
+\log(y) = \beta_0 + \beta_1x_1 + \beta_2x_2 
+$$
+
+If we apply the "anti-log" (`exp()`) function on both sides, we get
+
+$$
+y = \exp( \beta_0 + \beta_1x_1 + \beta_2x_2 ) =  e^{\beta_0} e^{\beta_1x_1} e^{\beta_2x_2} 
+$$
+
+### Interpreting parameters and contrasts
+
+Let's say that $x_1$ in the above expression is a binary indicator variable (e.g., 0 for females and 1 for males) and that $x_2$ is a continuous ratio-scaled variable (such as foot length). How will a change in these variables affect $y$? Changing $x_1$ from $0$ to $1$ means that $y$ gets multiplied by $e^{\beta_1}$. I.e., $e^{\beta_1}$ is the **relative difference** between e.g. males and females in $y$ (e.g. height) (remember that $e^0 = 1$).
+
+If we add one unit to the value of $x_2$ we get a new value of $y$, which we can call $y'$:
+
+$$
+y' =  e^{\beta_0} e^{\beta_1x_1} e^{\beta_2(x_2 + 1)} =  e^{\beta_0} e^{\beta_1x_1} e^{\beta_2x_2} e^{\beta_2} = y  e^{\beta_2}
+$$
+
+That is, $e^{\beta_2}$ is the relative change in $y$ when $x_2$ increase one unit (i.e., $e^{\beta_2}$ is the ratio $y'/y$).
+
+In general we can say that, when log-transforming the response variable in a linear model, the anti-log (`exp()`) of the contrasts become relative differences in the response variable. If we have two sets of predictor variable values, the log-linear models predict $\log(y')$ and $\log(y)$ and the contrast (the first prediction minus the latter) becomes
+
+$$
+\log(y') - \log(y) = \log \left( \frac{y'}{y} \right)
+$$
+
+and the anti-log of this contrast becomes the relative difference expressed as the ratio $y'/y$.
+
+In an additive log-linear model, predictions become parallel on the logarithmic scale instead of on the arithmetic scale as before. We'll give an example of this later.
+
+### Log-linear models with log-transformed predictors
+
+What happens to the log-linear model if we also log-transform the ratio-scaled predictor variable ($x_2$ in the example above)? Our model then becomes
+
+$$
+\log(y) = \beta_0 + \beta_1x_1 + \beta_2 \log(x_2) 
+$$
+
+(If $x_1$ is a binary indicator variable, then it makes no sense to log-transform this variable).
+
+Let's see what happens to $y$ if we have a relative change in $x_2$. If $x_2$ increase by a factor $a$, we get
+
+$$
+\log(y') = \beta_0 + \beta_1x_1 + \beta_2 \log(x_2a) = \beta_0 + \beta_1x_1 + \beta_2 \left(\log(x_2) + \log(a) \right)
+$$
+
+I.e.,
+
+$$
+\log(y') = \log(y) + \beta_2 \log(a)
+$$
+
+and we get
+
+$$
+\log(y') - \log(y) = \log \left( \frac{y'}{y} \right) = \beta_2 \log(a)
+$$
+
+Hence, if we take the anti-log of both sides, we get
+
+$$
+\frac{y'}{y} = \exp \left( \beta_2 \log(a) \right) = \exp \left(\log(a) \right)^{\beta_2} = a^{\beta_2} 
+$$
+
+This means that if $\beta_2=2$, a doubling of the predictor variable $x_2$ will lead to a relative change in $y$ equal to $\frac{y'}{y} = 2^2 = 4$. With a 10% increase in the predictor variable, we get $\frac{y'}{y} = 1.1^2 = 1.21$ (i.e., a 21% increase in $y$). Hence, regardless of the original value of $x_2$, and regardless of the value of $x_1$, a relative increase in $x_2$ by a factor $a$ will lead to a relative increase in $y$ by a factor $a^{\beta_2}$. If the parameter $\beta_2$ equals $1$, then $y$ and $x_2$ are proportional, meaning that a relative increase in $x_2$ leads to *the same* relative increase in $y$ ($y$ plotted against $x_2$ is a straight line starting at zero on both axes).
+
+In an additive log-linear model, predictions become parallel on the logarithmic scale instead of on the arithmetic scale as in ordinary linear models. Below we use the model $\log(y) = \beta_0 + \beta_1x_1 + \beta_2 \log(x_2)$ and plot $y$ against $x_2$ for both $x_1=0$ (blue line) and $x_1=1$ (red line), first on the arithmetic scale and then using the logarithmic scale on both axes. <span style="color:blue"> You can play with the parameters to help you understand the behaviour of the model. Try values of $\beta_2$ that are less than 0, equal to 0, between 0 and 1, equal to 1, and above 1. (Tips for best learning: Try to figure out what will happen to the plot when you change a parameter *before* you try it. If the result is unexpected, you should look at the math and see if you can figure out why. Ask at Help Desk if you are still puzzled!)</span>
+
+```{r}
+beta0 = 0
+beta1 = 1
+beta2 = 1.5
+x1 = rep(0:1, each = 30)
+x2 = rep(1:30, times = 2)
+y = exp(beta0 + beta1*x1 + beta2*log(x2)) # log(y) = beta0 + beta1*x1 + beta2*log(x2)
+plot(x2[x1==1], y[x1==1], type="l", col="red", ylim = c(0, max(y)), xlab = "x2", ylab = "y")
+lines(x2[x1==0], y[x1==0], type="l", col="blue")
+
+plot(x2[x1==1], y[x1==1], log="xy", type="l", col="red", ylim = range(y), xlab = "x2", ylab = "y")
+lines(x2[x1==0], y[x1==0], type="l", col="blue")
+```
+
+
+### Summary so far
+
+* It only makes sense to log-transform ratio-scaled variables.
+* If we log-transform the response variable in a linear model (i.e., use a log-linear model), we model *relative* changes *per unit change* in the predictor variables.
+* If we log-transform a predictor variable in a log-linear model, we model *relative* changes *per relative change* in this predictor variable.
+* Additive log-linear models give predictions that are parallel on the logarithmic scale (not the arithmetic scale). If you have log-transformed a predictor variable, you also need to log-transform the x-axis in the plot to get parallel lines.
+
+## Log-linear log-normal models
+
+So far we have left out any randomness in the model, which makes the model useless as a statistical model. If we just use $\log(y)$ as a predictor variable in an ordinary linear model (fitted with `lm()`), we will fit the following model:
+
+$$
+\log(y_i) = \beta_0 + \beta_1x_{i,1} + \beta_2x_{i,2} + \varepsilon_i, \; \;\;\;\;\; \varepsilon_i \sim N(0, \sigma)
+$$
+
+By exponentiation of both sides, we get
+
+$$
+y_i = \exp \left( \beta_0 + \beta_1x_{i,1} + \beta_2x_{i,2} + \varepsilon_i \right) = e^{\beta_0} e^{\beta_1x_{i,1}} e^{\beta_2x_{i,2}} e^{\varepsilon_i}
+$$
+
+The random component in this model, $e^{\varepsilon_i}$, is "multiplicative" as it is multiplied with the systematic part, meaning that the random (unexplained) component tends to be larger when the systematic part is high than when it is low. If the random component is mainly reflecting unexplained biological patterns (this is often referred to as "process variation"), then this model structure may be reasonable. However, if the random component mainly reflects measurement error, it may be that an additive random component is more reasonable:
+
+$$
+y_i = e^{\beta_0} e^{\beta_1x_{i,1}} e^{\beta_2x_{i,2}} + \varepsilon_i
+$$
+
+With a hierarchical formulation (as we introduced in the Week 3 tutorial), we can write the latter model as (here we also use the vector formulation introduced in Week 4):
+
+$$
+y_i \sim N(\mu_i, \sigma)
+\\
+\log( \mu_i ) = \mathbf{x}_i \boldsymbol{\beta}
+$$
+
+Since we here do not transform any variables, but instead transform the mean of the random distribution, this is an example of a "Generalized Linear Model" (GLM) which we cannot fit with the `lm` function (we can use `glm()`, which we get to later in the course). In rest of this tutorial, we will only use the first of these two models where we just log-transform the response-variable in an ordinary linear model. Using a hierarchical formulation, the general form of this model is:
+
+$$
+\log(y_i) \sim N(\mu_i, \sigma)
+\\
+\mu_i = \mathbf{x}_i \boldsymbol{\beta}
+$$
+
+In the previous section, we explored the properties of this model in the special case where $\sigma = 0$ (i.e., there was no randomness). We will now do the opposite and explore the properties of the model when all $\mu_i = \mu$ ($\mu$ is the constant expectation we get when all $\mathbf{x}_i = 1$, and hence $\mu = \beta_0$). A simpler formulation of this model is just 
+
+$$
+\log(y_i) \sim N(\mu, \sigma)
+$$
+
+If $\log(y_i)$ is drawn from a normal distribution, we say that the stochastic variable of which $y_i$ is a realization of has a **log-normal distribution**. Let's do a simulation to see what this distribution looks like:
+
+```{r}
+mu = 5
+sigma = 0.5
+log_y = rnorm(100000, mu, sigma)
+y = exp(log_y) # could have used y = rlnorm(100000, mu, sigma)
+#hist(y)
+plot(density(y))
+abline(v=mean(y), col="red")
+abline(v=median(y), col="blue")
+```
+
+Here, we have first drawn 100,000 values representing different realizations of $\log(y_i)$ from a normal distribution with mean 5 and standard deviation 0.5, and then computed $y_i = e^{\log(y_i)}$ so that we can look at the distribution of these. Instead of plotting a histogram (we could have done that too), we have plotted a smoothed version of a histogram using the `density` function. Finally, we drew a red line at the mean value and a blue line at the median value (i.e., 50% of the distribution (area under the curve) is to the left of the blue line, and 50% is to the right of it).
+
+There are a few things to note about this distribution. First, the whole distribution is above zero (because `exp()` of any number is necessarily positive). Second, it has a very long tail to the right - we say that the distribution is "right skewed". The plot stretches out to the highest value sampled (if you run the code again, you'll get a different highest value). The values far to the right of the median have high leverage and influence the mean more than the values closer to the center of the distribution. The mean is therefore always higher than the median in right skewed distributions.
+
+All the values below the median value in a distribution will remain below the median after a monotonic transformation, and all the values above the median will remain above the median. Therefore the median of the transformed values will always just be the transformed median of the original distribution. The median of the normal distribution equals the mean ($\mu$) since the normal distribution is symmetric around the mean. That means that the median of the log-normal distribution will be $\exp(\mu)$. We can check how close we got to this in the simulation:
+
+```{r}
+exp(mu)
+median(y)
+```
+
+...pretty close!
+
+As we have already noted, the mean of the log-normal distribution is higher than this. If you look up the log-normal distribution in Wikipedia (Wikipedia is a good source for probability distributions and most statistical concepts!), you will see that the mean of the log-normal distribution is $\exp (\mu + \sigma^2 /2)$. Let's see how close we got:
+
+```{r}
+exp(mu + sigma^2/2)
+mean(y)
+```
+
+...pretty close again, but since the mean is influenced by a few high values (with high leverage), the mean will be more variable in simulations.
+
+## Predictions and contrasts from log-linear log-normal models
+
+### Predictions
+
+We have now seen how we can compute both the median and the mean form a log-normal model; If $\mu$ is the mean of $\log(y)$ then the median of $y$ is $e^\mu$ and the mean of $y$ is $e^{\mu + \sigma^2/2}$. This applies also when $\mu$ results from a linear combinations of parameters and predictor variables: 
+
+$$
+\log(y_i) \sim N(\mu_i, \sigma)
+\\
+\mu_i = \mathbf{x}_i \boldsymbol{\beta}
+$$
+
+Hence, if you want predictions for a given set of predictor variable values $\mathbf{x}_i$, you first compute $\hat{\mu_i} = \mathbf{x}_i \hat{\boldsymbol{\beta}}$. Then you can find the predicted median as $\exp \left( {\hat{\mu}_i} \right)$ and the predicted mean as $\exp \left({\hat{\mu}_i} + \hat{\sigma}^2/2 \right)$. For the prediction of the median, you can first construct the confidence interval for $\hat{\mu_i}$, and then compute the anti-log (`exp()`) of the lower and upper confidence limits. For the mean, it is a bit more complicated to compute confidence intervals as we need to account for uncertainty in $\hat{\sigma}$ (one option is to use bootstrapping, as we introduced in week 3). When using log-normal models, you should always be clear on whether you present predictions of the median or the mean, although the two may not be very different if $\hat{\sigma}$ is small compared to $\hat{\mu}$.
+
+### Contrasts
+
+We have already seen how we can interpret parameters in log-linear models, and other contrasts can be interpreted in much the same way (you will get more training in working with this through the exercises below). Fortunately, the relative difference between two predicted values is the same whether the predictions represent the median or the mean. To see this, consider two sets of predictor variable values that leads to $\hat{\mu}_1$ and $\hat{\mu}_2$. If we compute the relative difference as a ratio between the predictions of the corresponding mean $y$'s, we get
+
+$$
+\frac{\exp(\hat{\mu}_2 + \hat{\sigma}^2/2)}{\exp(\hat{\mu}_1 + \hat{\sigma}^2/2)} = \frac{\exp(\hat{\mu}_2) \exp(\hat{\sigma}^2/2)}{\exp(\hat{\mu}_1) \exp(\hat{\sigma}^2/2)} = \frac{\exp(\hat{\mu}_2)}{\exp(\hat{\mu}_1)}
+$$
+
+which is the same as the relative difference between the predictions of the medians.
+
+## Choosing to log-transform or not
+
+We have seen that a log-linear model assumes that predictor variables have a constant *relative effect* on the response variable, whereas in an ordinary linear model, the predictor variables have a constant *absolute effect* on the response. For example, when we last week used an ordinary linear model on the wheat growth data we assumed that the supplemental nutrients gave the same absolute increase in plant lengths regardless of the wheat variety (some varieties grew faster than others without supplement). It would perhaps have been biologically more reasonable to use a log-linear model that instead assumes that relative differences (measured as % increase) are constant. Which model is more reasonable is a *biological question* - it is *not* a question a statistician can help you answer (a statistician can help you understand the model, but which models are *a priori* most reasonable is a biological question). Goodness-of-fit assessments (see the tutorial of week 3) can be used to assess whether the data seem to be consistent with the model or not, but it is important to know that many different models may fit the data equally well (a "good" fit does not mean that you have a good model!). If the fit is "bad", you should reconsider the model (or perhaps there have been some mistakes in recording or organizing the data?), but remember that some "lack of fit" could occur by chance, and you should always pay attention to the biological realism of the model.
+
+## Summary
+
+In addition to the general summary points for log-linear models already stated, we can add the following summary points specific to log-linear log-normal models - i.e., models on the form
+$$
+\log(y_i) \sim N(\mu_i, \sigma)
+\\
+\mu_i = \mathbf{x}_i \boldsymbol{\beta}
+$$
+
+* Predictions for the *median* $y$s can be calculated as $\exp(\hat\mu)$.
+* Predictions for the *mean* $y$s can be calculated as $\exp(\hat\mu + \hat\sigma^2/2)$ $\left( = \exp(\hat\mu) \exp(\hat\sigma^2/2) \right)$.
+* To compute confidence intervals for the predictions of the *median* $y$s, you can just compute the confidence intervals for the $\mu$s in the same way you do for ordinary linear models fitted with `lm()` (e.g., use `confint()`), and then transform the confidence limits with `exp()`.
+* To compute confidence intervals for the predictions of the *mean* $y$s, you can use bootstrapping (as in Week 3).
+* The relative difference (contrasts) between two predictions of the mean is the same as the relative difference between the predicted medians; $\exp(\hat\mu_2) / \exp(\hat\mu_2)$.
+* To compute confidence intervals for relative contrasts (with respect to means or medians), just compute the regular linear contrast in `\mu` as the same way we did in the Week 4 tutorial, and then transform the confidence intervals with $\exp()$.
+
+## Worked example 1 - Wheat data
+
+In the Week 4 assignment, you used a model with additive effects of wheat variety, fertilizer type and student group on the arithmetic scale. In this model, the absolute differences between the responses to different treatments (fertilizer types and the control) are the same for all wheat varieties. I.e., the model assumes that a given fertilizer type gives an increase in the final length of the plant of a certain number of cm regardless of whether the fertilizer is given to a slow growing or fast growing wheat variety. A biologically more reasonable model is a model where we instead assume that the *relative effect* of fertilizers is constant across varieties (i.e., supplying the fertilizer gives a certain percent increase in the final length independent of whether it is supplied to a fast growing or slow growing variety). I.e. a model that assumes that the the fertilizer increases the growth *rate* of all varieties by a certian percent. We get such a model if we log-transform the response variable in the linear model - i.e, the effects are additive (parallel) on the logarithmic scale instead of on the arithmetic scale. If we had log-transformed the response variable in a linear model with interaction effects, we would still have modeled relative effects of the treatment, but we would not have constrained the treatment effects to be the same for all varieties.
+
+Let's fit the model from last week's assignment with a log-transformed response variable (final plant length) and interpret the parameter estimates and confidence intervals:
+
+```{r}
+wheat = read.csv("../Week04/wheatlings_bio2150_F18.csv")
+C10 = wheat[wheat$conc %in% c("C10","C0"),]
+fit_ad_sg_log = lm(log(length) ~ variety + fertype + student_gr, C10)
+summary(fit_ad_sg_log)
+confint(fit_ad_sg_log)
+```
+
+Above we derived that the antilog (`exp()`) of the contrasts in a log-linear model is the relative difference, expressed as a ratio, in both the predicted median and the mean. Hence, to find the relative effects of the fertilizer treatments for the four fertilizer types, we compute the antilog of the parameters describing these contrasts:
+
+```{r}
+exp(coef(fit_ad_sg_log)[c("fertypeflow", "fertypekris", "fertypeplus")])
+```
+
+These relative differences are expressed as a ratio (what we have to multiply the value of the control with to get the value if the treatment). To express this as a percent increase, we can subtract 1 and multiply with 100:
+
+```{r}
+(exp(coef(fit_ad_sg_log)[c("fertypeflow", "fertypekris", "fertypeplus")]) - 1)*100
+```
+
+We can do the same for the 95% confidence limits of the parameters to get confidence intervals for these effects expressed as percent increase in final length compared to the control:
+
+```{r}
+(exp(confint(fit_ad_sg_log)[c("fertypeflow", "fertypekris", "fertypeplus"),]) - 1)*100
+```
+
+## Worked example 2 - Allometry of metabolic rates in mammals
+
+Allometry is the relationship between the size of an organism and aspects of its physiology, morphology, and life history. There are strong theoretical and empirical support for modelling such relationship as a [Power law](https://en.wikipedia.org/wiki/Power_law) function on the form
+
+$$
+Y = aM^b
+$$
+
+Where $Y$ is the trait (e.g., metabolic rate) and $M$ is body mass or some other measure of size, and where $a$ and $b$ are parameters that can be estimated.
+
+If the exponent $b$ equals 1, the trait $Y$ is proportional to body size, meaning that a certain relative change in body size leads to the same relative change in the trait value. If $b$ is less than 1, the relative change in $Y$ will be smaller than the relative change in $M$, and if $b$ is greater than 1, $Y$ will respond more than proportionally to a change in $M$. You can change the values of $a$ and $b$ in the code below to see how the function changes with the parameters (the plot to the right uses logarithmic x and y axes)
+
+```{r}
+par(mfrow = c(1,2))
+Y = function(M, a=1, b=0.5) a*M^b
+plot(Y, xlim=c(0,10))
+plot(Y, xlim=c(0.1,10), log="xy")
+```
+
+If we take the logarithm on both sides of the above "power law" function, we get
+
+$$
+\log(Y) = \log(a) + b\log(M)
+$$
+
+Hence, if use $\log(Y)$ as the response variable and $\log(M)$ as the predictor variable, we can estimate $\log(a)$ as the intercept and $b$ as the slope in an ordinary linear model. Note that using the `lm` function assumes that the residuals are normally distributed, and hence $Y$ for a given value of $M$ is log-normally distributed with median $aM^b$.
+
+Metabolic rates i animals naturally increase with the size of the animals, but it increases slower than proportionally ($b<1$) because, among other things, larger animals have lower surface area, and hence less heat loss per body mass, than smaller animals. [Capellini et al. (2010)](https://esajournals.onlinelibrary.wiley.com/doi/pdf/10.1890/09-0817.1)[^1] studied the relationship between metabolic rate and body mass across a wide range of mammals (i.e., "evolutionary allometry") and found that there was significant differences in the power law exponent between phylogenetic groups and that it was important to account for the phylogenetic dependence in the analysis. We will ignore that here and just fit a "quick and dirty" model to all their data to estimate the overall power law exponent. 
+
+[^1]: Capellini et al. (2010), “Phylogeny and Metabolic Scaling in Mammals", Ecology, 91(9), 2010, pp. 2783–2793. https://esajournals.onlinelibrary.wiley.com/doi/pdf/10.1890/09-0817.1
+
+The data collected by Capellini et al. (2010) was published as an online supplementary and can be read straight into R from the publication's web-site:
+
+```{r}
+Metabol = read.table("http://www.esapubs.org/archive/ecol/E091/198/data.txt?fbclid=IwAR1bHRp39-6bIYb4K62a5PdregQhpAWuVxdZwOyNOTJfPn7lAHVBVLKyrK0", sep = "\t",  header = TRUE, na.strings = "-9999")
+# summary(Metabol)
+# Shorten the names of the two variables we will use: 
+names(Metabol)[4] = "BMR"
+names(Metabol)[5] = "BodyMass"
+```
+
+Plot the data:
+
+```{r}
+par(mfrow = c(1,2))
+plot(BMR ~ BodyMass, data=Metabol, xlab = "Body mass (g)", main = "Arithmetic scale")
+plot(BMR ~ BodyMass, data=Metabol, log="xy", xlab = "Body mass (g)", main = "Logarithmic scale")
+```
+
+Then fit the model to estimate the power law exponent:
+
+```{r}
+fit = lm(log(BMR) ~ log(BodyMass), data=Metabol)
+coef(fit)
+confint(fit)
+```
+
+We see the the power law exponent is estimated to be `r coef(fit)[2]` (95% confidence interval: `r confint(fit)[2,]`). These values are between the exponent of 2/3 = 0.67 (suggested by surface volume ratio of mammals) and 3/4 = 0.75 (["Kleiber's Law"](https://en.wikipedia.org/wiki/Kleiber%27s_law)). An exponent of `r coef(fit)[2]` means that a doubling of body mass is associated with multiplication in basal metabolic rate (BMR) by $2 ^ {`r round(coef(fit)["log(BodyMass)"], 4)`} = `r round(2^coef(fit)["log(BodyMass)"], 3)`$. 
+
+We can do the same for the 95% confidence limits of the parameter to get a confidence interval for the expected relative change in BMR when body mass i doubled:
+
+```{r}
+2^confint(fit)["log(BodyMass)",]
+```
+
+## Worked example 3 - Bears data
+
+In this example, we will look at body proportions of wild black bears (*Ursus americanus*). Some of you used these data in STK1000 - this is a data set that has been used in examples of several books. Many packages in R also include example data, and this 'bears' data set comes with the 'Bolstad' package. When you open the Rmd-file for this document, R Studio will ask you if you want to install the package - choose 'yes' here (or you can type `install.packages("Bolstad")` in the Console window). Then load the package and the data:
+
+```{r message = FALSE}
+library(Bolstad)
+data(bears)
+```
+
+To get an overview of the data, type:
+
+```{r eval=FALSE}
+?bears
+```
+
+This is what is said about the data under "Details":
+
+> Wild bears were anesthetized, and their bodies were measured and weighed. One goal of the study was to make a table (or perhaps a set of tables) for hunters, so they could estimate the weight of a bear based on other measurements. This would be used because in the forest it is easier to measure the length of a bear, for example, than it is to weigh it.
+
+This is the description of the variables in the data:
+
+* ID. Identification number
+* Age. Bear's age, in months. Note, wild bears are always born in January, so an expert can estimate the bear's age without directly asking it how old it is.
+* Month. Month when the measurement was made. 1 = Jan., 12 = Dec. Since bears hibernate in the winter, their body shape probably depends on the season.
+* Sex. 1 = male 2 = female
+* Head.L. Length of the head, in inches
+* Head.W. Width of the head, in inches
+* Neck.G. Girth (distance around) the neck, in inches
+* Length. Body length, in inches
+* Chest.G. Girth (distance around) the chest, in inches
+* Weight. Weight of the bear, in pounds
+* Obs.No. Observation number for this bear. For example, the bear with ID = 41 (Bertha) was measured on four occasions, in the months coded 7, 8, 11, and 5. The value of Obs.No goes from 1 to 4 for these observations.
+* Name. The names of the bears given to them by the researchers
+
+Let's also look at a summary of the data:
+
+```{r}
+summary(bears)
+```
+
+We see that some bears have been captured and measured several times (variable `Obs.No`). To avoid any pseudoreplication (more on that next week), we will restrict our analysis to first observations. We also see that the two nominal variables `ID` and `Sex` have been given numerical values, so we change this to character strings as well:
+
+```{r}
+bears_first = bears[bears$Obs.No == 1,]
+bears_first$ID = factor(paste("ind", bears_first$ID, sep="_"))
+bears_first$Sex = factor(ifelse(bears_first$Sex==1, "Male", "Female"))
+#summary(bears_first)
+```
+
+Note from the summary that there is a large variation in Age in this data set. Let's make a plot of `Weight` against `Age` to get an overview:
+
+```{r}
+Col = ifelse(bears_first$Sex == "Female", "red", "blue") # Colour in the plot
+plot(Weight ~ Age, data = bears_first, col=Col, xlab = "Age (months)", ylab = "Weight (pounds)")
+```
+
+We see that body weight is, not surprisingly, strongly correlated with age. This is the case for the other measurements as well (note also that weights of the older females are very variable, why do you think this is the case?). Hence, we can use these data to study how body proportions change as the bears grow larger (ontogenetic allometry). [Ideally, we should study the change in body proportions within individuals to study ontogenetic allometry. However, given the strong correlations with age, it is reasonable to assume the allometries in the data mostly reflect ontogeny rather than age-independent (static) allometry.]
+
+Let's look at the length of the head (`Head.L`) relative to length of the body (`Length`). It is reasonable to assume a model where a certain relative increase in body length is associated with a certain relative change in head length (this is a widely accepted and empirically accepted model for allometry - see Worked example 2). If this is the case, the data points should fall around a straight line when we make a plot with logarithmic scales on both the x-axis and the y-axis. Below, we plot the data on both arithmetic scales and logarithmic scales:
+
+```{r}
+par(mfrow = c(1,2))
+
+Col = ifelse(bears_first$Sex == "Female", "red", "blue") # Colour in the plot
+plot(Head.L ~ Length, data = bears_first, col=Col)
+plot(Head.L ~ Length, data = bears_first, col=Col, log="xy")
+```
+
+In this case, the relationship seems to be linear on both the arithmetic scale (left plot) and the logarithmic scale (right). In any case, we prefer a model with a linear relationship on the logarithmic scales as this model agrees with theory. It is evident that there is not a big difference between females (red) and males (blue) in this plot, but we will use it in the model to estimate a confidence interval for this difference (how large can the difference potentially be in the population?). That is, we want to fit a log-linear log-normal on the form
+
+$$
+\log(y_i) \sim N(\mu_i, \sigma)
+\\
+\mu_i = \beta_0 + \beta_1 x_{i,1} + \beta_2 \log(x_{i,2})
+$$
+
+where $y_i$ is head length of of individual $i$, $x_{i,1}$ is sex of individual $i$ (0 for females and 1 for males) and $x_{i,2}$ is body length of individual $i$. This means that the expected median will be
+
+$$
+\exp(\mu_i) = \exp(\beta_0)\exp(\beta_1 x_{i,1})x_{i,2}^{\beta_2}
+$$
+
+Let's fit the model and compute the confidence intervals
+
+```{r}
+fit = lm(log(Head.L) ~ Sex + log(Length), data = bears_first)
+summary(fit)
+confint(fit)
+```
+
+Here we see that $\beta_2$ is lower than 1, which suggests that head length grows relatively slower than body mass (i.e, a relative increase in body length of $X$% leads to a less than $X$% increase in head length). Let's quantify this with a point estimate and a confidence interval:
+
+The estimated slope is $\hat\beta_2 =$ `r round(coef(fit)["log(Length)"], 4)`. This means that if body length increases with 10%, head length will be multiplied with $1.1 ^ {\hat\beta_2} = 1.1 ^ {`r round(coef(fit)["log(Length)"], 4)`} = `r round(1.1^coef(fit)["log(Length)"], 2)`$ (i.e. `r round((1.1^coef(fit)["log(Length)"]-1)*100, 0)`% increase). To compute a confidence interval for this effect, we need to do the same transformation for the confidence limits:
+
+```{r}
+(CI = 1.1^confint(fit)["log(Length)",])
+```
+
+I.e., when body length increases by 10%, head length increases by between `r round((CI[1]-1)*100, 1)`% and `r round((CI[2]-1)*100, 1)`% (95% confidence interval).
+
+Let's also interpret the sex effect. For males (when $x_{i,1} = 1$), median head length of females is multiplied by $\exp(\hat\beta_1) = \exp(`r round(coef(fit)[2], 4)`) = `r round(exp(coef(fit)[2]), 2)`$. As we have seen in the tutorial above, the mean gets multiplied by the same value. The 95% confidence interval for this effect is
+
+```{r}
+(CI_Sex = exp(confint(fit)["SexMale",]))
+```
+
+We see that the lower limit of this interval is very close to 1 (as we also suggested by the p-value in the summary being close to 0.05), while the upper limit suggests that males could have up to `r round((CI_Sex[2]-1)*100, 1)`% longer heads than females with the same body length.
+
+Finally, we can also interpret the estimated residual standard deviation. From the summary, we see that the residual standard deviation is `r round(summary(fit)$sigma, 4)`. In a normal distribution, the 2.5% quantile and 97.5% quantile (95% of the distribution is between these quantiles) is approximately 4 standard deviations apart. This means that the 97.5% quantile is $\exp( 4 \times `r round(summary(fit)$sigma, 4)`) = `r round(exp(4*summary(fit)$sigma), 2)`$ times higher than the 2.5% quantile (i.e. `r round((exp(4*summary(fit)$sigma)-1)*100, 0)`% higher). Since we don't have repeated measurements, we don't know how much of this variation is due to measurement error. If we assume that most of the variation is due to variation among individuals, then the variation among individuals is much higher than the difference between the sexes.
+
+## Exercises and questions
+
+These exercises and questions are are based on the three worked examples above and meant to help you understand the material in this tutorial and give you some training in working with log-linear log-normal models. It is *not* essential that you do them before you have a go at the assignment - if you think you already have a good understanding of these models, you can go straight to the assignment. We recommend that you do the exercises though. If you have problems answering some of the questions below, then you have a something to ask about at Help Desk! We will also try to go through these exercises during the Thursday lecture.
+
+1. Look at the summary and confidence intervals from the model fitted in example 1 above. How many percent higher (longer) are the Oberkulmer plants than the Bjarne plants on average? Does this depend on the fertilizer type?
+
+2. Only from the numbers given in the summary of the model fitted in example 1, it is possible to compute a point estimate for how many percent higher the Oberkulmer plants are than the Olivin plants on average. Can you do it? What do you get?
+
+3. To compute a confidence interval for the relative contrast in the above question, you need to extract the variance-covariance matrix from the model object with the `vcov` function. Can you either outline how you would compute this confidence interval or (better) do it? You may have to refresh the section on contrasts in the Week 4 tutorial to be able to do this if you don't remember how to compute the standard error of a contrast that is not a parameter in the model.
+
+4. In example 3 (bears), all measurements were given i inches and pounds. Would you have got any different numbers in the results if you had transformed the measurements to centimeters and kilograms? Try to explain why? If you are not 100% sure about the answer, you can try it out, but it is better if you can figure it out by looking at the formulation of the model.
+
+5. Use the model we fitted in example 3 and make a plot of the fitted predictions of the median and the fitted predictions of the mean for each of the sexes. You can plot the predictions on both arithmetic and logarithmic scales. For the fitted predictions of the median, you can use the `predict` function to add confidence intervals to the plot. Why can you not do that for the predictions of the mean? [Advanced: If you feel for it, go ahead and compute confidence intervals for the predictions of the mean by using bootstrapping (we won't provide a solution for this though)].
+
+6. It seems reasonable that the effects of both wheat variety and fertilizer type is multiplicative, as is assumed by the log-linear model (i.e., the effect of e.g. adding fertilizer is to increase the final length by a certain percent rather than a certain number of centimeters). However, this may not be the case for student group (or what do you think)? Can you formulate mathematically a model where you have multiplicative (relative) effects of wheat variety and fertilizer type, but an additive arithmetic (absolute) effect of student group? [You haven't learned how to fit such a model, but if you can formulate a model mathematically it will be a lot easier to communicate with someone who is more trained in statistics and who can maybe help you to fit the kind of model you want.]
+
+## Assignment
+
+You need to understand the meaning of contrasts in log-linear log-normal models before you start to work on this assignment.
+
+In this week's assignment you will estimate the allometric proportions of students with log-linear log-normal models (since all subjects are adults, this is referred to as "static allometry"). Instead of modelling students' height, you should now use body height as a predictor variable and pick one of the other variables as your response variable. The aim of your analysis is simple: Estimate the relative increase in this variable per relative increase in body length for both sexes. Express this allometric relationship as e.g. X% increase in Foot length per 10% increase in body length. First, fit a model with an additive sex effect and estimate the relative difference between males and females as well as the allometric relationship. Then, fit an interaction model and estimate a separate allometric relationship for each sex. All estimates should be associated with a 95% confidence interval (assuming that the sample is representative for some larger population such as all students at the university).
+
+If you work together with other students, you should pick different variables to estimate the allometric relationship for.
+
+To use all the data we have available, you should combine the "vitruvian" data (Bio-2150 students) you used during the R course of Week 1 with the mean measurements of yourself (you created the data file during Week 1). Start by reading in these data and look at their summary:
+
+```{r}
+bio2150 = read.table("../Week01/vitruvian.txt", header = TRUE)
+bios3000 = read.csv("../Week03/students_means.csv")
+summary(bio2150)
+summary(bios3000)
+```
+
+Combining data sets can be a bit tricky, so we'll walk you through it. Notice that the same variables have been given different names (if you open up the "virtuvian.txt" file in a text editor (such as Notepad), you will see the definition of each variable commented out with '#'). Also notice that the sexes are labeled "F" and "M" in the first data set and "female" and "male" in the second data set. Note that all measurements are in centimeters, so we don't have to make any adjustments there.
+
+The strategy we will use to combine the data is to first make the Bio-2150 data look like the Bios-3000 data, then stack the two data frames on top of each other by using the `rbind` function.
+
+The `bio2150$gender` variable has been defined as a 'factor'. This means that we are not allowed to enter any new values (labels) into this vector than what has been defined as "levels" for the factor. We can tell that this variable is a factor by how it has been presented in the summary above; as a count of each factor level. We can also check this with `is.factor()` and we can see the defined levels by applying the `levels()` function:
+
+```{r}
+is.factor(bio2150$gender)
+levels(bio2150$gender)
+```
+
+The function `levels` is one of a few functions in R that are allowed to be on the left side of an assignment (`<-` or `=`); we can simply change the labels of the factor in the following way:
+
+```{r}
+levels(bio2150$gender) = c("female", "male") # NB! you have to be sure about the order of the levels (default is alphabetically)
+```
+
+The function `names` extracts the variable names from a data frame (and lists):
+
+```{r}
+names(bio2150)
+names(bios3000)
+```
+
+Just like the `levels` function, the `names` function can also be used on the left side of an assignment to change the names of the variables. We'll do this here for the variables "gender", "body.length", "foot.length", and "neck.size" (if you are using any other response variable than foot length and neck circumference, you need to include them here too)
+
+```{r}
+names(bio2150)[1] = "Sex"
+names(bio2150)[2] = "Height"
+names(bio2150)[8] = "Foot"
+names(bio2150)[9] = "Neck_circumference"
+```
+
+We are then ready to combine the data with `rbind`:
+
+```{r}
+biostudents = rbind(
+  bio2150[,c("Sex", "Height", "Foot", "Neck_circumference")],
+  bios3000[,c("Sex", "Height", "Foot", "Neck_circumference")]
+)
+summary(biostudents)
+```
+
+Now your data set is ready! Happy analysis!
