@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-Through simulations we will here investigate how pseudoreplication biases confidence intervals (makes them too narrow such that 95% confidence intervals of parameters covers the true value less than 95% of the time). In particular, we will look at how the seriousness of pseudorepliaction depends on number of groups and the among group variance.
+Through simulations we will here investigate how pseudoreplication biases confidence intervals (makes them too narrow such that 95% confidence intervals of parameters cover the true value less than 95% of the time). In particular, we will look at how the seriousness of pseudorepliaction depends on number of groups and the among group variance.
 
 Let's assume that there 100 individual measurements within each of $N$ groups and simulate data from the model
 $$y_i = \beta_0 + \beta_1x_{g(i)} + \delta_{g(i)} + \varepsilon_i$$
