@@ -61,7 +61,8 @@ fit.models = function(Data){
        naive = list(fit=fit.naive, ci=ci.naive))
 }
 
-# Function that just returns TRUE if the 'truth' is contained in an interval 'int', # and FALSE otherwise
+# Function that just returns TRUE if the 'truth' is contained in an interval 'int', 
+# and FALSE otherwise
 coverage = function(int, truth) truth>int[1] & truth<int[2]
 
 # Function that runs the above functions in a loop to (1) simulate data, (2)fit the 
