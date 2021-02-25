@@ -1,0 +1,175 @@
+---
+title: "The effects of pseudoreplication on confidence intervals"
+author: "Torbj?rn Ergon"
+date: "`r date()`"
+output: pdf_document
+
+abstract: This note illustrates the effects of pseudoreplication on confidence interval coverage rates. NB! This is a quick internal note that is not meant to be student friendly.
+---
+
+# Introduction
+
+I wrote the original simulations just to check how the seriousness of pseudorepliaction depends on number of groups and the among group variance. Here I have just used the code and added some text in R Markdown. The note is not suitable for teaching as it is, but it can be turned into something that is.
+
+I here assume that there 100 individual measurements within each of $N$ groups and simulate data from the model
+$$y_i = \beta_0 + \beta_1x_{g(i)} + \delta_{g(i)} + \varepsilon_i$$
+where $y_i$ is the measured response variable for individual $i$ belonging to group $g(i)$ (e.g. different individuals measured in different years) and $x_{g(i)}$ is a group level covariate (e.g. a climate variable). The parameters $\beta_0$ and $\beta_1$ are respectively the intercept and slope (describing the relationship between the yearly mean response variable and the climate covariate). Further, $\delta_{g(i)}$ is the random effect of group $g(i)$, and $\varepsilon_i$ is the random residual component. These random components are assumed to have a normal distribution,
+$$\delta_{g(i)} \sim N(0, \sigma_\delta^2)$$
+and
+$$\varepsilon_i \sim N(0, \sigma_\varepsilon^2).$$
+
+The group level covariate $x$ is regularly dispersed between -2 and 2 (in an experiment one typically disperse treatments regularly). See the script below for parameter values.
+
+I then fit a model that ignores the grouping structure, $y_i = \beta_0 + \beta_1x_{g(i)} + \varepsilon_i$, and compare the confidence intervals for intercept and slope from this model to the confidence intervals obtained from fitting the correct model with `lmer()`. Coverage rates of the confidence intervals are compared in Monte Carlo simulations.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Functions
+
+```{r}
+sim = function(Ngr,          # Number of groups (e.g. years)
+                N.each=100,  # Number of study units in each group
+                minX=-2,
+                maxX=2,
+                intercept=0,
+                slope=0.5,
+                sigma.random=1,
+                sigma.error=0.1){
+  x = rep(seq(minX, maxX, length=Ngr), each=N.each)
+  gr = paste("gr", rep(1:Ngr, each=N.each), sep="")
+  random.effect = rep(rnorm(Ngr, 0, sigma.random), each=N.each)
+  y = intercept + slope*x + random.effect + rnorm(Ngr*N.each, 0, sigma.error)
+  data.frame(x=x, gr=gr, y=y)
+}
+
+fit.models = function(Data){
+  fit.lmer = lmer(y~x + (1|gr), data=Data)
+  fit.naive = lm(y~x, data=Data)
+  ci.lmer = confint(fit.lmer, method="Wald")
+  ci.naive = confint(fit.naive)
+  list(lmer = list(fit=fit.lmer, ci=ci.lmer),
+       naive = list(fit=fit.naive, ci=ci.naive))
+}
+
+coverage = function(int, truth) truth>int[1] & truth<int[2]
+
+MC.covrate = function(Ngr, nsim=1000, intercept=0, slope=0.5, ...){
+  cov.lmer.slope = cov.naive.slope = cov.lmer.int = cov.naive.int = rep(NA,nsim)
+  for(i in 1:nsim){
+    simdata = sim(Ngr, ...)
+    fit = fit.models(simdata)
+    cov.lmer.slope[i] = coverage(fit$lmer$ci["x",], slope)
+    cov.naive.slope[i] = coverage(fit$naive$ci["x",], slope)
+    cov.lmer.int[i] = coverage(fit$lmer$ci["(Intercept)",], intercept)
+    cov.naive.int[i] = coverage(fit$naive$ci["(Intercept)",], intercept)
+  }
+  list(
+    cr.lmer.int = mean(cov.lmer.int),
+    cr.lmer.slope = mean(cov.lmer.slope),
+    cr.naive.int = mean(cov.naive.int), 
+    cr.naive.slope = mean(cov.naive.slope)
+  )
+}
+```
+
+
+# Example:
+
+Using the `lme4` package for model fitting.
+
+```{r}
+library(lme4)
+```
+
+## With 50 groups:
+
+Simulating data and plotting them, fitting both the true model and the naive model, and comparing 95% confidence intervals:
+
+```{r}
+set.seed(1234)
+simdata = sim(50)
+with(simdata, plot(y~x))
+fit = fit.models(simdata)
+abline(fit$naive$fit) # adding regression line to the plot
+fit$lmer$ci
+fit$naive$ci
+```
+
+Note that the confidence intervals for the naive model are much narrower than the confidence intervals from the model that includes the random group effect. To see which of these confidence intervals that are most correct, we need to look at coverage rates in Monte Carlo simulations (here using the function defined above). 
+
+```{r}
+MC.covrate(10)
+```
+
+As seen here, the confidence intervals from the simple `lm()` model, ignoring the non-independence in the data, leads to confidence interval coverage rates way below the nominal 0.95 (i.e., the confidence intervals are too narrow).
+
+It can be instructive to see that using only the mean responses for each group in a `lm()` model gives the correct coverage rates (not done here, but this can be done in a student exercise).
+
+# Does the seriousness of pseudoreplication depend on number of groups?
+
+Repeating the Monte Carlo simulations for number of groups equal to 5,10,20,50 and 100. This will take a bit of time (using sapply, so it can easily be parallelized later).
+
+```{r}
+N.groups = c(5,10,20,50,100)
+covrates = sapply(N.groups, MC.covrate)
+dimnames(covrates)[[2]] = N.groups
+covrates
+```
+
+Plotting these
+
+```{r}
+par(mfrow=c(1,2))
+plot(
+  N.groups,
+  unlist(covrates["cr.lmer.int",]),
+  type="b",
+  col="red",
+  ylim=c(0,1),
+  ylab="Coverage rates",
+  xlab="Number of groups",
+  main="Intercept"
+  )
+lines(
+  N.groups,
+  unlist(covrates["cr.naive.int",]),
+  type="b",
+  col="blue"
+)
+abline(h=0.95, lty=2)
+
+plot(
+  N.groups,
+  unlist(covrates["cr.lmer.slope",]),
+  type="b",
+  col="red",
+  ylim=c(0,1),
+  ylab="Coverage rates",
+  xlab="Number of groups",
+  main="Slope"
+)
+lines(
+  N.groups,
+  unlist(covrates["cr.naive.slope",]),
+  type="b",
+  col="blue"
+)
+abline(h=0.95, lty=2)
+```
+
+This figure shows that ignoring random (unexplained) variation among groups (i.e. using pseudoreplication) is not less serious when there are many groups (as some seem to think). (Also note that the Wald confidence intervals fail (are too narrow) also for `lmer` models when number of groups are small (I didn't try profile likelihood and bootstrap intervals, but presume they will do better))
+
+# Does the seriousness of pseudoreplication depend on the among group variance?
+
+<!-- Convergence failure sometimes occur in lmer() when the variances are low. I have supressed these warnings in the code chunk. Note however that the coverage rates are then conditional on convergence -->
+```{r, warning = FALSE}
+sigmas = c(0, 0.01, 0.05,0.1,1,5)
+MC.covrate.grsigma = function(grsigma, ...) MC.covrate(Ngr = 50, sigma.random = grsigma)
+covrates = sapply(sigmas, MC.covrate.grsigma)
+dimnames(covrates)[[2]] = sigmas
+covrates
+```
+
+Answer: Yes, but even a small variance among groups will bias the confidence intervals if this is not accounted for.
