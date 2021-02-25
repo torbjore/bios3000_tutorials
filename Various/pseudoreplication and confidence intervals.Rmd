@@ -179,7 +179,7 @@ lines(
 abline(h=0.95, lty=2)
 ```
 
-This figure shows that ignoring random (unexplained) variation among groups (i.e. using pseudoreplication) is not less serious when there are many groups (as some seem to think). Also note that the Wald confidence intervals fail (are too narrow) also for `lmer` models when number of groups are small (one could try profile likelihood and bootstrap intervals, which I presume will do better).
+The red lines in this figure show the coverage rates for the correct model (using `lmer`) while the blue line is the naive model not accounting for dependence among data points within groups (pseudoreplication). As we can see, ignoring random variation among groups (i.e. using pseudoreplication) is not less serious when there are many groups. Also note that the Wald confidence intervals fail (are too narrow) also for `lmer` models when number of groups are small (one could try profile likelihood and bootstrap intervals, which I presume will do better).
 
 ### Does the seriousness of pseudoreplication depend on the among group variance?
 
