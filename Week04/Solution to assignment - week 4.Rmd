@@ -94,7 +94,9 @@ Specifically, you should do the following and submit a short report (pdf created
   summary(fit_ad_sg)
   ```
   
-  The best model in the set according to the AICc criteria is the model with additive effects of variety and fertilizer type, and where an additive effect of student group is accounted for. From the summary of this model we can see that (remember that the units for all parameter estimates are cm):
+  The best model in the set according to the AICc criteria is the model with additive effects of variety and fertilizer type, and where an additive effect of student group is accounted for. In this data set, we have only 144 data points (try running `nrow(C10)`). This means that we are going against the advice of not considering models with less than 10 data-points per parameter (except for the additive model without student group as a predictor variable). Nevertheless, the fact that a model with student group as a predictor variable has the lowest AICc value, and remembering that each student group only used one fertilizer type in addition to the control, suggest that there could potentially be be some confounding between the effects of fertilizer type and student group. This means that if we do not include student group as a predictor variable, some of the differences that we see between fertilizer types could actually be due to differences in how the student groups have done the measurements. Hence, we will look at the additive model that includes student group as a predictor in the following.
+  
+  From the summary of this model we can see that (remember that the units for all parameter estimates are cm):
   
   * A couple of varieties grew much taller than the others; Diamant and Oberkulmer (we already knew that from the exercise)
   * The effects of fertilizer type are quite small, and the difference to the control is also quite modest compared to the differences between the varieties (smaller than the residual standard deviation).
