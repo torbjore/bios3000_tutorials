@@ -3,11 +3,11 @@ title: Tutorial Week 8 - Log-linear log-normal models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
-  pdf_document:
-    toc: yes
   html_document:
     toc: yes
     toc_float: true
+  pdf_document:
+    toc: yes
   df_print: paged
 header-includes:
   \usepackage{amsmath}
