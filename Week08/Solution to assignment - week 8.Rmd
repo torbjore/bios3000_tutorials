@@ -1,0 +1,205 @@
+---
+title: "Suggested solution for Assignment Week 8 - Log-linear log-normal models"
+author: "Torbjørn Ergon"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment
+
+You need to understand the meaning of contrasts in log-linear log-normal models before you start to work on this assignment.
+
+In this week's assignment you will estimate the allometric proportions of students with log-linear log-normal models (since all subjects are adults, this is referred to as "static allometry"). Instead of modelling students' height, you should now use body height as a predictor variable and pick one of the other variables as your response variable. The aim of your analysis is simple: Estimate the relative increase in this variable per relative increase in body length for both sexes. Express this allometric relationship as e.g. X% increase in Foot length (or whatever variable you decide to look at) per 10% increase in body length. First, fit a model with an additive sex effect and estimate the relative difference between males and females as well as the over all allometric relationship. Then, fit an interaction model and estimate a separate allometric relationship for each sex. You may also reuse your code to repeat the analysis on another variable (trait). All estimates should be associated with a 95% confidence interval (assuming that the sample is representative for some larger population such as all students at the university).
+
+If you work together with other students, you should pick different variables to estimate the allometric relationship for.
+
+To use all the data we have available, you should combine the "vitruvian" data (BIO2150 students) you used during the R course of Week 1 with the mean measurements of last year's BIOS3000/4000 students. Start by reading in these data and look at their summary:
+
+```{r}
+bio2150 = read.table("../Week01/vitruvian.txt", header = TRUE, stringsAsFactors = TRUE)
+bios3000 = read.csv("../Week03/student_means.csv", stringsAsFactors = TRUE)
+summary(bio2150)
+```
+
+```{r}
+summary(bios3000)
+```
+
+The `read.csv`function is just a special version of the `read.table` function with different default arguments, made for easy import of comma delimited files. In this function the default is `header = TRUE`, so we don't need to specify that. Using the argument `stringsAsFactors = TRUE` when we read the data makes sure that the variables that contain character strings (i.e., text) will be defined as factors. In the summaries above we then get a tally of data points per factor level. Some other functions, like `table()` and various plotting functions will also treat factor variables differently from simple character variables. By default, factor levels are sorted alphabetically, but the order can be specified as you wish with the `levels` argument in `factor()`.
+
+Combining data sets can be a bit tricky, so we'll walk you through it. Notice that the same variables have been given different names (if you open up the "virtuvian.txt" file in a text editor (such as Notepad), you will see the definition of each variable commented out with '#'). Also notice that the sexes are labeled "F" and "M" in the first data set and "female" and "male" in the second data set. Note that all measurements are in centimeters, so we don't have to make any adjustments there.
+
+The strategy we will use to combine the data is to first make the BIO2150 data look like the BIOS3000/4000 data, then stack the two data frames on top of each other by using the `rbind` function.
+
+For the factor `bio2150$gender`, we are not allowed to enter any new values than what has been defined as "levels" for the factor. We can see the defined levels of the factor by applying the `levels()` function:
+
+```{r}
+levels(bio2150$gender)
+```
+
+The function `levels` is one of a few functions in R that are allowed to be on the left side of an assignment (`<-` or `=`); we can simply change the labels of the factor in the following way:
+
+```{r}
+levels(bio2150$gender) = c("female", "male") # NB! you have to be sure about the order of the levels (default is alphabetically) - you see this by using levels(bio2150$gender), as above.
+```
+
+The function `names` extracts the variable names from a data frame (and lists):
+
+```{r}
+names(bio2150)
+names(bios3000)
+```
+
+Just like the `levels` function, the `names` function can also be used on the left side of an assignment to change the names of the variables. We'll do this for all variables that have been recorded on both data sets (note that we change two of the names in the `bios3000` data set too)
+
+```{r}
+names(bio2150)[1] = "Sex"
+names(bio2150)[2] = "Height"
+names(bio2150)[8] = "Foot"
+names(bio2150)[9] = "Neck_circumference"
+
+names(bio2150)[6] = "Underarm"
+names(bios3000)[5] = "Underarm"
+
+names(bio2150)[7] = "Underarm_and_hand"
+names(bios3000)[6] = "Underarm_and_hand"
+```
+
+We are then ready to combine the data with `rbind`:
+
+```{r}
+biostudents = rbind(
+  bio2150[,c("Sex", "Height", "Foot", "Neck_circumference", "Underarm", "Underarm_and_hand")],
+  bios3000[,c("Sex", "Height", "Foot", "Neck_circumference", "Underarm", "Underarm_and_hand")]
+)
+summary(biostudents)
+```
+
+Now your data set is ready! Happy analysis!
+
+## Solution for foot length
+
+We choose foot length as our response variable in this example.
+
+Plot student data by gender:
+```{r}
+Col = ifelse(biostudents$Sex == "female", "red", "blue")
+par(mfrow = c(1,2))
+plot(Foot ~ Height, data=biostudents, col = Col, xlab = "Height (m)", ylab = "Foot length", main = "Arithmetic scale")
+plot(Foot ~ Height, data=biostudents, col = Col, log="xy", xlab = "Height (m)", ylab = "Foot", main = "Logarithmic scale")
+```
+
+### Additive model
+
+We'll use the additive model first:
+
+```{r}
+fit_ad = lm(log(Foot) ~ Sex + log(Height), data = biostudents)	#Additive model
+```
+
+Examine the models:
+```{r}
+summary(fit_ad)
+```
+
+Note that the p-value for the `log(Height)` effect (this is the allometric scaling exponent) tests a null-hypothesis stating that "taller people do not have longer feet". Since we would never believe that foot length declined with height of people (a negative slope), this p-value is (as very often is the case) rather meaningless. It is much more interesting to see if the confidence interval for the allometric scaling exponent excludes 1 or not.
+
+Examine confidence intervals for the models:
+```{r}
+confint(fit_ad)	  #95 % confidence interval of additive model coefficients
+```
+
+The point estimate for the allometric scaling exponent is below 1, indicating that a certain relative change in body height is associated with a less than proportional change in foot length (tall people tend to have shorter feet relative to their height than short people). However, since the confidence interval includes 1, we are not very confident in this result. Below we re-scale this confidence interval for the allometric scaling coefficient to something that is easier to interpret.
+
+#### The allometric exponent 
+
+We can compute the relative increase as well as 95% confidence limits for the expected relative change in foot length when height is increased by 10 %. You should work with the math on a piece of paper to derive this - see the tutorial for help if you don't manage (it is important to understand):
+
+```{r}
+1.1^coef(fit_ad)["log(Height)"]       # Point estimate
+1.1^confint(fit_ad)["log(Height)",]   # 95% confidence interval
+```
+
+These are relative differences expressed as a ratio. We have estimated the number that foot length is multiplied with when body height is multiplied with 1.1 (i.e., increases by 10%). From these numbers we see that the point estimate tells us that foot length increases by 8.9% when body height increases with 10%. The 95% confidence interval estimate is 6.9% to 11.0%.
+
+#### Relative difference between sexes
+
+Since we here use an additive log-linear model, the relative difference between the sexes is independent of body height. The relative difference on the arithmetic scale becomes an absolute difference on the logarithmic scale - this absolute difference on the logarithmic scale is the parameter estimate `Sexmale` in the model output. To transform this parameter estimate to a relative difference on the arithmetic scale, we need to use the `exp()` function (make sure you understand the math on a piece of paper). Here we also subtract 1 and multiply with 100 to get the difference expressed as a percentage:
+
+```{r}
+(exp(coef(fit_ad)["Sexmale"]) - 1) * 100    # point estimate
+(exp(confint(fit_ad)["Sexmale",]) - 1) * 100 # 95% confidence interval
+```
+
+Conclusion: For any given foot length, males have 3.2% longer feet than females (point estimate). The 95% confidence interval for the difference is 1.0% to 5.5%. I.e., the difference between males and females is quite small, but statistically significant (the difference is unlikely (with 95% confidence) less than 1% or larger than 5.5%).
+
+### Interaction mode
+
+We fit the interaction model and look at the result:
+
+```{r}
+fit_int = lm(log(Foot) ~ Sex*log(Height), data = biostudents)
+summary(fit_int)
+confint(fit_int)	  #95 % confidence interval estimates of the parameters
+```
+
+We see that the confidence interval for the difference in the slope for males and females excludes zero, so there is a "statistically significant" different slope (allometric exponent) for the two sexes. The `Sexmale` parameter in this model is the difference between the sexes at the intercept - i.e., when log(Height) = 0. log(Height) is zero when Height equals 1 cm. Since nobody is 1 cm tall, the `Sexmale` parameter cannot be used directly for inference, but we need it to compute predictions and relative differences between the sexes for given body heights (since this is an interaction model, the relative difference between the sexes will depend on body height).
+
+#### The allometric exponent of females
+
+Since females are represented by the intercept, the `log(Height)` parameter is the allometric scaling exponent for females. We see the point estimate for this parameter is lower than 1, so we can conclude that tall females tend to have shorter feet relative to their body height than shorter females. However, the upper confidence interval for this allometric scaling coefficient is very close to 1, so it may well be that the length of feet in females is very close to proportional.
+
+Let's quantify this better in the same way we did above:
+
+```{r}
+1.1^coef(fit_int)["log(Height)"]       # Point estimate
+1.1^confint(fit_int)["log(Height)",]   # 95% confidence interval
+```
+
+Here we see that female feet on average increase by 7.5% (95% c.i.: 5.2% to 9.9%) per 10% increase in body height.
+
+#### The allometric exponent of males
+
+We see from the summary that males tend to have a higher allometric scaling exponent than females for foot length. This difference is statistically significant at the 5% level. To get a point estimate, we can just add the `log(Height)` and the `Sexmale:log(Height)` parameters together (here using the sum of a two-element vector):
+
+```{r}
+(b_males = sum(coef(fit_int)[c("log(Height)", "Sexmale:log(Height)")]))
+```
+
+This point estimate indicates that, while females have an allometric scaling exponent less than 1, males have a scaling exponent greater that 1. To interpret the exponent in terms of percent increase per 10% increase in body height, we do as before:
+
+```{r}
+1.1^sum(coef(fit_int)[c("log(Height)", "Sexmale:log(Height)")])
+```
+
+I.e., when height of males increase by 10%, their feet increase by 12% on average.
+
+To compute a confidence interval for this we need to first compute the standard deviation for the male allometric scaling exponent (the sum of the two parameters) in the same way we did in the week 4 tutorial (we won't explain it here, so look at the week 4 tutorial for help if you don't understand):
+
+```{r}
+Sigma = vcov(fit_int)
+x = c(0,0,1,1)
+se = sqrt(x %*% Sigma %*% x)
+(lwr = b_males - 2*se)
+(upr = b_males + 2*se)
+```
+
+We see that the 95% confidence interval for the allometric scaling exponent for males range from 0.86 to 1.59. Hence, our result indicate that females have an allometric scaling exponent less than 1, while we cannot tell whether the exponent for males is less than or larger than 1. We are also fairly confident that males have a higher scaling exponent than females (p = 0.035). Let's interpret the confidence interval for males in terms of percent change as we did earlier (here transformed to % change in foot length per 10% increase in body height):
+
+```{r}
+(1.1^c(lwr,upr)-1)*100
+```
+
+I.e., for males, foot length increases by somewhere between 8.5% and 16.4% per 10% increase in body height (95% confidence interval). Compare this to an increase in female foot length of between 5.2% and 9.9% per 10% increase in body height (as computed above).
