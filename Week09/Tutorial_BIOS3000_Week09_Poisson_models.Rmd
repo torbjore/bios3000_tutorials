@@ -1,5 +1,5 @@
 ---
-title: Tutorial and Assignment Week 9 and 10 - Log-linear Poisson models
+title: Tutorial Week 9 and 10 - Log-linear Poisson models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
