@@ -436,7 +436,7 @@ Let's also look at a summary of the data:
 summary(bears)
 ```
 
-We see that some bears have been captured and measured several times (variable `Obs.No`). To avoid any pseudoreplication (more on that next week), we will restrict our analysis to first observations. We also see that the two nominal variables `ID` and `Sex` have been given numerical values, so we change this to character strings as well:
+We see that some bears have been captured and measured several times (variable `Obs.No`). To avoid any pseudoreplication (Week 6 and 7), we will restrict our analysis to first observations. We also see that the two nominal variables `ID` and `Sex` have been given numerical values, so we change this to character strings as well:
 
 ```{r}
 bears_first = bears[bears$Obs.No == 1,]
