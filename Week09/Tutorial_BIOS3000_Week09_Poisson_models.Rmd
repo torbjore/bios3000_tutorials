@@ -385,7 +385,7 @@ A. Make a plot of predicted intensity, with confidence intervals, of tick infest
 
 B. The following questions are about the interpretations of the plot you have made - try to be critical (there are no right or wrong answers, but some answers are better than others and we may agree or disagree with your interpretations):
 
-i. Can you say that these results indicate that there was a statistically significant decline or increase over time (the three years) in the density of ticks in this area? Explain. What are your interpretations of the patterns you see.
+i. Can you say that these results indicate that there was a statistically significant decline or increase over time (years) in the density of ticks in this area? Explain. What are the possible explanations for the patterns that you see? 
 
 ii. Imagine you are asked by a group of researchers to comment on their project proposal to study how the tick distribution in this area has changed since this study. They plan to re-sample the same study area during a single season. What advice would you give them?
 
