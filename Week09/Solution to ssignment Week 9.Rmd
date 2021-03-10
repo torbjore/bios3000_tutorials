@@ -1,0 +1,234 @@
+---
+title: Suggested solution for Assignment Week 8 - Log-linear Poisson models
+author: Torbjørn Ergon
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{float}
+  \usepackage{amsmath}
+  \DeclareMathOperator{\Poisson}{Poisson}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+
+
+## Part A
+
+<div class = "blue">
+
+Make a plot of predicted intensity, with confidence intervals, of tick infestation ($\lambda$) from the quasi-Poisson model (`fit_yr_alt_int_quasi`) fitted in the worked example above. Make one plot with different coloured lines for each of the three years so that it is easier to interpret the the differences between years. Here are some hints to help you complete the task (if you need them - you can try without!):
+
+* You first need to create a new data frame with the `expand.grid` function that you use for the `newdata` argument in the `predict function`. This data frame should contain all the values for the predictor variables that you want to plot the predictions for (alternatively, you can make one data frame for each year).
+
+* Remember that you have used the centered `cALTITUDE` variable when fitting the model. In the plot, however, you want the actual altitude on the x-axis. The easiest way to do this is to first include a variable with the altitudes you want to make the predictions for (e.g. every meter between the lowest and highest altitude in the data), and then make a `cALTITUDE` variable in the data frame where you transform the altitude in the *same* way as you did before fitting the model. This is a step where it is easy to go wrong, so think carefully about what you are doing (what should you subtract?). Then you can use the original altitude variable on the x-axis in your plot.
+
+* When you use the generic `predict` function on a `glm`model object, the function you are actually using is `predict.glm` (this is called a "method" in R), although you can just use `predict()` (R figures it out based on the class of the object). You need the argument `se.fit = TRUE` to get standard errors of the predictions.
+
+* First compute the confidence interval for the linear predictor (i.e., for $\log(\lambda)$) and then transform the interval before plotting. 
+
+</div>
+
+First we get the data, create the `cALTITUDE`, and fit the quasi-Poisson model from the worked example:
+
+```{r}
+library(lme4)
+data(grouseticks)
+grouseticks$cALTITUDE = grouseticks$HEIGHT - mean(grouseticks$HEIGHT)
+fit_yr_alt_int_quasi = glm(TICKS ~ YEAR*cALTITUDE, data = grouseticks, family = quasipoisson)
+```
+
+There are many ways to make this figure. Here is how I did it (make sure you read the hints above too):
+
+1. Creating a data frame with all the values of the predictor variable we need to make the plot. Here including the the none-centered altitude variable first so we can use this in the plot. Minimum and maximum range varies somewhat between years. To avoid plotting extrapolations we will use year specific lower and upper limits for altitude also in the plot (if you make extrapolations, you should at least know that you do it):
+
+    ```{r}
+    nd95 = data.frame(
+      YEAR = "95",
+      ALTITUDE = min(grouseticks$HEIGHT[grouseticks$YEAR=="95"]):max(grouseticks$HEIGHT[grouseticks$YEAR=="95"])
+    )
+    nd96 = data.frame(
+      YEAR = "96",
+      ALTITUDE = min(grouseticks$HEIGHT[grouseticks$YEAR=="96"]):max(grouseticks$HEIGHT[grouseticks$YEAR=="96"])
+    )
+    nd97 = data.frame(
+      YEAR = "97",
+      ALTITUDE = min(grouseticks$HEIGHT[grouseticks$YEAR=="97"]):max(grouseticks$HEIGHT[grouseticks$YEAR=="97"])
+    )
+    
+    Newdata = rbind(nd95, nd96, nd97)
+  ```
+
+2. 
+  
+    Doing the *same* transformation to obtain cALTITUDE as you did when centering the variable before model fitting.
+
+    ```{r, tidy=TRUE}
+    Newdata$cALTITUDE = Newdata$ALTITUDE - mean(grouseticks$HEIGHT)
+    ```
+
+    It is easy to do this wrongly. You need to subtract the *same number* as you did when you created the variable you used in the model fitting (i.e., the mean of HEIGHT in the *data*, not in Newdata).
+
+3.
+
+    Using the `predict` function to get predictions with standard errors. Note there is no argument in `predict.glm` that lets you specify that you want confidence intervals, so you need to do this yourself by adding and subtracting 2 times standard errors. Without specifying `type = "response"` you get by default predictions at the scale of the linear predictor (see the help) - i.e. prediction of log(lambda). You should create the confidence intervals of log(lambda) first and then transform the confidence interval limits with the anti-log (exp function). This makes sure the whole confidence interval is above zero (lambda cannot be negative), especially when the predicted lambda is low. 
+
+    ```{r}
+    #?predict.glm
+    pred = predict(fit_yr_alt_int_quasi, Newdata, se.fit = TRUE)
+    
+    # Combine Nawdata and pred by columns
+    Pred = cbind(Newdata, pred)
+    
+    # Transforming from log(lambda) to lambda
+    Pred$lambda_hat = exp(Pred$fit)
+    Pred$lambda_hat_lwr = exp(Pred$fit - 2*Pred$se.fit)
+    Pred$lambda_hat_upr = exp(Pred$fit + 2*Pred$se.fit)
+    ```
+
+4.
+
+    Now we are ready to create the figure. The way the following code "evolved" was something like this:
+
+    a. I first made the plot for one year
+    b. I then realized I just needed to do some of the steps over again for the other years. I could have just used copy-paste and changed what needed to be changed (that would have been fine!), but this time I decided to do it in a loop. Doing it this way reduced the risk of "copy-paste" errors and other errors caused by typos. The approach can also be used for any number of repetitive tasks (plotting year specific predictions here).
+    c. To use a loop, I needed the vectors `years` and `cols` (colours for the lines)
+    d. I this added a legend in the top right so that it is easy to see what the colours represent
+
+    ```{r}
+    # Lower and upper limit on the y-axis
+    Ylim = c(0, max(Pred$lambda_hat_up))
+    years = levels(grouseticks$YEAR)
+    cols = c("red", "blue", "green")
+    plot(lambda_hat ~ ALTITUDE, data = Pred, type="n", ylim = Ylim)
+    for(i in 1:3){
+      lines(lambda_hat ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i])
+      lines(lambda_hat_lwr ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
+      lines(lambda_hat_upr ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
+    }
+    legend("topright", legend = years, lty=1, col=cols)
+    ```
+
+## Part B
+
+<div class = "blue">
+The following questions are about the interpretations of the plot you have made - try to be critical (there are no right or wrong answers, but some answers are better than others and we may agree or disagree with your interpretations):
+
+i. Can you say that these results indicate that there was a statistically significant decline or increase over time in the density of ticks in this area? Explain. What are your interpretations of the patterns you see.
+
+ii) Imagine you are asked by a group of researchers to comment on their project proposal to study how the tick distribution in this area has changes since this study. They plan to re-sample the same study area during a single season. What advice would you give them?
+</div>
+
+My interpretations of the figure:
+
+i.
+
+* In all years, the number of ticks per chick declined with altitude. Nevertheless, we see quite different patterns in the three years: At the lowest altitudes, number of ticks were highest in 1995 and lowest in 1997 (1996 was intermediate). However, at higher altitudes, number of ticks were clearly highest in 1997. We could have computed some contrasts with confidence intervals here to quantify the differences better, but the figure speaks pretty well for itself. We see that the confidence interval at higher altitudes for 1997 do not overlap with the confidence intervals for the two other years. The same for the confidence intervals at the lowest altitudes (at least we se that 1997 has lower expected number of ticks than the two preceding years). Hence, these differences are statistically significant.
+
+* **However**, we cannot say that this necessarily represent any long term time-trend since we only have three years of data (sample size for this question is 3). The pattern could just as well be due to large variation form year-to-year without any long term time-trend. Drawing any conclusions about long-term time-trends based on the confidence intervals plotted here would be based on *pseudo-replication* (the confidence intervals represent each year and doesn't say anything about long term time-trends)
+
+* We should also note that we need to look closer at the sampling design of this study to make interpretations. Are the chicks of around the same age in the three years? Could it be that years with late egg-laying/hatching has a pattern in the tick infestation that is different form years with early egg-laying/hatching?
+
+ii.
+
+* It is evident from the plot that the there is very large variation in the tick distribution from year-to-year. Hence, one will need to have data from many years to address long-term time-trends. To address long-term changes, it would also help if one can explain the variation among years: Are the patterns related to time of egg-laying? ...to population density? ... to the density of sheep or other tick hosts in the area? ...to climate? With a better understanding of what causes the differences in the patterns from year to year, one would be in a better position to address long-term changes.
+
+## <span style="color:red">*</span> Part C
+
+<div class = "blue">
+C. OPTIONAL (and a bit advanced): Use `glmmTMB()` to fit the model specified as `glmmTMB(TICKS ~ YEAR * cALTITUDE + (1|LOCATION/BROOD/INDEX), family=poisson, data=grouseticks)` to the data. Make your interpretation of the estimated variances/standard deviations of the random effects. Re-use the your plot-code from part A above to make a plot of the predicted median and mean $\lambda$ from this model. Some hints:
+
+* You need to install the `glmmTMB` package with `install.packages("glmmTMB")`.
+
+* To make predictions for the median among locations, broods and chicks in the whole population (and not for specific or random locations, broods or chicks), include `LOCATION`, `BROOD` and `INDEX` as variables with only `NA` values in `newdata` and include the argument `re.form=~0` in `predict.glmmTMB`.
+
+* To get predictions for the *mean* among locations, broods and chicks in the whole population you need to multiply the predictions of the median with `exp(Var/2)` (see Week 6 tutorial) where `Var` is the sum of the three random effects variances (the three variance components are assumed to be independent in the model).
+</div>
+
+The "dispersion parameter" (or "variance inflation factor") estimated in the quasi-Poisson model is about 11, meaning that the residual variance is about 11 times higher than assumed by the Poisson model. It would therefore be interesting to estimate how large the variation is among locations of the same altitude and year, among broods within locations and among chicks within broods. This, we can do with a GLMM (e.g., using the `glmmTMB` function in the library with the same name).
+
+Fitting the full model (there is a lot of computation that needs to be done to fit these models with numerical optimization, so this takes a few seconds):
+
+
+```{r}
+#install.packages("glmmTMB")
+library(glmmTMB)
+
+fit_glmm = glmmTMB(TICKS ~ YEAR * cALTITUDE + (1|LOCATION/BROOD/INDEX), family=poisson, data=grouseticks)
+summary(fit_glmm)
+confint(fit_glmm)
+```
+
+Note that the specification of the nested random effects structure with `+ (1|LOCATION/BROOD/INDEX)` does exactly the same as specifying the random effects as `+ (1|BROOD) + (1|LOCATION)  + (1|INDEX)` (in any order you like). The only situations where you *have* to use the nested structure is when labels for nested variables have been re-used with groups (e.g., if the the labels form BROOD always started with "1" at each location such that there would be several broods at different locations that had the label "1") - but this is poor data management practice.
+
+To interpret the random effects standard deviations, we should first realize that in a normal distribution, the 2.5% quantile of the distribution is about 2 (or 1.96) standard deviations lower than the mean and the 97.5% quantile of the distribution is about 2 standard deviations higher than the mean. Hence, these two quantiles are about 4 standard deviations apart, and a standard deviation for the 'LOCATION' random effect of $0.3482$ means that $\log(\lambda)$ for the 97.5% quantile location is about $4 \times 0.3482 = 1.3928$ units higher than the 2.5% quantile location. The absolute difference on the log-scale can be transformed to a relative difference on the arithmetic scale by using the anti-log function, `exp()`. This gives us the value 4.03. We can do the same transformation for the confidence limits (see output above) and for the two other variance components. The results are then (95% confidence intervals on parenthesis): 
+
+* the 97.5% quantile location has about 4.0 (1.2 to 7131) times higher expected number of ticks per chick ($\lambda$) than the 2.5% quantile location.
+* the 97.5% quantile brood has about 23 (8.9 to 97.9) times higher $\lambda$ than the 2.5% quantile brood
+* the 97.5% quantile chick has about 8.8 (6.2 to 13.4) times higher $\lambda$ than the 2.5% quantile chick
+
+Note that the above point estimates are much closer to the lower bounds than the upper bounds (especially so for the 'location' estimate). This just means that the confidence interval is not symmetric (the confidence distribution is skewed with a long tail to the right). This is common for both log-normal and Poisson models (here we have a combination of both) - it's just the way it is (the upper bound can also be very uncertain and difficult to estimate).
+
+We can also re-use the R code we made to plot predictions (see hints in the assignment text). First we plot predictions for the *median* location, brood and chick:
+
+```{r}
+Newdata$LOCATION = NA
+Newdata$BROOD = NA
+Newdata$INDEX = NA
+
+pred_glmm = predict(fit_glmm, Newdata, se.fit = TRUE, re.form=~0)
+
+# Combine Nawdata and pred by columns
+Pred = cbind(Newdata, pred_glmm)
+
+# Transforming from log(lambda) to lambda
+Pred$lambda_hat = exp(Pred$fit)
+Pred$lambda_hat_lwr = exp(Pred$fit - 2*Pred$se.fit)
+Pred$lambda_hat_upr = exp(Pred$fit + 2*Pred$se.fit)
+
+years = levels(grouseticks$YEAR)
+cols = c("red", "blue", "green")
+plot(lambda_hat ~ ALTITUDE, data = Pred, type="n", ylim = Ylim)
+for(i in 1:3){
+  lines(lambda_hat ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i])
+  lines(lambda_hat_lwr ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
+  lines(lambda_hat_upr ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
+}
+legend("topright", legend = years, lty=1, col=cols)
+```
+
+I here used the same y-axis as in the plot for the quasi-Poisson model. We see that the differences between the years at low altitudes are less clear. The highest point estimates are now for 1996 (not 1995), but 1997 still has lower predictions than the two other years (non-overlapping confidence intervals). The predictions are also lower than in the quasi-Poisson model, but remember that we have here computed the predictions for the *median* (and not the mean) among locations, broods and chicks. To get the predictions of the *mean* we need to multiply with 'exp()' of half the random effects variance. In the model, the three random effects are assumed to be independent, so we can just add the three variances together to get the total random variation among chicks:
+
+```{r}
+random.var = sum(unlist(VarCorr(fit_glmm))) # You can also just pick out the variance estimates from the summary and sum them
+
+(mean.median.ratio = exp(random.var/2))
+
+# Transforming from log(lambda) to lambda
+Pred$lambda_hat_mean = mean.median.ratio * Pred$lambda_hat
+Pred$lambda_hat_lwr_mean  = mean.median.ratio * Pred$lambda_hat_lwr 
+Pred$lambda_hat_upr_mean  = mean.median.ratio * Pred$lambda_hat_upr 
+
+years = levels(grouseticks$YEAR)
+cols = c("red", "blue", "green")
+plot(lambda_hat ~ ALTITUDE, data = Pred, type="n", ylim = Ylim)
+for(i in 1:3){
+  lines(lambda_hat_mean ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i])
+  lines(lambda_hat_lwr_mean ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
+  lines(lambda_hat_upr_mean ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
+}
+legend("topright", legend = years, lty=1, col=cols)
+```
+
+So, the results are a bit different when using the GLMM than when using the quasi-Poisson model. Since we model the extra-Poisson variation more properly in the GLMM we should trust the GLMM-results more. We also see that the confidence intervals are wider for the GLMM-model. This could in part be due to the general tendency that more complex models give higher accuracy, but less precision.
