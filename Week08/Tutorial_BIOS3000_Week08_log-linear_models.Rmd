@@ -388,7 +388,7 @@ confint(fit)
 
 We see the the power law exponent is estimated to be `r round(coef(fit)[2], 3)` (95% confidence interval: `r round(confint(fit)[2,], 3)`). These values are between the exponent of 2/3 = 0.67 (suggested by surface volume ratio of mammals) and 3/4 = 0.75 (["Kleiber's Law"](https://en.wikipedia.org/wiki/Kleiber%27s_law)). An exponent of `r round(coef(fit)[2], 3)` means that a doubling of body mass is associated with multiplication in basal metabolic rate (BMR) by $2 ^ {`r round(coef(fit)["log(BodyMass)"], 3)`} = `r round(2^coef(fit)["log(BodyMass)"], 3)`$. 
 
-We can do the same for the 95% confidence limits of the parameter to get a confidence interval for the expected relative change in BMR when body mass i doubled:
+We can do the same for the 95% confidence limits of the parameter to get a confidence interval for the expected relative change in BMR when body mass is doubled:
 
 ```{r}
 (ci = 2^confint(fit)["log(BodyMass)",])
@@ -520,7 +520,7 @@ These exercises and questions are based on the three worked examples above and m
 
 5. Use the model we fitted in example 3 and make a plot of the fitted predictions of the median and the fitted predictions of the mean for each of the sexes. You can plot the predictions on both arithmetic and logarithmic scales. For the fitted predictions of the median, you can use the `predict` function to add confidence intervals to the plot. Why can you *not* do that for the predictions of the mean? [Advanced: If you feel for it, go ahead and compute confidence intervals for the predictions of the mean by using bootstrapping (we won't provide a solution for this though - but you can ask me about it on Helpdesk)].
 
-6. It seems reasonable that the effects of both wheat variety and fertilizer type is multiplicative, as is assumed by the log-linear model (i.e., the effect of e.g. adding fertilizer is to increase the final length by a certain percent rather than a certain number of centimeters). However, this may not be the case for student group (or what do you think)? Can you formulate mathematically a model where you have multiplicative (relative) effects of wheat variety and fertilizer type, but an additive arithmetic (absolute) effect of student group? [You haven't learned how to fit such a model, but if you can formulate a model mathematically it will be a lot easier to communicate with someone who is more trained in statistics and who can maybe help you to fit the kind of model you want.]
+6. It seems reasonable that the effects of both wheat variety and fertilizer type are multiplicative, as is assumed by the log-linear model (i.e., the effect of e.g. adding fertilizer is to increase the final length by a certain percent rather than a certain number of centimeters). However, this may not be the case for student group (or what do you think)? Can you formulate mathematically a model where you have multiplicative (relative) effects of wheat variety and fertilizer type, but an additive arithmetic (absolute) effect of student group? [You haven't learned how to fit such a model, but if you can formulate a model mathematically it will be a lot easier to communicate with someone who is more trained in statistics and who can maybe help you to fit the kind of model you want.]
 
 ## Assignment
 
