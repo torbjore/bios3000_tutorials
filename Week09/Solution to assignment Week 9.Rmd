@@ -217,18 +217,16 @@ random.var = sum(unlist(VarCorr(fit_glmm))) # You can also just pick out the var
 
 # Transforming from log(lambda) to lambda
 Pred$lambda_hat_mean = mean.median.ratio * Pred$lambda_hat
-Pred$lambda_hat_lwr_mean  = mean.median.ratio * Pred$lambda_hat_lwr 
-Pred$lambda_hat_upr_mean  = mean.median.ratio * Pred$lambda_hat_upr 
 
 years = levels(grouseticks$YEAR)
 cols = c("red", "blue", "green")
 plot(lambda_hat ~ ALTITUDE, data = Pred, type="n", ylim = Ylim)
 for(i in 1:3){
   lines(lambda_hat_mean ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i])
-  lines(lambda_hat_lwr_mean ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
-  lines(lambda_hat_upr_mean ~ ALTITUDE, data = Pred, type="l", subset = YEAR == years[i], col=cols[i], lty=2)
 }
 legend("topright", legend = years, lty=1, col=cols)
 ```
 
-So, the results are a bit different when using the GLMM than when using the quasi-Poisson model. Since we model the extra-Poisson variation more properly in the GLMM we should trust the GLMM-results more. We also see that the confidence intervals are wider for the GLMM-model. This could in part be due to the general tendency that more complex models give higher accuracy, but less precision.
+To compute confidence intervals we need to also account for the uncertainty in the variance components. This is not straightforward, so it has not been included here. One approach could be to do bootstrapping.
+
+So, the results are a bit different when using the GLMM than when using the quasi-Poisson model. Since we model the extra-Poisson variation more properly in the GLMM we should trust the GLMM-results more.
