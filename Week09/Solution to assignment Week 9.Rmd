@@ -1,5 +1,5 @@
 ---
-title: Suggested solution for Assignment Week 8 - Log-linear Poisson models
+title: Suggested solution for Assignment Week 9 - Log-linear Poisson models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
