@@ -2,6 +2,7 @@
 title: "BIOS3000/4000 Tutorials"
 author: "Torbjørn Ergon"
 date: "`r Sys.Date()`"
+affiliation: University of Oslo
 ---
 
 ```{r setup, include=FALSE}
@@ -34,7 +35,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 * [The effects of pseudoreplication on confidence intervals](https://torbjore.github.io/bios3000_tutorials/Support/pseudoreplication-and-confidence-intervals.html)
 
+Even Sletteng Garvang, who is a teaching assistant at the course has also written some [short tutorials on data hadling and plotting in R](https://evengar.github.io/short-tutorials/)
 
-
-
-
+Comments, corrections and suggestions are welcome - please post issues at the [GitHub repository](https://github.com/torbjore/bios3000_tutorials).
