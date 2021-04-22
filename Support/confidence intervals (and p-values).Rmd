@@ -1,0 +1,90 @@
+---
+title: "Point estimates and confidence intervals (and p-values)"
+author: "Torbjørn Ergon"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Key terms addressed
+
+* Point estimates
+* Interval estimates/confidence interval
+* Sampling
+* p-values
+* Statistical population
+* Parameter
+* Variable
+
+## Prerequisites
+
+This short tutorial assumes that you are familiar with the normal distribution and for-loops in R (see the available tutorials on these topics). Terms in **bold** are defined in the course Glossary.
+
+## Point estimates (and some terminology)
+
+Assume that we are interested in estimating the current mean height of men between 20 and 40 years in the Norway. I.e., the **statistical population** we want to make inference about is "men between 20 and 40 years in the current Norwegian population" (one could specify this even more as e.g. those with a Norwegian passport currently living in Norway). The **parameter** we want to estimate is mean height in this statistical population (parameters are properties of populations). To do this, we could take a random **sample** of, say, 30 men from this statistical population (how would you do this?) and compute the mean. This mean from a sample of 30 randomly selected individuals is a stochastic variable and is an example of an **estimator**. The specific value we get of the estimator applied to a specific sample is called a **point estimate** of the parameter because it is an exact single value (i.e., a "point"). The **variable** that we measure is the height of individual men. If we pretend that we know that the height in the statistical population is normally distributed with a mean of 180 cm and the standard deviation is 7 cm (i.e. the height of a random individual in the population is a stochastic variable with this distribution), we can simulate a sample by drawing from the normal distribution in R:
+
+```{r}
+n = 30
+X = rnorm(n, 180, 7)
+```
+
+To get a point estimate for the mean in the population we compute the mean of the sample:
+
+```{r}
+(point_estimate = mean(X))
+```
+
+## Interval estimates (confidence intervals)
+
+You would be pretty lucky if the point estimate you computed above was equal to the true mean (180 cm) even if you round off to a whole number. Also, this single value of a point estimate gives us no idea about how precise the estimate is.This is where interval estimators are more useful. An interval estimate present a range (an interval) of plausible values for the parameter. A 95% confidence interval is an example of an interval estimate. A 95% confidence interval is constructed such that we should expect the interval to include the true parameter value 95% of the times it is calculated. This expectation is contingent on assumptions regarding the distribution of the estimator. When sample size is large, we know from the **central limit theorem** that the estimator we have used should be close to normally distributed. In a normal distribution, the 2.5 % and the 97.5 % **quantiles** are the mean $\pm$ 1.96 times the **standard error** of the mean. However, since we have a sample of only 30 individuals, the tails of the distribution are somewhat heavier and the 2.5 % and the 97.5 % quantiles are somewhat further away from the mean (this is because both the mean and the standard error is estimated from the sample). We can find these quantiles by multiplying the standard error with the  2.5 % and the 97.5 % quantiles of Student's t-distribution and subtracting/adding them to the mean. To find the quantiles of Student's t-distribution in R, we use the `qt()` function:
+
+```{r}
+se = sd(X)/sqrt(n)
+df = n-1
+(conf_int_95 = point_estimate + qt(c(0.025, 0.975), df=df)*se)
+```
+
+In practice, it is sufficiently accurate to just multiply the standard error with $\pm$ 2 instead of using the the quantiles from the Student's t-distribution (unless sample size is very small). For some estimators it is also not clear how many degrees of freedom one should use for the t-distribution, so $\pm$ 2 standard error is a convenient rule.
+
+In the tutorial of week 3 will introduce a general simulation/re-sampling based method to compute confidence intervals called "Bootstrapping". This allows us to compute confidence intervals without any assumptions about the distribution of the estimator.
+
+## A simulation of confidence intervals
+
+Let's do a simulation to investigate the properties of confidence intervals. Again, we pretend that we know that the true mean height of males in the population is 180 cm and the standard deviation is 7 cm. If we compute the mean height with a 95% confidence interval in a random sample of males many times, then this confidence interval should include the true height (i.e., 180 cm) 95% of the times in the long run. If sample size is small, then the confidence intervals will tend to be wide, and they will become narrower as sample size increase. But irrespective of sample size, the intervals will include the true value 95% of the times. Below we do this in simulations of 100 samples with sample size varying from 2 to 200 and plot the confidence intervals for each of the 100 sample sizes.  
+
+```{r}
+n = seq(2, 200, by=2) # sample sizes equals 2, 4, 6, ..., 200
+mean = rep(NA, length(n))
+CI = matrix(nrow = length(n), ncol=2)
+for(i in 1:length(n)){
+  y = rnorm(n[i], mean = 180, sd = 7) # The assumed true distribution of height in the population
+  mean[i] = mean(y)
+  SE = sd(y)/sqrt(n[i])
+  CI[i,] = mean[i] + c(-2,2)*SE
+}
+plot(n, mean, ylim=range(CI), xlab="Sample size", ylab="Mean height (cm)")
+segments(n, y0=CI[,1], y1=CI[,2], col="blue")
+abline(h=180, col="red")
+```
+```{r echo=FALSE}
+coverage = function(x, true_val = 180) true_val>x[1] & true_val<x[2]
+cover = apply(CI, 1, coverage)
+fr = sum(cover)
+```
+
+In these simulations the confidence intervals (blue lines) include the true value (red horizontal line) `r fr` times and exclude the true value `r length(cover)-fr` times. If you repeat the simulations many times, you will find that the true value is covered by the confidence interval on average 95% of the times.
+
+## Confidence intervals versus p-values
+
+A p-value is the probability of getting the observed result, or something "more extreme", *given* that the null-hypothesis is true ("more extreme" here means something that is less likely than what you have observed). A p-value always relates to a null-hypothesis defined by the researcher. Usually p-values refer to a null-hypothesis of "no difference", i.e., that some parameter representing a difference is zero. Saying that a p-value for a null-hypothesis of a difference being zero is less than 0.05 (p<0.05) is equivalent of saying that the 95% confidence interval for this difference does not include zero. However, the confidence intervals are much more informative as they give a range of plausible values for the parameters of interest.
+
+Throughout this course we will use confidence intervals for inference instead of p-values, simply because confidence intervals are more informative. Confidence intervals give us quantitative information about e.g. how large differences are, whereas a p-value just give you information about how surprising the results are **if** this difference is truly zero. Very often (almost always) null-hypotheses tested in biology are false on *a priori* grounds. E.g., when studying the effects of a particular treatment, a null-hypothesis stating that the treatment has *exactly* zero effect is something we would seldom believe could be true (the treatment-effect could be very small and *practically* zero, but unlikely *exactly* zero). Even when we believe the null-hypothesis is meaningful, a confidence interval is more informative than a p-value. For example, a high p-value (e.g. larger than $0.2$) does not give us any information about how large the effect (difference) we are studying may be. The confidence interval for this difference, on the other hand, may tell us that the effect is likely so small that it has no practical influence on our study subjects, or it may tell us that the uncertainty is so great that we can not conclude whether the effect is negligible or huge (we can only conclude that we need more/better data).
+
+Sometimes null-hypotheses tests (p-values) are based on distribution free, non-parametric methods. While such methods can be very useful, one should always strive to quantify differences (with some measure of uncertainty) in a biologically meaningful way. Non-parametric tests used in biology can usually be replaced with confidence intervals of parameters in a parametric statistical model, which are more informative. 

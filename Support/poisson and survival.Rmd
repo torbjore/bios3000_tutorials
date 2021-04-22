@@ -1,0 +1,174 @@
+---
+title: "Poisson point processes and the Poisson distribution"
+author: "Torbjørn Ergon"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+  pdf_document: default
+  df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Key terms and concepts covered in this tutorial
+
+* Uniform probability distributions
+* Poisson (point) processes
+* Poisson distributions
+
+
+## The uniform probability distribution
+
+In a uniform probability distribution, all values between a lower and an upper limit are equally likely. The R code below draws (simulates) 1 million values from a uniform distribution between 0 and 10 and then plots a histogram of these values.
+
+```{r}
+x = runif(1000000, 0, 10)
+hist(x, probability = TRUE)
+```
+
+The argument `probability = TRUE` in `hist()` specifies that we want the y-axis scaled such that the area of the histogram is 1 and the histogram resembles a probability distribution (in this case the probability density of the uniform distribution is $1/10 = 0.1$)
+
+## Intensities and point processes
+
+Below we simulate 1000 raindrops that have fallen on a 10 by 10 meter dry surface and left a spot:
+
+```{r}
+n = 1000
+x = runif(n, 0, 10)
+y = runif(n, 0, 10)
+par(pty="s", xaxs ="i", yaxs ="i") # Square plotting region with no border area on the axes
+plot(x, y, xlim=c(0,10), ylim=c(0,10), pch=".") # pch = "." is the same as pch = 46
+```
+
+The dots (raindrops) are here uniformly distributed and uncorrelated in two dimensions (i.e., both the x and the y coordinate are independently drawn from uniform distributions). Note that a uniform distribution does *not* imply that the points are regularly dispersed - some clustering will occur just by chance. This means that if we count the number of rain drops in any given 1 by 1 meter square on the surface, we will get a different number every time we simulate the placements of the rain drops (i.e., the number of raindrops in the square is a stochastic variable). Below we draw a red square in the middle of the surface and count the number of raindrops within this square:
+
+```{r}
+par(pty="s", xaxs ="i", yaxs ="i") 
+plot(x, y, xlim=c(0,10), ylim=c(0,10), pch=".")
+# The lower left corner of the center square
+x0 = 4.5
+y0 = 4.5
+# drawing the square
+lines(c(x0, x0, x0+1, x0+1, x0), c(y0, y0+1, y0+1, y0, y0), col="red")
+# counting dots within the square
+(count = sum(x>x0 & x<(x0+1) & y>y0 & y<(y0+1))) # A TRUE/FALSE vector works as a 1/0 vector; parentheses around assignment to print it
+```
+
+In this case we got `r count` dots within the square. If you repeat the simulation several times (run it again within the Rmd-file by clicking on the symbols in the upper right of the R chunk), you will get a range of different numbers with different probabilities. We can compute the probabilities of different numbers by simulation. Below we repeat the simulation and count the number of dots within the centre square 10,000 times, and then plot a histogram of the simulated counts to look at the probability distribution, just as we did with the uniform distribution above:
+
+```{r}
+n.iter = 10000
+count = rep(NA, n)
+for(i in 1:n.iter){
+  x = runif(n, 0, 10)
+  y = runif(n, 0, 10)
+  count[i] = sum(x>x0 & x<(x0+1) & y>y0 & y<(y0+1))
+}
+hist(count, probability = TRUE)
+```
+
+In this simulation, we simulated the placement of 1000 raindrops in an area of 100 square meters (10 x 10 meters). This means that there are on average 10 raindrops per square meters. Such expectations of number of points per area (or time interval) are called **intensities**. In this case the intensity is the same all over the surface; this is called a "homogeneous Poisson point process"), but the intensity may vary continuously in space and time (as it would if you study rain over all of Norway throughout a year; this is an "inhomogeneous Poisson point process"). Point processes (the placements of points in space and/or time) are called "**Poisson (point) processes**"[^1] when the points are independent of each other (each point does not depend on where the other points are).
+
+[^1]: The Poisson process and Poisson distribution is named after the French mathematician Siméon Denis Poisson (and should hence be spelled with a capital P). It was discovered independently in several different fields.
+
+Let's see what the mean of the simulated distribution is:
+
+```{r}
+mean(count)
+```
+
+This number is not surprisingly pretty close to the the intensity we used in the simulations (10 raindrops per square meter). Note that we could just as well have expressed the intensity in this case as e.g. 0.1 raindrops per square decimeter (10 x 10 cm), but we would then have to multiply by 100 to get the expected number of raindrops per square meter.
+
+We also see in the histogram that there is quite a bit of variation in number of rain-drops in a square meter. Let's calculate the variance too:
+
+```{r}
+var(count)
+```
+
+This value is quite close to 10 too. We will later see that this is not a coincidence.
+
+## The Poisson distribution
+
+When we have a Poisson point process as described above (often called just a Poisson process), the number of points in a given interval (in space or time) will follow a **Poisson distribution**. If we define $Y$ as the count of points in this interval, the probability that $Y$ takes a given value $y$ is according to the Poisson distribution
+
+$$
+P(Y = y) = \frac{\lambda^y e^{-\lambda}}{y!}.
+$$
+
+Here the intensity parameter $\lambda$ is the expected value which is the intensity multiplied with the size (or length) of the interval ($\lambda$ is the intensity expressed as number of points per units of the same size/length as the interval). For example if $\lambda$ is 10, then the probability of getting 5 points is
+
+$$
+P(Y = 5) = \frac{10^5 e^{-10}}{5 \times 4 \times 3 \times 2}.
+$$
+
+We can compute this in R as
+
+```{r}
+10^5 * exp(-10)/factorial(5)
+```
+
+or just use the R function `dpois`:
+
+```{r}
+dpois(5, lambda=10)
+```
+
+To draw random numbers from a Poisson distribution, we can use the function `rpois`. In the section above we simulated the distribution of a Poisson random variable with $\lambda = 10$ by first simulating a Poisson point process and then counting points within a small section of the simulated surface. With the `rpois` function, we can do this directly:
+
+```{r}
+Y = rpois(10000, lambda = 10)
+hist(Y, probability = TRUE)
+```
+
+We can see that the two distributions we have simulated here are practically identical. However, the first simulation really just simulates a Poisson distribution when the size of the central square where we count the points is small relative to the size of the total area. This is because we used a constant number of points in the total area. Hence, if the central square is large we get a lower variance in the counts (eventually, the variance becomes zero when the central square is increased to the size of the total area). To make this simulation right, we should have drawn the total number of points (`n`) from a Poisson distribution with $\lambda = 1000$ (but then we might as well just have simulated the counts from a Poisson distribution with $\lambda = 10$ in the first place...).
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+I recommend that you check out the properties of the of the Poisson distribution a bit by simulating data with the `rpois` function with different values of `lambda` (try both small and large values). Plot histograms and compute means and variances. 
+</div>
+
+## Properties of the Poisson distribution
+
+An interesting feature of the Poisson distribution is that the variance equals the mean ($\lambda$) (If you followed my recommendation in the blue box above, you may already have had a suspicion that this was the case). Here I summarize some properties of a Poisson distributed random variable $Y$ with expectation $\lambda$:
+
+* $Y$ is a whole number between $0$ and $\infty$ (there is no upper bound); note that it is theoretically possible to get 100 raindrops within the central red square (or all 1000 for that matter) in the above simulation -- it is just very unlikely.
+* $E[Y]=\lambda$
+* $Var(Y) = \lambda$
+* $P(Y=0) = e^{-\lambda}$ (and hence $P(Y>0) = 1 - e^{-\lambda}$)
+
+You can confirm the latter by plugging in $y = 0$ in the expression for the Poisson probability mass function above. This often occurs when modelling biological processes; whenever you want to compute the probability that "nothing happens" (e.g., no deadly events occur within a specified interval, and the individual survives with probability $e^{-\lambda}$) or when "something happens at least once" (e.g., an individual contracts a disease or encounters food within an interval with probability $1 - e^{-\lambda}$).
+
+## Poisson processes in biology
+
+Poisson processes are very common in biological studies. Examples of Poisson distributed random variables in biology includes:
+
+* Occurrences of events experienced by individuals
+* Number of parasites on/in individuals (each individual is exposed to a certain intensity of infestations (infestation rate))
+* The number of individuals or cells in a large sample the that have a particular characteristic (e.g. a mutation).
+* Number of individuals found in a specific area when it is reasonable to assume that the distribution of individuals result from a Poisson process.
+
+In the latter two cases there may be an upper bound on the number of individuals or cells that can have the particular characteristic, which violates the assumptions of the Poisson distribution. However, if the expected number if low relative to the maximum number, this violation has no practical consequence (it is equivalent to the first simulation we did above with a small central square relative to the total area - the fact that it is not possible to get more than 1000 rain drops within the square has no practical consequence).[^2]
+
+[^2]: If you are familiar with the binomial distribution, you may have realized that the distribution we simulate in the raindrop example is really the binomial distribution with number of trials ($n$) equal to 1000 and probability of "success" for each raindrop ($p$ ) equal to 1/100. Hence, a binomial distribution with a high $n$ and a low $p$ is virtually identical to a Poisson distribution with $\lambda = np$ -- but there are no "number of trials" in a Poisson process.
+
+As already alluded to, cases where we are particularly interested in the probabilities that no events occur (survival) or an event occurs at least once, are often of special interest, and this is something we will return to later in the course.
+
+## Count variables in biology that are *not* Poisson
+
+Although it is often reasonable to assume that integer variables (counts) in biology are Poisson distributed, there are also many count variables where such an assumption is *not* reasonable. Some examples are:
+
+* Clutch/litter size
+* Number of individuals occupying a certain small areas when the distribution of individuals is not independent
+
+Number of offspring in a clutch/litter is typically not the result of a Poisson process (or anything resembling it). Basically, if you cannot imagine a process similar to the rain drop example in this tutorial (a Poisson process) being responsible for the observed data, there is no reason to think that the data should be Poisson distributed. Clutch/litter size in birds and mammals typically have a lower variance than the Poisson distribution.
+
+Number of individuals occupying a certain small area could well result from a Poisson-distribution. For example, if seeds from a plant is spread randomly over an area, the number of seeds landing on a habitat patch of a given area would be Poisson distributed (this is similar to the rain drop example). However, individuals are often not distributed independently of each other. For example, in a territorial species, a small area would either contain a territory or not, and if the species was present, we would have only one individual or family group there. The same could be the case if individuals avoid each other due to e.g. competition. If individuals attract each other, the assumption of the Poisson distribution would not be met either. However, if the aggregation of individuals can be explained by habitat covariates, it could well be reasonable to assume that number of individuals for given habitat types could be close to Poisson distributed. 
+
+When working with count data, a Poisson model can often be a reasonable null-model and it is interesting to see whether the variance is greater than or less than that expected by the Poisson distribution.
+

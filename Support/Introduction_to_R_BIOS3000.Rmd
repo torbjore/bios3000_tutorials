@@ -1,0 +1,223 @@
+---
+title: "Introduction to R -- BIOS3000"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This tutorial is intended for new users of R. This document contains the same introductory tutorial as in the plain text file, but is written in R Markdown in R Studio. Markdown documents combine text with code chunks that can be executed.
+
+To execute a code chunk, click on the green triangle to the right in the code chunk (you can only do this in the .Rmd file within R-Studio, not in the compined html/pdf/Word files). Note that the code in a chunk may depend on code in earlier chunks in the document. To execute all of the chunks above a given chunk, click on the symbol to the left of the green triangle.
+
+R Markdown documents (Rmd-files) can be compiled ("knitted") to html, pdf and MS Word files. Do that by clicking on the "Knit" button at the top of the editor window in R Studio. For more information on R Mardown, see https://rmarkdown.rstudio.com/
+
+### Using R as a calculator
+
+R is in some way just an advanced calculator made primarily for statistical analyses.
+
+```{r}
+# Try the following operations:
+2+2
+(2+2)*3
+3/2
+2^3
+log(1) # the natural logarithm (ln)
+exp(1) # e to the power of
+log10(100) # log with base 10
+```
+
+### Objects and functions
+
+You can assign the results of operations to "objects" and then use these objects in later operations. Try:
+
+```{r}
+a = 2+2
+a
+a*3
+```
+
+R will remember the values of such "objects" as long as you want. Note that the objects that you create will be listed in the "Environment" sheet in the top-right window in RStudio. In older versions of R, assignments had to be done with `<-` (an "arrow"). Many people still use this (`=` and `<-` does the same thing):
+
+```{r}
+a <- 3+3
+a
+a*3
+```
+
+Note that you now replaced the value of `a` with a new value. There are many kinds of 'objects' in R. You can for example make a vector containing the body mass of 5 individuals.
+
+```{r}
+body_mass = c(50.3, 55.4, 52.9, 59.7, 60.1)
+body_mass 
+```
+
+Here `c(...)` just tells R that the numbers within the parenthesis should be stored in a vector. `body_mass` is just a name that you decide. The `_` is just part of the name and has no special meaning for R. R has many "functions". Try:
+
+```{r}
+mean(body_mass) # returns mean body mass
+sd(body_mass)   # returns the standard deviation of body mass
+```
+
+Functions in R takes numbers or objects as input arguments, do some operations on these, and return the resulting number(s) or objects. Just as above, you can assign the output of functions to new objects and perform new operations on these objects. Try to compute the coefficient of variation in the following way:
+
+```{r}
+mean_body_mass = mean(body_mass)
+sd_body_mass = sd(body_mass)
+cv_body_mass = sd_body_mass/mean_body_mass
+cv_body_mass
+```
+
+This can be done more directly:
+
+```{r}
+cv_body_mass = sd(body_mass)/mean(body_mass)
+cv_body_mass
+```
+
+You can also make your own functions in R. You can for example make a new function that calculates the coefficient of variation:
+
+```{r}
+cv = function(x) sd(x)/mean(x)
+```
+
+The line above tells R that it should create a new function called `cv` that takes one argument, `x`, and compute `sd(x)/mean(x`). `x` is just an internal object that is not "visible" outside the function. If you have an object called `x` in the memory "outside" the function, this will not be overwritten. You can now use this function to calculate the coefficient of variation of your `body_mass` vector (or any other vector). 
+
+```{r}
+cv(body_mass)
+```
+
+There are very many "built in" functions in R. To get help on a function you can type `?` followed by the name of the function - for example:
+
+```{r, eval=FALSE}
+?lm
+?mean
+```
+
+Note that `eval=FALSE` has been used in the heading of this code chunk, which means that the R-code will not be executed. You can type this in the Console window (or highlight it in the Rmd-file and press Ctrl-Enter) - the help-page pops up in the lower window to the right.
+
+You will see that the function `mean` can take other arguments (that have a default value that is used if you don't specify anything else). Note that the name of the arguments doesn't have to be given IF they appear in the order they are given in the help file.
+
+### Vectors and matrices
+
+To create a vector with the values 0 to 10, write
+
+```{r}
+x = 0:10
+x
+```
+
+To create a vector of the numbers 0,10,20,...,100, write
+
+```{r}
+y = seq(0, 100, by=10)
+y
+```
+
+If you add a single number (a "scalar") to a vector, this number is added to every element of the vector
+
+```{r}
+y + 2
+```
+
+If you add two vectors of the same length to each other, the first element of the first vector is added to the first element of the second vector, and so on:
+
+```{r}
+x + y
+```
+
+...the same with other operations:
+
+```{r}
+x * y
+y - x
+y/x
+```
+
+Most functions that do a single operation on a scalar will do the same operation on every element of a vector when a vector is supplied as an argument instead of a scalar. For example:
+
+```{r}
+log(x)
+```
+
+To see the number of elements in a vector, use:
+
+```{r}
+length(x)
+length(y)
+```
+
+If you add a shorter vector to longer vector, the shorter vector will be "recycled"
+
+```{r}
+z = 1:10
+z + c(0,1) # The first element is added 0, the second element added 1, third element added 0, etc.
+```
+
+If the longer vector is not a multiple of the shorter vector, R will issue a warning message:
+
+```{r}
+z = 1:10
+z + c(0,1,2) 
+```
+
+To create matrices you can use the function 'matrix'. For example, to create a 2-by-2 matrix with the values 1:4 column wise, use:
+
+```{r}
+x = matrix(1:4, 2, 2)
+x
+```
+
+Matrices are treated in much the same way as vectors (for multi-dimensional arrays, use 'array' (type `?array`))
+
+```{r}
+# For matrix multiplication, use the '%*%' operator
+y = c(1,2)
+z = x %*% y
+z # z[1,1] = x[1,1]*y[1] + x[1,2]*y[2], and z[2,1] = x[2,1]*y[1] + x[2,2]*y[2]
+```
+
+Note that R treats vectors as either column vectors or row vectors depending on the situation. Above y is treated as a column vector, below it is treated as a row vector
+
+```{r}
+z = y %*% x
+z # z[1,1] = y[1]*x[1,1] + y[2]*x[2,1], and z[1,2] = y[1]*x[1,2] + y[2]*x[2,2]
+```
+
+### Working with data sets
+
+We can put many variables of equal length together in what is called a 'data.frame'. For example, create the data.frame `my_data`:
+
+```{r}
+my_data = data.frame(body_length = c(170, 168, 156, 169, 172), body_mass = body_mass)
+my_data
+```
+
+To access the variable `body_length` in the data.frame `my_data` you have to first write the name of the data.frame and then the name of the variable seperated by a `$` sign:
+
+```{r}
+my_data$body_length
+```
+
+Note that you now have both an object called `body_mass` and a variable with the same name within the object called `my_data`. If we change the object called `body_mass`, this will not change the varaible `body_mass` within `my_data`. Try it:
+
+```{r}
+body_mass = 100
+body_mass
+my_data$body_mass
+```
+
+NB! It is a good idea to avoid using the same name on a variable within a data.frame as the name of an object. In that way you avoid mistakes by using the wrong object. See more on objects and search paths below. To read in data from for example Excel, the easiest is to save the file as a comma dilimited text file (csv extention) and use the `read.csv` function in R (csv-file can also be opened directly in Excel whithout using the import wizard). We will learn how to do this in the computer exersices later in the course.
+
+### Graphics
+
+R has a rich support for making plots and graphics of any sort. To make a simple plot of body mass against body lenght in the data created above, use:
+
+```{r}
+plot(my_data$body_length, my_data$body_mass)
+```
+
+When using R Mardown, the figure will appear immediately after the R code chunck - in the editor window or in the html/pdf/doc file if you "knit to any of these formats".

@@ -1,0 +1,200 @@
+---
+title: "Exponents and logarithms (in R)"
+author: "Torbjørn Ergon"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(latex2exp)
+```
+
+## Exponents
+
+Instead of writing e.g. $2 \times 2 \times 2$ we can write $2^3$. In this expression, the number $2$ is called the "base", and the number $3$ is the "exponent". The exponent tells us how many times we need to use the base in a multiplication. In R we use the symbol "`^`" in front of the exponents. For example,
+
+```{r}
+2^3
+```
+
+In R, and most programming languages, exponents have the highest operator precedence meaning that exponents will be computed before multiplication and division, and multiplication and division will be computed before addition and subtraction.
+
+For example `4/2^2` equals $\frac{4}{2^2} = 1$ (not $\left( \frac{4}{2} \right) ^2 = 4$). Really, this is just the same rule we use in mathematics, but it may be less evident at first when you do these operations in R. To write e.g. $\frac{a}{b^{2+c} + d}$ you need to use parentheses in R and write `a/(b^(2 + c) + d)` (for increased readability it is a good idea to put spaces on both sides of `=`, `+`, and `-`, but this does not change how R evaluates the expression). If you are unsure, it doesn't hurt to use parentheses around the operations that should be done first, even when it is not necessary, but it a good idea to get used to working with the standard operations in R.
+
+Some rules for operations involving exponents are useful to remember:
+
+1. $a^{b+c} = a^{b}a^{c}$
+2. $\left( a^b \right) ^c = a^{bc}$
+3. $a^{b-c} = \frac{a^{b}}{a^{c}}$
+4. $(ab)^c = a^c b^c$
+5. $a^0 = 1$
+6. $0 < a^x < 1$ when $x<0$
+
+If you don't remember these, or if you want a proof, it is easy enough to just pick some small numbers and write out the full products. With the two first rules above, we get e.g.
+
+1. $a^{2+3} = a^5 = a \times a \times a \times a \times a = (a \times a) \times (a \times a \times a)   = a^{2}a^{3}$
+
+2. $\left( a^2 \right) ^3 = \left( a^2 \right) \times \left( a^2 \right) \times \left( a^2 \right) = \left( a \times a \right) \times \left( a \times a \right) \times \left( a \times a \right) = a^6 = a^{2 \times 3}$
+
+You can do the same for rule 3 and 4. Rule 5 follows from rule 3 (write it out to show it!).
+
+Euler's number $e = 2.718282...$ is a number that shows up many places in mathematics, physics and biology. One thing that makes this number special is that the first derivative of $e^x$ is $e^x$. I.e,
+
+$$
+\frac{\partial e^x}{\partial x} = e^x
+$$
+
+This means that also the second derivative (and third etc.) of $e^x$ is $e^x$.
+
+The exponential function $e^x$ is used so much in statistics and modelling that there is a special R-function for it, `exp(x)`. Let's make a plot of this exponential function to see what it looks like.
+
+```{r}
+x = seq(-3,3, length.out = 50)
+plot(x, exp(x), type="l")
+```
+
+This curve grows with a rate equal to its current value (the first derivative of $e^x$ is $e^x$). At $x=0$ the slope is 1 (since $e^0 = 1$). It grows very fast towards the right (you can try to change the limits of the plot), and it quickly gets very close to zero towards the left. This function is sometimes called the "antilog" or the "inverse log" function.
+
+The function $e^{-x}$  where $x$ is defined as a number greater than or equal to zero also shows up many places. This function starts at 1 when $x=0$ and then declines gradually towards zero:
+
+```{r}
+x = seq(0,5, length.out = 50)
+plot(x, exp(-x), type="l")
+```
+
+The area under this curve from zero to infinity equals 1.
+
+## Logarithms
+
+Logarithms extract the exponent from an exponential. For example, $\log_e(e^x) = x$. The lowered $e$ after $\log$ tells us that the base is $e$. You can use any positive number as the base. For example, $\log_2(4) = 2$. In R, the default base for the `log` function is Euler's number $e$. The argument to the log function can also be any number greater than or equal to zero. For example $\log_e(20)$ is the number $x$ that gives $e^x = 20$. From the first plot above, we can see that this value is about 3. Let's get a more exact value for $\log_e(20)$ in R (note that $\log_e$ is called "the natural logarithm" and is often written as $\ln($):
+
+```{r}
+log(20)
+```
+
+If you want to change the base of the logarithmic function, you can use e.g. `log(9, base=3)` (what is the result?). The base 10 is also much used, so there is a special function for this named `log10` (what will `log10(1000)` give you?).
+
+Some rules for operations with logarithms should become second nature when working with statistical modelling. The following rules apply to logarithms of any base:
+
+1. $\log(a^b) = b\log(a)$
+2. $\log(ab) = \log(a) + \log(b)$
+3. $\log(a/b) = \log(a) - \log(b)$
+4. $\log(1) = 0$
+5. $\log(0) = -\infty$
+
+Since $\log(x)$ increases monotonically with $x$ it follows from rule 4 and 5 that $\log(x)$ is negative whenever $x$ is between 0 and 1 ($0 \le x < 1$).
+
+In addition, the following rules apply to specific bases:
+
+6. $\log_a(a^b) = b$
+7. $a^{\log_a(b)} = b$
+8. $\log_a(x) = \log_a(b) \log_b(x)$
+
+Rule 6 is really just the definition of the log-function and rule 1 is consistent with this since $\log_a(a^b) = b\log_a(a^1) = b \times 1 = b$. Rule 7 also follows directly from the definition as $\log_a(b)$ is the number $x$ that give $a^x=b$. Rule 8 follows from rules 1 and 7 - can you show it? Can you also show that rule 2 and 3 follows from the rule that $a^{b}a^{c}$ equals $a^{b+c}$ combined with rule 7?
+
+I suggest that you pause here and play with these different rules in R (and on paper) so that you understand what they mean. You can also try the quiz on logarithms and exponentials that we have made for you on Canvas. But make sure you get back to the final section below, as some important points are made there!
+
+## Logarithmic scales
+
+Consider the simple model for exponential population growth,
+
+$$
+n_{t+1} = n_t \lambda
+$$
+
+Here, $n_t$ is the population size at time $t$ and $\lambda$ is how much the population multiplies every time-step. For example, if $\lambda = 2$ and one time unit is the doubling time of a yeast population, then this describes the yeast population growth in the exponential growth phase. If we start with $n_0 = 1$ at time $t=0$ ($n$ could be number of thousands), the population will grow as $1 \rightarrow 1 \times 2 \rightarrow 1 \times 2 \times 2  \rightarrow 1 \times 2 \times 2 \times 2  \rightarrow \dots$. We can write this with exponentials as $2^0 \rightarrow 2^1 \rightarrow 2^2 \rightarrow 2^3 \rightarrow \dots$. In other words, the population size at time $t$ is $n_t = 2^t$.
+
+In the plot below, I have plotted the population size in red numbers above the time-line:
+
+```{r echo=FALSE, fig.height=2}
+t = 0:6
+n = 2^t
+
+plot(t, rep(0, length(t)), type="n", axes=F, ylab="", xlab = "Time")
+axis(1, at=t, labels=n, tcl=0.5, padj=-4.5, col="red", col.axis="red")
+axis(1, at=t, labels=t)
+```
+
+For every time-step, population size is doubled. We also see that if we multiply any of the values by 4 we move the same distance along the time-axis regardless of where we are on this axis. For example when moving from $2$ to $2 \times 4 = 8$, we move the same distance in time (2 units) as when moving from $4$ to $4 \times 4 = 16$ (or when moving from $1$ to $4$, $8$ to $8 \times 4$, etc.). This is the same for any positive number that we multiply with. In the plot below, I have added the values $1, 3, 6, \dots$ (i.e., multiplications by 3 starting from 1) in blue as well as small tick marks in green for every increase by 10%.
+
+```{r echo=FALSE, fig.height=2}
+t = 0:6
+n = 2^t
+
+plot(t, rep(0, length(t)), type="n", axes=F, ylab="", xlab = TeX("$\\log_2 (n)$"))
+axis(1, at=t, labels=n, tcl=0.5, padj=-4.5, col="red", col.axis="red")
+
+n_3 = 3^t
+axis(1, at=log(n_3,2), labels=n_3, tcl=0.5, padj=-4.5, col="blue", col.axis="blue")
+
+x = seq(log(1,2), log(max(n),2) + log(1.1, 2), by=log(1.1, 2))
+axis(1, at=x, labels=NA, tcl=0.25, col="green")
+
+axis(1, at=t, labels=t)
+```
+
+As you see, when multiplying by $3$ or $1.1$ (10% increase) or any number we move the same distance along the scale. This is the **logarithmic scale**! Note that I have also replaced the label "Time" with "$\log_2 (n)$" because distances along the axis doesn't necessarily have to represent time. Here we have plotted number of yeast cells on the logarithmic scale, but we may plot any **ratio scaled** variable on such a scale (ratio scaled variables are variables with a nature-given zero point where only positive values make sense). For example, we may plot any measurements of height, mass, concentration, rates of development, etc. on the logarithmic scale. We can use any base for the logarithmic transformation to plot numbers on the logarithmic scale. E.g., below we have used the logarithm with base $3$ instead of $2$
+
+```{r echo=FALSE, fig.height=2}
+t = 0:6
+n = 2^t
+
+plot(t, rep(0, length(t)), type="n", axes=F, ylab="", xlab = TeX("$\\log_3 (x)$"))
+axis(1, at=t, labels=n, tcl=0.5, padj=-4.5, col="red", col.axis="red")
+
+n_3 = 3^t
+axis(1, at=log(n_3,2), labels=n_3, tcl=0.5, padj=-4.5, col="blue", col.axis="blue")
+
+x = seq(log(1,2), log(max(n),2) + log(1.1, 2), by=log(1.1, 2))
+axis(1, at=x, labels=NA, tcl=0.25, col="green")
+
+axis(1, at=log(3^(0:4), 2), labels=0:4)
+```
+
+This is because logarithms with different bases are proportional to each other. We can see this from rule 8 above. Applying this rule we see that $\log_2(x) = \log_2(3) \log_3(x) \approx 1.5850 \log_3(x)$ (compare the two axis above to see that this seems right). We can also use the rule $\log(ab) = \log(a) + \log(b)$ to compute how much we move on the logarithmic axis when multiplying the variable with a factor $a$; $\log(xa) = \log(x) + \log(a)$. I.e., multiplying with a factor $a = 1.1$ (= adding 10%) moves us $\log_2 (1.1)  \approx 0.1375$ units on the $\log_2$-scale and $\log_3(1.1) \approx 0.0868$ units on the $\log_3$-scale.
+
+## Logarithmic plots
+
+It is often very useful to plot ratio-scaled variables on the logarithmic scale. As we have seen above, absolute differences on the logarithmic scale represents relative differences between the values. We can use a logarithmic scale for the x-axis, the y-axis or both.
+
+For example, in the yeast population we used in the above example, population size at time $t$ is $n_t = 2^t$. On a logarithmic scale, this becomes $\log(n_t) = t \log(2)$. Hence, if we plot $\log(n_t)$ as a function of $t$ we start at $\log(n_t) = 0$ (i.e., $n_t = 1$) when $t=0$ and $\log(n_t)$ will increase with a slope equal to $\log(2)$. We can produce this plot here:
+
+```{r}
+t = seq(0,6,length.out = 50)
+n = 2^t
+plot(t, log(n), type="l")
+
+axis(4, at = log(2^(0:6)), labels = 2^(0:6), col="red", col.axis="red")
+```
+
+Here we also added an axis to the right with a logarithmic scale. Note also that we used the logarithm with the default base $e$ in this plot. We can produce the same plot using the logarithm with base 10:
+
+```{r}
+t = seq(0,6,length.out = 50)
+n = 2^t
+plot(t, log10(n), type="l")
+
+axis(4, at = log10(2^(0:6)), labels = 2^(0:6), col="red", col.axis="red")
+```
+
+This plot looks the same as the first one except that the values on the left y-axis are different. The reason for this was explained in the previous section: Logarithms of different bases are proportional of each other (what is the proportionality constant in this case?). For this reason, it does not matter which base we use for the logarithms when making logarithmic plots as long as we just plot the non-transformed values along the axis (the red y-axis on the right). These are in any case the values that are most easy to interpret. In the `plot` function we can specify that we want a logarithmic y-axis with the argument `log = "y"` (likewise `log = "x"` specifies a logarithmic x-axis, and `log = "xy"` specifies that we want both axes on a logarithmic scale). Let's try this:
+
+```{r}
+t = seq(0,6,length.out = 50)
+n = 2^t
+plot(t, n, type="l", log = "y")
+```
+
+R automates the placement of the y-axis values. If you want to change this, you can suppress the drawing of the axes in the `plot` function and then add them afterwards:
+
+```{r}
+t = seq(0,6,length.out = 50)
+n = 2^t
+plot(t, n, type="l", log = "y", axes=F)
+box()
+axis(1)
+axis(2, at = 2^(0:6))
+```
