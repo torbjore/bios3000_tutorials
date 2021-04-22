@@ -104,7 +104,7 @@ There are many ways to make this figure. Here is how I did it (make sure you rea
     a. I first made the plot for one year
     b. I then realized I just needed to do some of the steps over again for the other years. I could have just used copy-paste and changed what needed to be changed (that would have been fine!), but this time I decided to do it in a loop. Doing it this way reduced the risk of "copy-paste" errors and other errors caused by typos. The approach can also be used for any number of repetitive tasks (plotting year specific predictions here).
     c. To use a loop, I needed the vectors `years` and `cols` (colours for the lines)
-    d. I this added a legend in the top right so that it is easy to see what the colours represent
+    d. I then added a legend in the top right so that it is easy to see what the colours represent
 
     ```{r}
     # Lower and upper limit on the y-axis
