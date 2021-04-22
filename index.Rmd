@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## Weekly tutorials
+## Main course tutorials
 
 * Week 2: [Simulations, the law of large numbers and
   the central limit theorem](https://torbjore.github.io/bios3000_tutorials/Week02/Tutorial_BIOS3000_Week02_Simulations.html)
