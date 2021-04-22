@@ -125,7 +125,7 @@ Here, each row is a different student. The first column is a personal ID ('g' st
 <!-- ``` -->
 
 
-## An introductions to (linear) statistical models
+## An introduction to (linear) statistical models
 
 <!-- We make a scatter plot of `Height` against `Foot` again with the means of each person: -->
 
