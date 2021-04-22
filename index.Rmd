@@ -22,4 +22,19 @@ knitr::opts_chunk$set(echo = TRUE)
 * Week 9: [Log-linear Poisson models](https://torbjore.github.io/bios3000_tutorials/Week09/Tutorial_BIOS3000_Week09_Poisson_models.html)
 
 
+## Support tutorials
+
+* [A very basic introduction to R](https://torbjore.github.io/bios3000_tutorials/Week09/Introduction_to_R_BIOS3000.html)
+
+* [Exponents and logarithms (in R)](https://torbjore.github.io/bios3000_tutorials/Week09/exponents-and-logarithms.html)
+
+* [Confidence intervals (and p-values)](https://torbjore.github.io/bios3000_tutorials/Week09/confidence_intervals__and_p-values_.html)
+
+* [Poisson point processes and the Poisson distribution](https://torbjore.github.io/bios3000_tutorials/Week09/poisson-and-survival.html)
+
+* [The effects of pseudoreplication on confidence intervals](https://torbjore.github.io/bios3000_tutorials/Week09/pseudoreplication-and-confidence-intervals.html)
+
+
+
+
 
