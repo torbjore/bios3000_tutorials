@@ -2,7 +2,6 @@
 title: "BIOS3000/4000 Tutorials"
 author: "Torbjørn Ergon"
 date: "`r Sys.Date()`"
-affiliation: University of Oslo
 ---
 
 ```{r setup, include=FALSE}
