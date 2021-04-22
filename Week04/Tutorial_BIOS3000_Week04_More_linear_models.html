@@ -1753,7 +1753,7 @@ names(out) = c(&quot;contrast&quot;, &quot;se&quot;, &quot;lwr95&quot;, &quot;up
 out</code></pre>
 <pre><code>##  contrast        se     lwr95     upr95 
 ## 11.446364  3.143531  5.159302 17.733426</code></pre>
-<p><span style="color:blue"> What is the unit of measurement for these numbers? Compute also this contrast at at the median foot length of males. How do you interpret the difference? </span></p>
+<p><span style="color:blue"> What is the unit of measurement for these numbers? Compute also this contrast at the median foot length of males. How do you interpret the difference? </span></p>
 <p>It is useful to be able to quickly compute contrasts with confidence intervals from a fitted model, so let’s include the entire procedure we used above in a function that only takes two arguments; a <code>data.frame</code> that specifies the contrast (the contrast is the prediction from the first row minus the prediction from the second row) and a fitted model object:</p>
 <pre class="r"><code>predict_contrast = function(data, fit){
   if(nrow(data) &lt; 2) stop(&quot;&#39;data&#39; must have exactly two rows \n&quot;)

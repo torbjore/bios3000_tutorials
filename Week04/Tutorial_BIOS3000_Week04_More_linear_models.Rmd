@@ -300,7 +300,7 @@ names(out) = c("contrast", "se", "lwr95", "upr95")
 out
 ```
 
-<span style="color:blue"> What is the unit of measurement for these numbers? Compute also this contrast at at the median foot length of males. How do you interpret the difference? </span>
+<span style="color:blue"> What is the unit of measurement for these numbers? Compute also this contrast at the median foot length of males. How do you interpret the difference? </span>
 
 It is useful to be able to quickly compute contrasts with confidence intervals from a fitted model, so let's include the entire procedure we used above in a function that only takes two arguments; a `data.frame` that specifies the contrast (the contrast is the prediction from the first row minus the prediction from the second row) and a fitted model object:
 
