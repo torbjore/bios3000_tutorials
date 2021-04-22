@@ -24,15 +24,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Support tutorials
 
-* [A very basic introduction to R](https://torbjore.github.io/bios3000_tutorials/Week09/Introduction_to_R_BIOS3000.html)
+* [A very basic introduction to R](https://torbjore.github.io/bios3000_tutorials/Support/Introduction_to_R_BIOS3000.html)
 
-* [Exponents and logarithms (in R)](https://torbjore.github.io/bios3000_tutorials/Week09/exponents-and-logarithms.html)
+* [Exponents and logarithms (in R)](https://torbjore.github.io/bios3000_tutorials/Support/exponents-and-logarithms.html)
 
-* [Confidence intervals (and p-values)](https://torbjore.github.io/bios3000_tutorials/Week09/confidence_intervals__and_p-values_.html)
+* [Confidence intervals (and p-values)](https://torbjore.github.io/bios3000_tutorials/Support/confidence_intervals__and_p-values_.html)
 
-* [Poisson point processes and the Poisson distribution](https://torbjore.github.io/bios3000_tutorials/Week09/poisson-and-survival.html)
+* [Poisson point processes and the Poisson distribution](https://torbjore.github.io/bios3000_tutorials/Support/poisson-and-survival.html)
 
-* [The effects of pseudoreplication on confidence intervals](https://torbjore.github.io/bios3000_tutorials/Week09/pseudoreplication-and-confidence-intervals.html)
+* [The effects of pseudoreplication on confidence intervals](https://torbjore.github.io/bios3000_tutorials/Support/pseudoreplication-and-confidence-intervals.html)
 
 
 
