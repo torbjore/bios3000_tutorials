@@ -85,7 +85,7 @@ Specifically, you should do the following and submit a short report (pdf created
     summary(fit_ad)$adj.r.squared
   )
   
-  n = nrow(wheat)
+  n = nrow(C10)
   k = model_tab$n_parameters
   model_tab$AICc = model_tab$AIC + (2*k^2+2*k)/(n-k-1)
   
