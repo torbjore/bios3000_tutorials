@@ -36,4 +36,4 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Even Sletteng Garvang, who is a teaching assistant at the course has also written some [short tutorials on data handling and plotting in R](https://evengar.github.io/short-tutorials/).
 
-Comments, corrections and suggestions are welcome -- t.h.ergon (at) ibv.uio.no.
+Comments, corrections and suggestions are welcome -- t.h.ergon (at) ibv.uio.no
