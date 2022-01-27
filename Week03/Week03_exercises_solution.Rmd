@@ -18,7 +18,7 @@ student_means = read.csv("student_means.csv")
 
 ## Exercises
 
-1. Write down the model fitted by the following calls to the `lm()` function with mathematical notation.
+1. Write down the models fitted by the following calls to the `lm()` function with mathematical notation.
 
     A. `fit_Foot = lm(Height ~ Foot, data = student_means)`
     
@@ -34,7 +34,7 @@ student_means = read.csv("student_means.csv")
 See under point 3 below.
 </div>
 
-2. For each of the above models, identify the response variable, the predictor variable(s), the parameters, and the random and fixed parts (= "non-random" or "systematic") of the model.
+2. For each of the above models, identify the response variable, the predictor variable(s), the parameters, and the random and fixed (systematic) parts of the model.
 
 <div class="green">
 See under point 3 below.
