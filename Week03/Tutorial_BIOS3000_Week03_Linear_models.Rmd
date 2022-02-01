@@ -50,7 +50,7 @@ This tutorial includes computation of confidence intervals - you may want to ref
 
 In this week's tutorial we will get introduced to linear statistical models.
 <!-- and analyze the morphometric data we collected in last week's group work. -->
-I suggest you run the code below by either copy-pasting into an empty R script file or by running each chuck in the R Markdown (Rmd-file).
+I suggest you run the code below by copy-pasting into an empty R script or Markdown file.
 
 I suggest you create sub-directories "Week01", "Week02", "Week03" and so on somewhere on your hard-drive. Download the Rmd-file and the data-file 
 <!-- "MeasurementData.txt" -->
