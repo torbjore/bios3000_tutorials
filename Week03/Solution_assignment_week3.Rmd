@@ -1,8 +1,10 @@
 ---
 title: "Solution and notes for the assignment Week 3"
 author: "Torbjørn Ergon"
-date: '`r Sys.Date()`'
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Assignment Task
 
-> Fit models to predict body height from a person's sex and neck circumference (one predictor variable at a time as well as an additive model and an interaction model). Look at confidence intervals of the parameters, and plot the predictions with confidence intervals. Write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height? You should try to say something about the population the data comes from and not just patterns in the data (this involves interpreting confidence intervals).
+> Fit models to predict body height from a person's sex and neck circumference; one predictor variable at a time as well as an additive model and an interaction model (i.e., four models in total). Interpret confidence intervals of the parameters, and plot the predictions with confidence intervals for the predictions of the mean (and prediction intervals is you like). Write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height? You should try to say something about the population the data comes from and not just patterns in the data (this involves interpreting confidence intervals).
 
 
 ## Reading in the data

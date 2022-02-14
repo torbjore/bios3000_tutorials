@@ -250,11 +250,11 @@ cbind(coef(fit), confint(fit))
 
 Some points to notice:
 
-  - The slope estimated in model A, where `Sex`is not included in the model is quite a lot higher than in models where `Sex` is included - the confidence intervals for the slopes in model A and in model B are also not overlapping. This is because males tend to be both higher and have longer feet. Hence the slope in model A (the "effect" of `Foot` in this model) is confounded by the sex differences. For the same reason, the effect of `Sex` in model B is higher that the effect of `Sex` in model C where we include `Foot`as a predictor variable (we may say that we "control for" the effect of 'Foot' when estimating the effect of `sex`in model C).
+  - The slope estimated in model A, where `Sex`is not included in the model is quite a lot higher than in models where `Sex` is included - the confidence intervals for the slopes in model A and in model B are also not overlapping. This is because males tend to be both higher and have longer feet. Hence the slope in model A (the "effect" of `Foot` in this model) is confounded by the sex differences. For the same reason, the effect of `Sex` in model B is higher than the effect of `Sex` in model C where we include `Foot`as a predictor variable (we may say that we "control for" the effect of 'Foot' when estimating the effect of `sex`in model C).
   
   - From the confidence intervals from model D we see that the difference in the slope between the two sexes is very uncertain. This does not mean that the true difference is small (or that we are justified in thinking that it is zero because it is "non-significant"). We just need more data to estimate this difference precisely (it can be large and it can be small - we just don't know).
   
-  - The estimates in Model E are exactly the same as the estimates in model C the for all parameters but the intercept. The is because these two models are just different parameterizations of the same model. The meaning of the intercept is different in the two models (see how in the text under point 3).
+  - The estimates in model E are exactly the same as the estimates in model C the for all parameters but the intercept. The is because these two models are just different parameterizations of the same model. The meaning of the intercept is different in the two models (see how in the text under point 3).
   
   - The width of the confidence intervals increase with the complexity of the model (the interaction model is the most complex - i.e., has most parameters). That is typical; increasing model complexity increases accuracy but reduces precision. 
   </div>
