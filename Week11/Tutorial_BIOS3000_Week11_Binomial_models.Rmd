@@ -124,11 +124,13 @@ We are often interested in trying to model the variation in the success probabil
 
 Let's say that the overall probability of being positive for a chronic medical disorder (e.g. diabetes) is 0.05. I.e., if we pick a random individual from the population, the probability that this individual has the condition is 0.05. We can call this the unconditional probability, because this is our prediction if we know nothing about the individual. If, however, we know the age of the individual, we may be able to give a better prediction (probability conditional on age). For example, a lower probability if the individual is young or a higher probability if the individual is old.
 
-So, how can we make a model for an individual $i$'s probability of success, $p_i$? Just making $p_i$ a linear function of age would be a strange model as it is hard to come up with any biological theory for why we should expect a straight line. Besides such a model could predict probabilities outside the 0 to 1 range, which is nonsense. It is customary to transform the $p$-parameter to a log-odds scale before applying a linear model, such that $\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}$ (this is called a "logit" link function).
+So, how can we make a model for an individual $i$'s probability of success, $p_i$? Just making $p_i$ a linear function of age would be a strange model as it is hard to come up with any biological theory for why we should expect a straight line. Besides such a model could predict probabilities outside the 0 to 1 range, which is nonsense. It is customary to transform the $p$-parameter to a log-odds scale before applying a linear model, such that $\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}$ -- this is called a "logit" link function, which we will introduce below.
 
-### Odds and odds ratios
+### Odds, odds ratios and the logit link
 
-Odds is simply an alternate way of expressing probability, as in when we informally say "the chance is one in a million for that to happen" instead of saying "the probability is 0.000001". Formally, the odds of an event with probability $p$ is defined as $p / (1 - p)$, or the ratio of the probability of success to the probability of non-success. A consequence of this transformation is that we have changed the domain from the unit interval (0 to 1) to the positive part on the real line: the odds is close to zero when $p$ is low but grows towards $+\infty$ as $p$ approaches 1. If we log-transform the odds of a probability ($\log(p / (1-p)) = \text{logit}(p)$) we expand the domain to the whole real line. This means that $\text{logit}(p)$ approaches $-\infty$ when $p$ becomes very small, is zero when $p = 0.5$ (which is equivalent to $p / (1 - p) = 1$) and goes toward $+\infty$ as $p$ approaches 1. This also means that $\text{logit}(p)$ is better suited to be modelled by a weighted sum of the predictor variables, since these values can in principle take any real-numbered value (i.e., from $-\infty$ to $+\infty$).We can concretize this by looking at an example.
+Odds is simply an alternate way of expressing probability, as in when we informally say "the chance is one in a million for that to happen" instead of saying "the probability is 0.000001". Formally, the odds of an event with probability $p$ is defined as $p / (1 - p)$, or the ratio of the probability of success to the probability of non-success. For example, if a betting agency states that the odds of a specific horse winning a race is $1/3$ ("one to three"), the probability that this horse will win is considered to be $p = 1/4 = 0.25$ (the probability of not winning is three times as high as the probability of winning; odds = $0.25/(1-0.25) = 1/3$). Note that the odds is just a sample transformation of the probability.
+
+A consequence of this transformation is that we have changed the domain from the unit interval (0 to 1) to the positive part on the real line: the odds is close to zero when $p$ is low but grows towards $+\infty$ as $p$ approaches 1. If we log-transform the odds of a probability ($\log(p / (1-p)) = \text{logit}(p)$) we expand the domain to the whole real line. This means that $\text{logit}(p)$ approaches $-\infty$ when $p$ becomes very small, is zero when $p = 0.5$ (which is equivalent to $p / (1 - p) = 1$) and goes toward $+\infty$ as $p$ approaches 1. This also means that $\text{logit}(p)$ is better suited to be modelled by a weighted sum of the predictor variables, since these values can in principle take any real-numbered value (i.e., from $-\infty$ to $+\infty$).We can concretize this by looking at an example.
 
 [The New York Times](https://www.nytimes.com/2021/02/07/world/south-africa-astrazeneca-vaccine.html) reported on the February 2nd 2021 from the AstraZeneca-Oxford trial in South Africa. In this [randomized controlled trial study](https://en.wikipedia.org/wiki/Randomized_controlled_trial), patients were randomly divided into two groups where one is injected with 2 doses of the AstraZeneca-Oxford vaccine while the other is given 2 doses of a placebo that looks identical to the medication. At the end of the study 19 of the 748 people in the group that was given the vaccine were infected with the new [B.1.351 variant of SARS-CoV-2 virus](https://en.wikipedia.org/wiki/Variants_of_SARS-CoV-2), compared with 20 of 714 people in the group that was given a placebo. This outcome can be tallied into a 2 by 2 *contingency table* representing the 4 possible outcomes with respect to B.1.351 infection for the two treatments.
 
@@ -188,7 +190,29 @@ In other words, we have 95% confidence that the odds of infection could be from 
 
 ### Other link functions
 
-Bla, bla....
+The logit (log-odds) link function we have used so far
+
+$$
+\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}
+$$
+
+is the default link function when specifying `family = binomial` in the `glm` function, and is probably also the most used link function for binomial models. This is a choice based on tradition and convenience and not biological theory (it actually originates from gambling theory). When the probabilities we estimate represent something that does *not* accumulate over time, but rather something similar to an instantaneous coin flip, using the logit link, and hence interpreting contrasts as odds-ratios, is a good choice. However, when we model probabilities for something occurring or not occurring in a defined period of time, it makes much more sense to us the 'loglog link' (when estimating the probability of something *not* occurring in an interval),
+
+$$
+\log \left( -\log \left( p \right) \right) = \mathbf{x}_i \mathbf{\beta}
+$$
+
+or the 'complementary loglog link' (when estimating the probability of something occurring at least once in an interval)
+
+$$
+\log \left( -\log \left( 1-p \right) \right) = \mathbf{x}_i \mathbf{\beta}
+$$
+
+The latter is often called the 'cloglog' link.
+
+For example, if we want to estimate the probability that individuals survive an interval of a fixed length (the longer the interval, the lower the probability of survival), it would make sense to use the 'loglog' link. If we instead model the probability of mortality, we would use the 'cloglog' link.
+
+With these link functions, contrasts in the linear predictors become the log of hazard ratios -- i.e., the antilog of a contrast is the ratio of two hazard rates, where a hazard rate is the "instantaneous failure rate" (defined more exactly below). We don't prioritize time to work with these link-functions in this course, but this is something you should read up on if you later need to model survival or mortality probabilities (or anything occurring or not occurring within time intervals). We provide some more details for those interested in the box below.
 
 ---
 
@@ -196,6 +220,8 @@ Bla, bla....
 **ADVANCED (may be skipped):**
 
 ### <span style="color:red">*</span>Hazard rate and survival
+
+Maa skrives om litt
 
 Although logit is the default link function for binomial `glm`s in R, we should be aware that this function is mainly a choice based on tradition and convenience and that it is not derived from any biological theory (it actually originates from gambling). Let's instead start with considering the per-time rate at which the disorder occurs per susceptible individual in the population. This type of rate is called a *hazard rate*, and we will denote it as $h$. If the hazard rate stays constant throughout the life of an individual, the probability that an individual will have avoided developing the disorder until age $A$ is $\exp(-hA)$, and the probability that the individual has developed it is $p = 1-\exp(-hA)$. The hazard rate $h$ is a ratio-scaled metric (see the tutorial of Week 5) and is natural to model with a log-linear model (i.e., modelling multiplicative effects on $h$). We can also easily expand the model to $p = 1-\exp(-hA^b)$. If $b>1$, the risk of developing the disorder increases with age, if $b<1$, the risk decreases with age, but older individuals will always have a higher probability of having developed the disorder as they have been exposed to the risk for a longer time. This model corresponds to a *accelerated failure time model* in survival analysis where the "failure times" (the ages at which the disorder develops in our case) is observed, but in our case we just observe whether the disorder has developed or not at different ages. With this model, the age at which the disorder develops will be [Weibull distributed](https://en.wikipedia.org/wiki/Weibull_distribution). 
 
