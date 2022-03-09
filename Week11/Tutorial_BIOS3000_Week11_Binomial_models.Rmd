@@ -11,6 +11,10 @@ header-includes:
   \usepackage{amsmath}
 ---
 
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -42,11 +46,16 @@ $$
 y \sim \text{Binomial}(n,p)
 $$
 
-You can read the "$\sim$" as "drawn from". This means that $P(Y=y) = \binom{n}{y} p^{y} (1-p)^{n-y}$, where $Y$ is the the stochastic variable representing the number of successes you may get in $n$ trials (the notation $P(Y=y)$ means "the probability that $Y$ takes the value $y$"). The parameter $p$ is the probability of success (e.g. testing positive for the disease) for a single study unit (e.g., individual) and study units are assumed to be independent. The expression to the right of the equal sign is the expression for the binomial probability distribution (often called "probability mass function" since the observations ($y$) can only be whole numbers (counts)).
+You can read the "$\sim$" as "drawn from". This means that $P(Y=y) = \binom{n}{y} p^{y} (1-p)^{n-y}$, where $Y$ is the the stochastic variable representing the number of successes you may get in $n$ trials (the notation $P(Y=y)$ means "the probability that $Y$ takes the value $y$"). The parameter $p$ is the probability of success (e.g. testing positive for the disease) for a single study unit (e.g., individual) and study units are assumed to be independent. In the expression for the binomial distribution above, $\binom{n}{y} = n!/(y!(n-y)!)$. This is the "binomial coefficient" which is the number of different ways of distributing $y$ successes in a sequence of $n$ trials. In R, we can compute this with the function `choose(n,y)`.
 
 Binomial models are different from regular linear models in that the response variable is not on the same scale as what we are trying to predict. What we are trying to predict is the parameter $p$ in the underlying binomial distribution. The probability $p$ is always the success probability of an *individual study unit* in the sample. Unlike e.g. the length of a body part, we cannot measure an individual's probability of e.g. getting a disease or dying (it either does or it doesn't). We say that such probabilities are "latent characteristics" which can only be predicted based on statistical modelling of data from many individuals (but the characteristics are nevertheless characteristics of the *individuals*).
 
-## Maximum likelihood estimation of $p$
+---
+
+<div class = "blue">
+**FOR A DEEPER UNDERSTANDING (may be skipped):**
+
+### <span style="color:red">*</span>Maximum likelihood estimation of $p$
 
 Assume that we have a sample of 10 individuals and the true prevalence of a disease is 35%. In many such samples we should then on average get 3.5 individuals with the disease per sample. However, in a single sample we may get, say, 3 or 6 positive individuals. We may even get 10, but that is much less likely than getting 3 or 4 (we will certainly not get 3.5). We can use the expression for the binomial distribution above to calculate the probability of getting any number between 0 and 10 positive individuals in the sample. In R we can do this with the `dbinom()` function. Let's do that and make a plot:
 
@@ -70,7 +79,9 @@ p = seq(0, 1, by = 0.01) # values of p ranging from 0 to 1
 plot(p, L(p, y, n)) # include argument type = "l" to get a line instead
 ```
 
-Note that this nice bell-shaped curve is not a probability distribution (the area under the curve is not 1). It is simply the probability of getting the data we have got for each hypothetical (candidate) value of $p$ plotted on the x-axis [Since the outcome $y$ is here a whole number, we can use the word "probability" here instead of "likelihood"]. One generally writes this function as $L(\Theta; \text{Data})$ which can be read as "the likelihood of the parameters ($\Theta$) given the data". Note that the expression for $L(p; y, n)$ is the same as the expression for $Pr(Y=y)$, but instead of viewing the expression as a function of $y$ with known $p$, we view it as a function of the parameter $p$ with known $y$.
+(Instead of the `L` function we define here, we could have used the `dbinom` function we used above)
+
+Note that this nice bell-shaped curve is not a probability distribution (the area under the curve is not 1). It is simply the probability of getting the data we have got for each hypothetical (candidate) value of $p$ plotted on the x-axis [Since the outcome $y$ is here a whole number, we can use the word "probability" instead of "likelihood"]. One generally writes this function as $L(\Theta; \text{Data})$ which can be read as "the likelihood of the parameters ($\Theta$) given the data". Note that the expression for $L(p; y, n)$ is the same as the expression for $Pr(Y=y)$, but instead of viewing the expression as a function of $y$ with known $p$, we view it as a function of the parameter $p$ with known $y$.
 
 In this example we can find the maximum likelihood estimate of $p$ by picking out the value of the `p` vector where `L(p, y, n)` is at maximum:
 
@@ -103,19 +114,23 @@ Again, if we instead had observed 50 positives in a sample of 100, the curve wou
 
 In this case the likelihood function is so simple that you could have found the peak analytically by setting the first derivative of the function to zero and solving for $p$ (i.e., solve $\frac{\partial \ell (p)}{\partial p} = 0$; we leave this for you to show on your own). However, in complex likelihood functions with many parameters one needs to find the peak on a multidimensional surface, and it is often necessary to do this maximization by numerical computation (cannot be solved analytically). We will return to that later.
 
+</div>
+
+---
+
 ## Modelling $p$
 
 We are often interested in trying to model the variation in the success probability ($p$) among individuals. For example, we may want to study how the probability of having a condition is associated with age or some environmental factor. Or perhaps we want to build a model to predict the risk of developing a heart disease such that people at risk can be warned or examined.
 
 Let's say that the overall probability of being positive for a chronic medical disorder (e.g. diabetes) is 0.05. I.e., if we pick a random individual from the population, the probability that this individual has the condition is 0.05. We can call this the unconditional probability, because this is our prediction if we know nothing about the individual. If, however, we know the age of the individual, we may be able to give a better prediction (probability conditional on age). For example, a lower probability if the individual is young or a higher probability if the individual is old.
 
-So, how can we make a model for an individual $i$'s probability of success, $p_i$? Just making $p_i$ a linear function of age would be as strange model as it is hard to come up with any biological theory for why we should expect a straight line. Besides such a model could predict probabilities outside the 0 to 1 range, which is nonsense. It is customary to transform the $p$-parameter to a log-odds scale before applying a linear model, such that $\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}$ (this is called a "logit" link function). Which means that should now take a moment to recapture the concepts of odds and odds ratios before we proceed.
+So, how can we make a model for an individual $i$'s probability of success, $p_i$? Just making $p_i$ a linear function of age would be a strange model as it is hard to come up with any biological theory for why we should expect a straight line. Besides such a model could predict probabilities outside the 0 to 1 range, which is nonsense. It is customary to transform the $p$-parameter to a log-odds scale before applying a linear model, such that $\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}$ (this is called a "logit" link function).
 
-## Odds and odds ratios
+### Odds and odds ratios
 
-Odds is simply an alternate way of expressing probability, as in when we informally say "the chance is one in a million for that to happen" instead of saying "the probability is 0.000001". Formally, the odds of an event with probability $p$ is defined as $p / (1 - p)$, or the ratio of the probability of success to the probability of non-success. A consequence of this transformation is that we have changed the domain from the unit interval (0 to 1) to the positive part on the real line: the odds is close to zero when $p$ is low but grows towards $+\infty$ as $p$ approaches 1.If we log-transform the odds of a probability ($\log(p / (1-p)) = \text{logit}(p)$) we expand the domain to the whole real line. This means that $\text{logit}(p)$ approaches $-\infty$ when $p$ becomes very small, is zero when $p = 0.5$ (which is equivalent to $p / (1 - p) = 1$) and goes toward $+\infty$ as $p$ approaches 1.This also means that $\text{logit}(p)$ is better suited to be modelled by a weighted sum of the independent variables, since these values can in principle take any real-numbered value (i.e., from $-\infty$ to $+\infty$).We can concretize this by looking at an example.
+Odds is simply an alternate way of expressing probability, as in when we informally say "the chance is one in a million for that to happen" instead of saying "the probability is 0.000001". Formally, the odds of an event with probability $p$ is defined as $p / (1 - p)$, or the ratio of the probability of success to the probability of non-success. A consequence of this transformation is that we have changed the domain from the unit interval (0 to 1) to the positive part on the real line: the odds is close to zero when $p$ is low but grows towards $+\infty$ as $p$ approaches 1. If we log-transform the odds of a probability ($\log(p / (1-p)) = \text{logit}(p)$) we expand the domain to the whole real line. This means that $\text{logit}(p)$ approaches $-\infty$ when $p$ becomes very small, is zero when $p = 0.5$ (which is equivalent to $p / (1 - p) = 1$) and goes toward $+\infty$ as $p$ approaches 1. This also means that $\text{logit}(p)$ is better suited to be modelled by a weighted sum of the predictor variables, since these values can in principle take any real-numbered value (i.e., from $-\infty$ to $+\infty$).We can concretize this by looking at an example.
 
-[The New York Times](https://www.nytimes.com/2021/02/07/world/south-africa-astrazeneca-vaccine.html) reports on the February 2nd 2021 from the AstraZeneca-Oxford trial in South Africa. In this [randomized controlled trial study](https://en.wikipedia.org/wiki/Randomized_controlled_trial), patients were randomly divided into two groups where one is injected with 2 doses of the AstraZeneca-Oxford vaccine while the other is given 2 doses of a placebo that looks identical to the medication. At the end of the study 19 of the 748 people in the group that was given the vaccine were infected with the new [B.1.351 variant of SARS-CoV-2 virus](https://en.wikipedia.org/wiki/Variants_of_SARS-CoV-2), compared with 20 of 714 people in the group that was given a placebo. This outcome can be tallied into a 2 by 2 *contingency table* representing the 4 possible outcomes with respect to B.1.351 infection for the two treatments.
+[The New York Times](https://www.nytimes.com/2021/02/07/world/south-africa-astrazeneca-vaccine.html) reported on the February 2nd 2021 from the AstraZeneca-Oxford trial in South Africa. In this [randomized controlled trial study](https://en.wikipedia.org/wiki/Randomized_controlled_trial), patients were randomly divided into two groups where one is injected with 2 doses of the AstraZeneca-Oxford vaccine while the other is given 2 doses of a placebo that looks identical to the medication. At the end of the study 19 of the 748 people in the group that was given the vaccine were infected with the new [B.1.351 variant of SARS-CoV-2 virus](https://en.wikipedia.org/wiki/Variants_of_SARS-CoV-2), compared with 20 of 714 people in the group that was given a placebo. This outcome can be tallied into a 2 by 2 *contingency table* representing the 4 possible outcomes with respect to B.1.351 infection for the two treatments.
 
 ```{r}
 # https://www.nytimes.com/2021/02/07/world/south-africa-astrazeneca-vaccine.html
@@ -140,7 +155,7 @@ Notice how we use the rownames to extract different rows of the table. We see th
 (odds.inf <- p.inf / (1 - p.inf))
 ```
 
-We notice in passing that the probabilities for success and non-success in the same treatment have the same denominator (`colSums(az`)) such that we can also calculate the odds directly from the counts (`az["Infected", ] / ac["Not.Infect", ]`); check it out and take moment to think about why this has to be so. Finally, we can calculate the odds ratio of the treatments, which represents the relative change in odds between the treatment and the placebo:
+We notice in passing that the probabilities for success and non-success in the same treatment have the same denominator (`colSums(az`)) such that we can also calculate the odds directly from the counts (`az["Infected", ] / ac["Not.Infect", ]`); check it out and take a moment to think about why this has to be so. Finally, we can calculate the odds ratio of the treatments, which represents the relative change in odds between the treatment and the placebo:
 
 ```{r}
 (odds.ratio <- odds.inf["Vaccine"] / odds.inf["Placebo"])
@@ -148,7 +163,7 @@ We notice in passing that the probabilities for success and non-success in the s
 
 The ratio is obviously close to 1 (i.e., identical odds in the two treatments), but we would also have liked to quantify the uncertainty in this estimate before we conclude anything about the efficacy of the AstraZeneca-Oxford vaccine against the new variant. We can approach this in many ways, but here we will show how to get this information by fitting the contingency table to a binomial generalized linear model (`glm`).
 
-Binomial `glm`s are different from other linear model we have encountered in the sense that the dependent variable need to consist of two columns (the exception is *binary* binomial models where each observation is just a binary TRUE/FALSE variable); one for number of successes and one for number of failures. We usually do this by using the `cbind` function to make a two-column vector as the dependent variable. In our case the data are already in a 2 by 2 table, but we need to transpose this table to have one column for the number of successes (infected) and the number of failures (not infected). The independent variable will just be a factor representing the treatments, which we extract from the column names of the contingency table. We also notice that `Placebo` will become the reference level by the default alphabetical ordering of factor levels. 
+Binomial `glm`s are different from other linear model we have encountered in the sense that the dependent variable need to consist of two columns (the exception is *binary* binomial models where each observation is just a binary TRUE/FALSE variable); one for number of successes and one for number of failures. We usually do this by using the `cbind` function to make a two-column vector as the dependent variable. In our case the data are already in a 2 by 2 table, but we need to transpose this table to have one column for the number of successes (infected) and the number of failures (not infected). The predictor variable will just be a factor representing the treatments, which we extract from the column names of the contingency table. We also notice that `Placebo` will become the reference level by the default alphabetical ordering of factor levels. 
 
 ```{r}
 (outcome <- cbind(Infected=az["Infected", ], Not.Infect=az["Not.Infect", ]))
@@ -169,9 +184,18 @@ The advantage of doing this estimation by a `glm` is that we can also get confid
 exp(confint(m)[2, ])
 ```
 
-In other words, we have 95% confidence that the odds of infection could be from 52% lower to 71% higher in the vaccine treatment relative to the placebo. Since the interval encloses equal odds (1:1), we find little support for claiming that the AstraZeneca-Oxford vaccine prevents infection by B.1.351 variant of the SARS-CoV-2 virus.
+In other words, we have 95% confidence that the odds of infection could be from 52% lower to 71% higher in the vaccine treatment relative to the placebo. Hence, we find little support for claiming that the AstraZeneca-Oxford vaccine substantially prevents infection by B.1.351 variant of the SARS-CoV-2 virus -- the vaccine may reduce the odds of infection by about 50%, but it is unlikely that the vaccine has a much stronger effect than that. If we get more data, the confidence interval will become narrower, but it will not necessarily be centered around 1 (equal odds).
 
-## Hazard rate and survival
+### Other link functions
+
+Bla, bla....
+
+---
+
+<div class = "blue">
+**ADVANCED (may be skipped):**
+
+### <span style="color:red">*</span>Hazard rate and survival
 
 Although logit is the default link function for binomial `glm`s in R, we should be aware that this function is mainly a choice based on tradition and convenience and that it is not derived from any biological theory (it actually originates from gambling). Let's instead start with considering the per-time rate at which the disorder occurs per susceptible individual in the population. This type of rate is called a *hazard rate*, and we will denote it as $h$. If the hazard rate stays constant throughout the life of an individual, the probability that an individual will have avoided developing the disorder until age $A$ is $\exp(-hA)$, and the probability that the individual has developed it is $p = 1-\exp(-hA)$. The hazard rate $h$ is a ratio-scaled metric (see the tutorial of Week 5) and is natural to model with a log-linear model (i.e., modelling multiplicative effects on $h$). We can also easily expand the model to $p = 1-\exp(-hA^b)$. If $b>1$, the risk of developing the disorder increases with age, if $b<1$, the risk decreases with age, but older individuals will always have a higher probability of having developed the disorder as they have been exposed to the risk for a longer time. This model corresponds to a *accelerated failure time model* in survival analysis where the "failure times" (the ages at which the disorder develops in our case) is observed, but in our case we just observe whether the disorder has developed or not at different ages. With this model, the age at which the disorder develops will be [Weibull distributed](https://en.wikipedia.org/wiki/Weibull_distribution). 
 
@@ -201,6 +225,10 @@ summary(fit)
 ```
 
 The intercept is here $\log(h)$ where the true value is $\log(1/100) =$ `r round(log(1/100), 2)`, and the true slope with `log(Age)` is `r b`. With this low sample size there will be some difference between the point estimates and the true values, but the confidence interval based on $\pm 2$SE should cover the true values about 95% of the time. If you increase the sample size to 100,000 you will see that the point estimates become very close to the true values of the parameters.
+
+</div>
+
+---
 
 ## <span style="color:red">*</span>Model fitting by maximum likelihood from scratch 
 
@@ -387,13 +415,13 @@ The original data set contained numerous missing values which apparently were en
 
 A. Read the file "Pima-indian-diabetes.csv" into R. For the rest of the exercise it is more convenient if we change the variable `diabetes` from factor to a logical variable which is `TRUE` for factor level "Yes" (hint: `diabetes == "Yes"` gives a logical variable; notice the double equals sign). Use `head()` and `summary()` to assure yourself the file has been read properly.
 
-B. Our task is to predict `diabetes` from other variables. It is therefore a good idea to first look at relationships between the independent variables by making scatterplot and correlation matrices (hint: `plot()` on a `data.frame` object is identical to using the `pairs()` function). *Are there any independent variables that are closely related? If so, can you think of explanations for this?* (hint: look at for example `bmi` vs. `skin`, or `age` vs. `npreg`). *Which considerations should we make when using any of these pairs in a model?*
+B. Our task is to predict `diabetes` from other variables. It is therefore a good idea to first look at relationships between the predictor variables by making scatterplot and correlation matrices (hint: `plot()` on a `data.frame` object is identical to using the `pairs()` function). *Are there any predictor variables that are closely related? If so, can you think of explanations for this?* (hint: look at for example `bmi` vs. `skin`, or `age` vs. `npreg`). *Which considerations should we make when using any of these pairs in a model?*
 
-C. Use boxplots to investigate the distributions of at least 4 independent variables grouped by diabetes status. You can use the `boxplot()` function with a formula like `glu ~ factor(diabetes)`. Notice that this works better if you cast the now logical variable `diabetes` into a factor again. Using the argument `horizontal=TRUE` in the `boxplot()` call makes the figure easier to read.
+C. Use boxplots to investigate the distributions of at least 4 predictor variables grouped by diabetes status. You can use the `boxplot()` function with a formula like `glu ~ factor(diabetes)`. Notice that this works better if you cast the now logical variable `diabetes` into a factor again. Using the argument `horizontal=TRUE` in the `boxplot()` call makes the figure easier to read.
 
-D. Pick one of the independent variables you investigated in part C and make a univariate binomial `glm` with logit link where you use this variable to predict diabetes status. Notice that since our dependent variable is binary, we do not need to use `cbind()` to make a 2-column vector for the dependent variable. *Explain how you interpret the intercept and slope estimates in this model.* *Make a 95% confidence interval for the relative change in odds per unit change in the independent variable* (depending on the variable you choose, it may increase readability to compute the relative change per 10 or 100 units).
+D. Pick one of the predictor variables you investigated in part C and make a univariate binomial `glm` with logit link where you use this variable to predict diabetes status. Notice that since our dependent variable is binary, we do not need to use `cbind()` to make a 2-column vector for the dependent variable. *Explain how you interpret the intercept and slope estimates in this model.* *Make a 95% confidence interval for the relative change in odds per unit change in the predictor variable* (depending on the variable you choose, it may increase readability to compute the relative change per 10 or 100 units).
 
 E. Use the `predict()` function on your model. If your model is called `m` then `predict(m)` gives model predictions for all observations in link function units (i.e., logit units), while `predict(m, type="response")` gives predictions in probability units. Make a new variable `diabetes.true` equal to the `diabetes` column in your data frame, and a variable `diabetes.pred = (p > 0.5)` where `p` is a variable  containing the predicted probabilities from your model. Make a contingency table for true and predicted diabetes status (`table(diabetes.true, diabetes.pred`). *How do you interpret the diagonal and off-diagonal elements in this matrix? How many false positives and false negatives does your model predict?* Compute the Positive Prediction Value (PPV) for your model as the number of true positives divided by total positive predictions. *How useful would you consider your model to be for the predicting risk of diabetes in Pima Indians?*
 
-F. Make a visualization of your model. A line drawn through the predicted probabilities looks messy because the observations are not necessarily ordered by the independent variable of your model. We can make predictions for arbitrary values of the independent variable by using the `newdata=` argument in the `predict()` function. `newdata` must be assigned to a list or data frame that includes exactly the same variable names as in the model. So, if we use `age` as independent variable, and we are interested in predicting diabetes status over the age interval spanned by the data, we can set `newdata=data.frame(age = seq(20, 80))`. If we set `se.fit=TRUE` then `predict` will return a 2-column vector with predicted log(odds) and their standard errors. Use this information to produce a plot of predicted probability of diabetes with a 95% confidence belt for the predictions. Notice that you need to make predictions on link-function scale (`type="link`) and back-transform the confidence limits with the inverse link function, as illustrated in the `predict_my_glm` function above. Figure also out how to use the `rug()` function to represent observations of the independent variable along the x-axis.
+F. Make a visualization of your model. A line drawn through the predicted probabilities looks messy because the observations are not necessarily ordered by the predictor variable of your model. We can make predictions for arbitrary values of the predictor variable by using the `newdata=` argument in the `predict()` function. `newdata` must be assigned to a list or data frame that includes exactly the same variable names as in the model. So, if we use `age` as predictor variable, and we are interested in predicting diabetes status over the age interval spanned by the data, we can set `newdata=data.frame(age = seq(20, 80))`. If we set `se.fit=TRUE` then `predict` will return a 2-column vector with predicted log(odds) and their standard errors. Use this information to produce a plot of predicted probability of diabetes with a 95% confidence belt for the predictions. Notice that you need to make predictions on link-function scale (`type="link`) and back-transform the confidence limits with the inverse link function, as illustrated in the `predict_my_glm` function above. Figure also out how to use the `rug()` function to represent observations of the predictor variable along the x-axis.
 
