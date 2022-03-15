@@ -165,7 +165,7 @@ We notice in passing that the probabilities for success and non-success in the s
 
 The ratio is obviously close to 1 (i.e., identical odds in the two treatments), but we would also have liked to quantify the uncertainty in this estimate before we conclude anything about the efficacy of the AstraZeneca-Oxford vaccine against the new variant. We can approach this in many ways, but here we will show how to get this information by fitting the contingency table to a binomial generalized linear model (`glm`).
 
-Binomial `glm`s are different from other linear model we have encountered in the sense that the dependent variable need to consist of two columns (the exception is *binary* binomial models where each observation is just a binary TRUE/FALSE variable); one for number of successes and one for number of failures. We usually do this by using the `cbind` function to make a two-column vector as the dependent variable. In our case the data are already in a 2 by 2 table, but we need to transpose this table to have one column for the number of successes (infected) and the number of failures (not infected). The predictor variable will just be a factor representing the treatments, which we extract from the column names of the contingency table. We also notice that `Placebo` will become the reference level by the default alphabetical ordering of factor levels. 
+Binomial `glm`s are different from other linear model we have encountered in the sense that the response variable need to consist of two columns (the exception is *binary* binomial models where each observation is just a binary TRUE/FALSE variable); one for number of successes and one for number of failures. We usually do this by using the `cbind` function to make a two-column vector as the response variable. In our case the data are already in a 2 by 2 table, but we need to transpose this table to have one column for the number of successes (infected) and the number of failures (not infected). The predictor variable will just be a factor representing the treatments, which we extract from the column names of the contingency table. We also notice that `Placebo` will become the reference level by the default alphabetical ordering of factor levels. 
 
 ```{r}
 (outcome <- cbind(Infected=az["Infected", ], Not.Infect=az["Not.Infect", ]))
@@ -196,165 +196,72 @@ $$
 \log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}
 $$
 
-is the default link function when specifying `family = binomial` in the `glm` function, and is probably also the most used link function for binomial models. This is a choice based on tradition and convenience and not biological theory (it actually originates from gambling theory). When the probabilities we estimate represent something that does *not* accumulate over time, but rather something similar to an instantaneous coin flip, using the logit link, and hence interpreting contrasts as odds-ratios, is a good choice. However, when we model probabilities for something occurring or not occurring in a defined period of time, it makes much more sense to us the 'loglog link' (when estimating the probability of something *not* occurring in an interval),
+is the default link function when specifying `family = binomial` in the `glm` function, and is probably also the most used link function for binomial models. This is a choice based on tradition and convenience and not biological theory (it actually originates from gambling theory). When the probabilities we estimate represent something that does *not* accumulate over time, but rather something similar to an instantaneous coin flip, using the logit link, and hence interpreting contrasts as odds-ratios, is a good choice. However, when we model probabilities for something occurring or not occurring in a defined period of time (or in a sample of a defined volume), it makes much more sense to us the 'loglog link' (when estimating the probability of something *not* occurring in an interval/volume),
 
 $$
-\log \left( -\log \left( p \right) \right) = \mathbf{x}_i \mathbf{\beta}
+\log \left( -\log \left( p_i \right) \right) = \mathbf{x}_i \mathbf{\beta}
 $$
 
-or the 'complementary loglog link' (when estimating the probability of something occurring at least once in an interval)
+or the 'complementary loglog link' (when estimating the probability of something occurring at least once in an interval/volume)
 
 $$
-\log \left( -\log \left( 1-p \right) \right) = \mathbf{x}_i \mathbf{\beta}
+\log \left( -\log \left( 1-p_i \right) \right) = \mathbf{x}_i \mathbf{\beta}
 $$
 
 The latter is often called the 'cloglog' link.
 
-For example, if we want to estimate the probability that individuals survive an interval of a fixed length (the longer the interval, the lower the probability of survival), it would make sense to use the 'loglog' link. If we instead model the probability of mortality, we would use the 'cloglog' link.
-
-With these link functions, contrasts in the linear predictors become the log of hazard ratios -- i.e., the antilog of a contrast is the ratio of two hazard rates, where a hazard rate is the "instantaneous failure rate" (defined more exactly below). We don't prioritize time to work with these link-functions in this course, but this is something you should read up on if you later need to model survival or mortality probabilities (or anything occurring or not occurring within time intervals). We provide some more details for those interested in the box below.
+For example, if we want to estimate the probability that individuals survive (not die) an interval of a fixed length (the longer the interval, the lower the probability of survival), it would make sense to use the 'loglog' link. If we instead model the probability of mortality, we would use the 'cloglog' link. With these link functions, contrasts in the linear predictors become the log of hazard ratios -- i.e., the antilog of a contrast is the ratio of two hazard rates, where a hazard rate is the "instantaneous failure rate" (defined more exactly below). We don't prioritize time to work with these link-functions in this course, but this is something you should read up on if you later need to model survival or mortality probabilities (or anything occurring or not occurring within time intervals). We provide some more details for those interested in the box below.
 
 ---
 
 <div class = "blue">
 **ADVANCED (may be skipped):**
 
-### <span style="color:red">*</span>Hazard rate and survival
+### <span style="color:red">*</span>Modelling $p$ with the (complementary) log-log link
 
-Maa skrives om litt
+We will here walk trough a couple of examples using the complementary log-log link in binomial models. First we will look into estimation of survival probabilities and mortality rates. Thereafter, we will look into an ingenious method for estimating the density of bacteria in water samples.
 
-Although logit is the default link function for binomial `glm`s in R, we should be aware that this function is mainly a choice based on tradition and convenience and that it is not derived from any biological theory (it actually originates from gambling). Let's instead start with considering the per-time rate at which the disorder occurs per susceptible individual in the population. This type of rate is called a *hazard rate*, and we will denote it as $h$. If the hazard rate stays constant throughout the life of an individual, the probability that an individual will have avoided developing the disorder until age $A$ is $\exp(-hA)$, and the probability that the individual has developed it is $p = 1-\exp(-hA)$. The hazard rate $h$ is a ratio-scaled metric (see the tutorial of Week 5) and is natural to model with a log-linear model (i.e., modelling multiplicative effects on $h$). We can also easily expand the model to $p = 1-\exp(-hA^b)$. If $b>1$, the risk of developing the disorder increases with age, if $b<1$, the risk decreases with age, but older individuals will always have a higher probability of having developed the disorder as they have been exposed to the risk for a longer time. This model corresponds to a *accelerated failure time model* in survival analysis where the "failure times" (the ages at which the disorder develops in our case) is observed, but in our case we just observe whether the disorder has developed or not at different ages. With this model, the age at which the disorder develops will be [Weibull distributed](https://en.wikipedia.org/wiki/Weibull_distribution). 
+#### Hazard rates and survival probabilities
 
-Note that $\log(hA^b)=\log(h) + b\log(A)$. Hence, our model can be written on the form $p = 1-\exp(-\exp(\eta))$ where $\eta=\beta_0+\beta_1x_1$, $\beta_0=\log(h)$, $\beta_1=b$ and $x_1=\log(A)$. This corresponds to $\log(-\log(1-p))=\eta = \mathbf{x}_i \mathbf{\beta}$ which is called the "complementary loglog" link function ("cloglog" for short). This is one of the standard link functions available in the `glm()` function for "generalized linear models" in R. Hence, we can fit our model by using a standard "cloglog" link and include log of age as one of the predictor variables.
-
-Let us simulate some data and fit the model in `glm()` to check that we got things right. First, we simulate some data that we plot:
-
-```{r}
-n = 100 # Number of individuals
-Age = runif(n, 20, 90) # Draw ages from a uniform distribution (not realistic, but works for the purpose)
-h = 1/100 # If b = 1, time until the disorder develops is exponentially distributed with mean 1/h
-b = 1.1 # To see the relationship between accelerated Age and Age, use plot(Age, Age^b); abline(0,1)
-eta = log(h) + b*log(Age)
-p = 1-exp(-exp(eta))
-y = rbinom(n, 1, p)
-plot(Age, y)
-points(Age, p, col="blue")
-```
-
-The blue points are here the individual probabilities of having developed the disorder while the black points are the realized data (0 = "no disorder", 1 = "disorder").
-
-Now we can fit these data to the model and see if we get parameter estimates close to the true values:
-
-```{r}
-fit = glm(y ~ log(Age), family = binomial(link = "cloglog"))
-summary(fit)
-```
-
-The intercept is here $\log(h)$ where the true value is $\log(1/100) =$ `r round(log(1/100), 2)`, and the true slope with `log(Age)` is `r b`. With this low sample size there will be some difference between the point estimates and the true values, but the confidence interval based on $\pm 2$SE should cover the true values about 95% of the time. If you increase the sample size to 100,000 you will see that the point estimates become very close to the true values of the parameters.
-
-</div>
-
----
-
-## <span style="color:red">*</span>Model fitting by maximum likelihood from scratch 
-
-If you've had enough of maximum likelihood estimation for now, you can skip ahead to the exercises. If you want to know what goes on under the hood in the `glm()`, read on!
-
-Above, we derived the binomial log-likelihood function when $p$ is the same for all individuals in the sample. This log-likelihood also applies when $n=1$. How do we go about constructing a likelihood function when each individual has its own $p_i$ and $y_i$?
-
-Remember that the probability of a series of **independent** events is the product of the probability of each event, $\Pr(A \cap B \cap C) = \Pr(A) \Pr(B) \Pr(C)$ (the assumption of independence is essential here). This means that the likelihood for the data on all individuals is the product of the likelihood for each individual. In the log-likelihood, the product becomes a sum (remember that $\log(xy) = \log(x) + \log(y)$). Hence, the log-likelihood for the data is
+The time of death (or any type of "failure") of an individual (or any study unit) may follow a probability distribution $f(t)$. The hazard rate, or the "instantaneous failure rate", is then
 
 $$
-\ell (\mathbf{p} ; \mathbf{y}) = \sum_i^{N} \left( y_i\log(p_i) + (1-y_i)\log(1-p_i) \right)
+\lambda(t) = \frac{f(t)}{1-F(t)}
+$$
+where $F(t)$ is the cumulative distribution, $F(t) = \int_{x=-\infty}^{t}{f(x)}dx$.
+
+You can think of this formula for the hazard rate as meaning "the probability of dying during a short time interval after time $t$ given that the individual is alive at time $t$ (note that the probability of being alive (not yet dead) at time $t$ is $1-F(t)$).
+
+When the hazard rate is constant, $\lambda(t) = \lambda$, the probability of surviving from time $0$ to time $t$ is 
+
+$$
+S(t) = \exp(-\lambda t)
 $$
 
-Note that we have here replaced $n$ with $1$ for all individuals and $N$ is the number of individuals.
+If the hazard rate is a function of time, $\lambda(t)$, we have
 
-It is quite straightforward to modify the code for simulating data that we used above to become a log-likelihood function for the particular model. We basically just need to replace the random drawing of individual values with a calculation of the likelihood. We do this below while calculating the linear predictor in the general way as $\eta = \mathbf{X} \mathbf{\beta}$ (see last tutorial). We also compute the negative of the log-likelihood function because optimization routines in R (and elsewhere) do minimization and not maximization. 
+$$
+S(t) = \exp \left( -\int_0^t \lambda(t) dt \right)
+$$
 
-```{r}
-inv_cloglog = function(x) 1-exp(-exp(x)) # The inverse cloglog link function
-nll_cloglog = function(beta, y, X, inv_link = inv_cloglog){
-  eta = X %*% beta
-  p = inv_link(eta)
-  nll = -sum(y*log(p) + (1-y)*log(1-p))
-}
+You can see the relationship between this and the Poisson distribution by imagining an immortal individual exposed to mortality events at an intensity of $\lambda$. The expected number of such events experienced during an interval of length $t$ is then $\bar\lambda t$, where $\bar\lambda$ is the time-averaged hazard rate in the interval, and the probability of experiencing zero events (i.e. surviving) in the interval is  $\exp(-\bar\lambda t)$ (recall the the Poisson probability mass function, $P(X=x) = \lambda^x \exp(-\lambda)/x!$, and insert $x=0$).
 
-```
+The hazard rate $h$ is a ratio-scaled metric (see the tutorial of Week 5) that is natural to model with a log-linear model (i.e., modelling multiplicative effects on $h$). Hence, inserting $\bar\lambda = \exp(\eta)$, and considering survival probability over one time unit, we get the inverse of the log-log link,
 
-This is the general negative log-likelihood function for a binomial model with a cloglog link where the arguments `beta` is the parameter vector, `y` is the observed binary response and `X` is the design matrix for cloglog(p). We can find the values in the parameter vector that minimize this function by using the `optim()` function in R. We do this below with the specific model we formulated above for our simulated data:
+$$
+S = \exp(-\exp(\eta))
+$$
+which is equivalent to $\log(-\log(S)) = \eta$. If we instead model the probability of mortality, $P=1-S$, we get the complementary log-log link, $\log(-\log(1-P)) = \eta$.
 
-```{r}
-Sim_data = data.frame(y=y, Age=Age)
-X = model.matrix(~log(Age), Sim_data)
-beta_start = c(0,0) # starting values for the numerical optimization (starting at 0 usually works well for glm's)
-(fit = optim(beta_start, fn=nll_cloglog, y=Sim_data$y, X=X, hessian = TRUE))
-```
+When modelling mortality, or any type of events that occur to study units over time, it is essential to account for individuals that are removed or disappear from the sample as the individuals age (removed individuals are said to be "censored"). Typically, individuals that live for a long time have a higher chance of becoming censored simply because they are exposed to censoring for a longer time (note also that individuals that are alive at the end of the study are also censored). Hence, if we ignore censoring, we will get biased estimates of survival and mortality.
 
-Here, `$par` holds the parameter estimates (you can confirm that these are the same as what we got from `glm()`) and `$value` is the negative log likelihood at minimum. The next three outputs is a summary of the optimization process; as long as `$convergence` is 0 (indicating convergence) and there are no messages, we as happy. The last output, `$hessian`, is given to us because we asked for it in the call to `optim()` by specifying `hessian = TRUE`. The hessian matrix is a matrix of second order partial derivatives of the negative log likelihood with respect to the parameters, evaluated at the optimum. Specifically, the element in row $i$ and column $j$ equals $\frac{\partial^2 \ell}{\partial \beta_i \partial \beta_j}$. This matrix is very useful because the inverse of the hessian is an estimate of the variance-covariance matrix of the parameter estimators. The square-root of the diagonal of this is the standard errors of the parameter estimates:
+When studying other events occurring to individuals over time, such as maturing, getting infected by a pathogen or developing a medical condition such as cancer or diabetes, mortality is a natural cause of censoring. It is therefore not possible to study the hazard rates for such events (or their corresponding event time distribution ($f(t)$) or survival function ($S(t)$)) without accounting for mortality in one way or another.
 
-```{r}
-vc = solve(fit$hessian)
-(SE = sqrt(diag(vc)))
-```
+A further complication is that mortality hazard rates are typically heterogeneous in a population; I.e., some individuals have a lower or higher hazard rate than other individuals in the population due to e.g. genetic differences or the amount of resources they possess. When this is the case, a sample of individuals will be dominated more and more by the "high quality" individuals over time (i.e., those with low mortality hazard rates) as the "low quality" individuals tend to die early and disappear from the remaining sample. Hence, it is not uncommon to see that the mean (or overall) mortality hazard rate in the population *decrease* at higher age even when the hazard rate for every individual *increase* as they age (this is often referred to as a "frailty" effect -- frail individuals disappear earlier from the sample/population).
 
-Again, we can confirm that these values are practically the same as the standard errors returned by `glm()`.
+Unfortunately, we don't have time to go any deeper into these issues in this course, but these are important issues that you need to understand if you are going to work with survival data, or data on events occurring to individuals over time, in the future.
 
-Let's wrap up these procedures in our own glm function:
-
-```{r}
-my_glm = function(formula, data, y, start=NULL, inv_link = inv_cloglog){
-  X = model.matrix(formula, data = data)
-  if(is.null(start)) start = rep(0, ncol(X)) # Setting starting values unless supplied
-  names(start) = dimnames(X)[[2]]
-  fit = optim(start, fn=nll_cloglog, y=Sim_data$y, X=X, inv_link=inv_link, hessian = TRUE)
-  vcov = solve(fit$hessian)
-  return(
-    list(
-      optim_output = fit,
-      par = fit$par,
-      se = sqrt(diag(vc)),
-      vcov = vcov,
-      inv_link = inv_cloglog,
-      formula = formula
-    )
-  )
-}
-fit_my_glm = my_glm(~log(Age), Sim_data, Sim_data$y)
-```
-
-The output is not shown here, but you can type `fit_my_glm` in the console window to see it.
-
-We have now made our own function for fitting a generalized linear model in R! This function doesn't (yet) do anything that we cannot do with `glm()`. However, we can easily modify it to e.g. include non-linear components (e.g., we could include several additive (rather than multiplicative) components of the disorder hazard rate).
-
-For completeness, we can also make a function for computing predictions from the model fit:
-
-```{r}
-predict_my_glm = function(fit, newdata){
-    X = model.matrix(fit$formula, data = newdata)
-    eta = X %*% fit$par
-    vc = X %*% fit$vcov %*% t(X)
-    se = sqrt(diag(vc))
-    pred = data.frame(
-      p_hat = fit$inv_link(eta),
-      lwr = fit$inv_link(eta - 2*se),
-      upr = fit$inv_link(eta + 2*se)
-    )
-    return(cbind(newdata, pred))
-}
-```
-
-We can use this for plotting the predictions with 95% confidence interval:
-
-```{r}
-newdata = data.frame(Age = 20:90)
-pred = predict_my_glm(fit_my_glm, newdata)
-plot(pred$Age, pred$p_hat, type="l", ylim=c(0,1), xlab="Age", ylab="Probability of disorder")
-lines(pred$Age, pred$lwr, lty=2)
-lines(pred$Age, pred$upr, lty=2)
-```
-
-## <span style="color:red">*</span>Most Probable Number (MPN)
+#### Most Probable Number (MPN)
 
 The Most Probable Number (MPN) method has been used in microbiology since at least the 1930ies to quantify the number of organisms in a sample. The method is particularly useful for quantifying organisms which cannot be identified by morphology but rather by their ability to grow in specific media, which was the case for much of bacterial systematics before emergence of current DNA-based classifications. The MPN method has, for example, remained a standard method for estimating the number of fecal coliform bacteria in water samples. Fecal coliforms, which live exclusively in the guts of endothermic animals, are considered good indicators of fresh sewage pollution, and thus an important hygienic quality parameter for assessing the suitability of a water source for consumption and recreation.
 
@@ -364,16 +271,17 @@ The statistical basis for the MPN method was worked out by R. A. Fisher himself 
 
 Assume that we have a sample that contains an average of $\lambda$ bacteria per mL of liquid. Thus the average number of bacteria in 1/2 mL, 1/4 mL, 1/8 mL, ... will be $\lambda/2$, $\lambda/4$ $\lambda/8$, ... and generally $\lambda 2^{-i}$ in $2^{-i}$ mL of liquid. If the bacteria are randomly distributed in the original sample, then the number of bacteria ($N$) in a population of 1 mL subsamples from the same source can be described by a Poisson distribution with intensity parameter $\lambda$ ($N \sim \text{Poisson}(\lambda)$), while the distribution of bacterial numbers in a population of $2^{-i}$ mL subsamples will be $\sim \text{Poisson}(\lambda 2^{-i})$.
 
-A certain subsample will only give growth if it contained at least 1 bacterial cell, which means that $P(growth) = P(N>0)$. Since the domain of $N$ is the natural numbers (0, 1, 2, ... then ) then the law of complementary probability tells us that $P(N>0) = 1 - P(N=0)$. Since Poisson probability for $N=0$ is simply $exp(-\lambda)$ (check this out yourself!), the probability of growth in dilution $i$ becomes $p_i = 1 - exp(-\lambda 2^{-i})$. By rearranging the terms and log-transforming both sides twice (check out yourself!) we can show that this equation can be rewritten as
+A certain subsample will only give growth if it contained at least 1 bacterial cell, which means that $P(\text{growth}) = P(N>0)$. Since the domain of $N$ is the natural numbers (0, 1, 2, ... then ) then the law of complementary probability tells us that $P(N>0) = 1 - P(N=0)$. Since Poisson probability for $N=0$ is simply $exp(-\lambda)$ (check this out yourself!), the probability of growth in dilution $i$ becomes $p_i = 1 - \exp(-\lambda 2^{-i})$. By rearranging the terms and log-transforming both sides twice (check out yourself!) we can show that this equation can be rewritten as
 
-$$log(-log(1 - p_i)) = log(\lambda) - log(2) i$$
-In other words, the complementary log-log of the probability of growth should be a linear function of the dilution level $i$ with slope $-log(2)$ and intercept equal to the logarithm of the initial bacterial abundance ($\lambda$), which is what we sought to estimate.
+$$\log(-\log(1 - p_i)) = \log(\lambda) - \log(2) i$$
+In other words, the complementary log-log of the probability of growth should be a linear function of the dilution level $i$ with slope $-\log(2)$ and intercept equal to the logarithm of the initial bacterial abundance ($\lambda$), which is what we sought to estimate.
 
 We can simulate the MPN method by using the `rpois()` function for generating random, Poisson-distributed numbers. We assume that the true number of bacteria, $\lambda$ = 2 / mL, and that we use 7 dilution levels (1/1, 1/2, 1/4 ... 1/64) and 8 replicates at each dilution level.
 
 ```{r}
 Lambda <- 2
-i.k <- rep(0:6, rep(8, 6+1))
+i <- 0:6
+i.k <- rep(i, each = 8)
 lambda.k <- Lambda * (2^(-i.k))
 
 set.seed(123456) # Just so we get the same numbers every time...
@@ -383,11 +291,10 @@ N.k <- rpois(length(i.k), lambda = lambda.k)
 This gives us 7 * 8 = 56 integers in 7 dilution level groups. We can use the `aggregate()` function to count the number of non-zeros (=growth) in each  the dilution groups, and make a matrix that shows number of growths for the different dilution levels:
 
 ```{r}
-growth <- aggregate(N.k > 0, by = list(i.k), sum)$x
-no.growth <- (8 - growth)
+growth <- tapply(N.k>0, i.k, sum) #No. 'growth' in each dilution group
+no.growth <- (8 - growth)         #No. 'no growth' in each dilution group
 
-i <- 0:6
-rbind(i, growth, no.growth)
+rbind(growth, no.growth) # Looking at the generated data
 ```
 
 This means that we can see the MPN method as a set of binomial experiments where each group of 8 replicates has the same probability of growth, and where the complementary log-log of each growth probability is linearly related to the dilution level (i). In other words, we should be able to describe the MPN experiment by a generalized linear model with the default link function of the binomial family (the logit link) replaced by a complementary log-log link. 
@@ -396,7 +303,7 @@ This means that we can see the MPN method as a set of binomial experiments where
 summary(m <- glm(cbind(growth, no.growth) ~ i, family = binomial(link = "cloglog")))
 ```
 
-The `(Intercept)` is an estimate for $log(\lambda)$, such that its anti-log becomes an estimate of to original bacterial abundance `exp(coef(m)[1]` = `r round(exp(coef(m)[1]), 3)` which in this particular simulation is slightly above the true value (2). Slope is fairly close to the theoretical value $-log(2)$ = `r round(-log(2), 3)`.
+The `(Intercept)` is an estimate for $\log(\lambda)$, such that its anti-log becomes an estimate of to original bacterial abundance `exp(coef(m)[1]` = `r round(exp(coef(m)[1]), 3)` which in this particular simulation is slightly above the true value (2). Slope is fairly close to the theoretical value $-\log(2)$ = `r round(-log(2), 3)`.
 
 We can also compute 95% confidence intervals for the estimates and back-transform:
 
@@ -404,11 +311,118 @@ We can also compute 95% confidence intervals for the estimates and back-transfor
 exp(confint(m))
 ```
 
-From which we see that both confidence intervals enclose the true values: 2 for the intercept and $exp(-log(2))$ = 1/2 for the slope.
+From which we see that both confidence intervals enclose the true values: 2 for the intercept and $\exp(-\log(2))$ = 1/2 for the slope.
+
+
+</div>
+
+---
+
+<!-- ## <span style="color:red">*</span>Model fitting by maximum likelihood from scratch  -->
+
+<!-- Dette er basert på noen simuleringer jeg gjorde over som nå er tatt bort under revideringen. Jeg kommenterer dette derfor bort for nå. Uansett er dette litt vel avansert for dette kurset, og denne tutorialen blir lang nok so den er (med en del annet stoff som er "valgfritt") -->
+
+
+<!-- If you've had enough of maximum likelihood estimation for now, you can skip ahead to the exercises. If you want to know what goes on under the hood in the `glm()`, read on! -->
+
+<!-- Above, we derived the binomial log-likelihood function when $p$ is the same for all individuals in the sample. This log-likelihood also applies when $n=1$. How do we go about constructing a likelihood function when each individual has its own $p_i$ and $y_i$? -->
+
+<!-- Remember that the probability of a series of **independent** events is the product of the probability of each event, $\Pr(A \cap B \cap C) = \Pr(A) \Pr(B) \Pr(C)$ (the assumption of independence is essential here). This means that the likelihood for the data on all individuals is the product of the likelihood for each individual. In the log-likelihood, the product becomes a sum (remember that $\log(xy) = \log(x) + \log(y)$). Hence, the log-likelihood for the data is -->
+
+<!-- $$ -->
+<!-- \ell (\mathbf{p} ; \mathbf{y}) = \sum_{i=1}^{N} \left( y_i\log(p_i) + (1-y_i)\log(1-p_i) \right) -->
+<!-- $$ -->
+
+<!-- Note that we have here replaced $n$ with $1$ for all individuals and $N$ is the number of individuals. -->
+
+<!-- It is quite straightforward to modify the code for simulating data that we used above to become a log-likelihood function for the particular model. We basically just need to replace the random drawing of individual values with a calculation of the likelihood. We do this below while calculating the linear predictor in the general way as $\eta = \mathbf{X} \mathbf{\beta}$ (see last tutorial). We also compute the negative of the log-likelihood function because optimization routines in R (and elsewhere) do minimization and not maximization.  -->
+
+<!-- ```{r} -->
+<!-- inv_cloglog = function(x) 1-exp(-exp(x)) # The inverse cloglog link function -->
+<!-- nll_cloglog = function(beta, y, X, inv_link = inv_cloglog){ -->
+<!--   eta = X %*% beta -->
+<!--   p = inv_link(eta) -->
+<!--   nll = -sum(y*log(p) + (1-y)*log(1-p)) -->
+<!-- } -->
+
+<!-- ``` -->
+
+<!-- This is the general negative log-likelihood function for a binomial model with a cloglog link where the arguments `beta` is the parameter vector, `y` is the observed binary response and `X` is the design matrix for cloglog(p). We can find the values in the parameter vector that minimize this function by using the `optim()` function in R. We do this below with the specific model we formulated above for our simulated data: -->
+
+<!-- ```{r} -->
+<!-- # Sim_data = data.frame(y=y, Age=Age) -->
+<!-- # X = model.matrix(~log(Age), Sim_data) -->
+<!-- # beta_start = c(0,0) # starting values for the numerical optimization (starting at 0 usually works well for glm's) -->
+<!-- # (fit = optim(beta_start, fn=nll_cloglog, y=Sim_data$y, X=X, hessian = TRUE)) -->
+<!-- ``` -->
+
+<!-- Here, `$par` holds the parameter estimates (you can confirm that these are the same as what we get from `glm()`) and `$value` is the negative log likelihood at minimum. The next three outputs is a summary of the optimization process; as long as `$convergence` is 0 (indicating convergence) and there are no messages, we as happy. The last output, `$hessian`, is given to us because we asked for it in the call to `optim()` by specifying `hessian = TRUE`. The hessian matrix is a matrix of second order partial derivatives of the negative log likelihood with respect to the parameters, evaluated at the optimum. Specifically, the element in row $i$ and column $j$ equals $\frac{\partial^2 \ell}{\partial \beta_i \partial \beta_j}$. This matrix is very useful because the inverse of the hessian is an estimate of the variance-covariance matrix of the parameter estimators. The square-root of the diagonal of this is the standard errors of the parameter estimates: -->
+
+<!-- ```{r} -->
+<!-- # vc = solve(fit$hessian) -->
+<!-- # (SE = sqrt(diag(vc))) -->
+<!-- ``` -->
+
+<!-- Again, we can confirm that these values are practically the same as the standard errors returned by `glm()`. -->
+
+<!-- Let's wrap up these procedures in our own glm function: -->
+
+<!-- ```{r} -->
+<!-- my_glm = function(formula, data, y, start=NULL, inv_link = inv_cloglog){ -->
+<!--   X = model.matrix(formula, data = data) -->
+<!--   if(is.null(start)) start = rep(0, ncol(X)) # Setting starting values unless supplied -->
+<!--   names(start) = dimnames(X)[[2]] -->
+<!--   fit = optim(start, fn=nll_cloglog, y=Sim_data$y, X=X, inv_link=inv_link, hessian = TRUE) -->
+<!--   vcov = solve(fit$hessian) -->
+<!--   return( -->
+<!--     list( -->
+<!--       optim_output = fit, -->
+<!--       par = fit$par, -->
+<!--       se = sqrt(diag(vc)), -->
+<!--       vcov = vcov, -->
+<!--       inv_link = inv_cloglog, -->
+<!--       formula = formula -->
+<!--     ) -->
+<!--   ) -->
+<!-- } -->
+<!-- # fit_my_glm = my_glm(~log(Age), Sim_data, Sim_data$y) -->
+<!-- ``` -->
+
+<!-- The output is not shown here, but you can type `fit_my_glm` in the console window to see it. -->
+
+<!-- We have now made our own function for fitting a generalized linear model in R! This function doesn't (yet) do anything that we cannot do with `glm()`. However, we can easily modify it to e.g. include non-linear components (e.g., we could include several additive (rather than multiplicative) components of the disorder hazard rate). -->
+
+<!-- For completeness, we can also make a function for computing predictions from the model fit: -->
+
+<!-- ```{r} -->
+<!-- predict_my_glm = function(fit, newdata){ -->
+<!--     X = model.matrix(fit$formula, data = newdata) -->
+<!--     eta = X %*% fit$par -->
+<!--     vc = X %*% fit$vcov %*% t(X) -->
+<!--     se = sqrt(diag(vc)) -->
+<!--     pred = data.frame( -->
+<!--       p_hat = fit$inv_link(eta), -->
+<!--       lwr = fit$inv_link(eta - 2*se), -->
+<!--       upr = fit$inv_link(eta + 2*se) -->
+<!--     ) -->
+<!--     return(cbind(newdata, pred)) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- We can use this for plotting the predictions with 95% confidence interval: -->
+
+<!-- ```{r} -->
+<!-- # newdata = data.frame(Age = 20:90) -->
+<!-- # pred = predict_my_glm(fit_my_glm, newdata) -->
+<!-- # plot(pred$Age, pred$p_hat, type="l", ylim=c(0,1), xlab="Age", ylab="Probability of disorder") -->
+<!-- # lines(pred$Age, pred$lwr, lty=2) -->
+<!-- # lines(pred$Age, pred$upr, lty=2) -->
+<!-- ``` -->
+
 
 ## Exercise: Side-effects in AstraZeneca vaccinations
 
-There has recently been raised concerns about possible serious side-effects of the AstraZeneca vaccine against covid-19 disease. Occurrence of sometimes fatal blood clots in otherwise healthy individuals injected with the AstraZeneca vaccine have lead many countries to pause the use of it, especially for younger individuals.According to an article in Norwegian newspaper [Aftenposten](https://www.aftenposten.no/norge/i/yRxgga/legemiddelverket-lite-realistisk-at-vi-kan-plukke-ut-hvem-som-ikke-boe) on March 23rd., 2021, 30 cases of serious blood clot complications have been reported among the 20 million who have been injected with this vaccine worldwide, while this condition has developed in 6 cases among the 130 000 who have received this vaccine in Norway. 
+There has recently been raised concerns about possible serious side-effects of the AstraZeneca vaccine against covid-19 disease. Occurrence of sometimes fatal blood clots in otherwise healthy individuals injected with the AstraZeneca vaccine have lead many countries to pause the use of it, especially for younger individuals. According to an article in Norwegian newspaper [Aftenposten](https://www.aftenposten.no/norge/i/yRxgga/legemiddelverket-lite-realistisk-at-vi-kan-plukke-ut-hvem-som-ikke-boe) on March 23rd., 2021, 30 cases of serious blood clot complications have been reported among the 20 million who have been injected with this vaccine worldwide, while this condition has developed in 6 cases among the 130 000 who have received this vaccine in Norway. 
 
 Use the 4 numbers given in the article to compute the side-effect probabilities in Norway and worldwide, and the odds ratio for developing side-effects between the two groups. Estimate the same odds ratio with a generalized linear model of the binomial family, and use this model to construct a 95% confidence interval for the odds ratio. Is this result in support of the odds being different between Norway and the world in general? If so, what could be the cause? Discuss possible explanations including:
 
@@ -420,7 +434,7 @@ Use the 4 numbers given in the article to compute the side-effect probabilities 
 
 ## Assignment: Diabetes in the Pima Indians
 
-The Akimel O'odham or Pima are a group of Native Americans living in an area consisting of what is now central and southern Arizona (USA) and Sonora (Mexico). The name "Pima" apparently comes from a phrase that means "I don't know", used repeatedly in their initial meeting with Europeans.
+The Akimel O'odham or Pima are a group of Native Americans living in an area consisting of what is now central and southern Arizona (USA) and Sonora (Mexico). The name "Pima" apparently means "I don't know", a phrase used repeatedly in their initial meeting with Europeans.
 
 ![](Pima map.png)
 
@@ -437,17 +451,17 @@ The National Institute of Diabetes and Digestive and Kidney Diseases conducted a
 *  `age`: Age (years)
 *  `diabetes`: Diabetes diagnosed ("No" or "Yes")
 
-The original data set contained numerous missing values which apparently were encoded as zeros, such that there were a number of cases with e.g. blood pressure = 0! The file "Pima-indian-diabetes.csv" contains only the 332 complete cases in the original data set (i.e., no missing values). The Diabetes Pedigree Function (`ped`) was developed by [Smith et al. (1988)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2245318/pdf/procascamc00018-0276.pdf) to provide a synthesis of the diabetes history in relatives and the genetic relationship of those relatives to the subject.It uses information from parents, grandparents, siblings, aunts and uncles, and first cousins and provides a measure of the expected genetic influence of affected and unaffected relatives on the subject's eventual diabetes risk. The oral glucose tolerance test is a standard test for diabetes involving measuring plasma glucose 2 hours after oral intake of an amount of glucose. The triceps skin fold test is a standard measure of subcutaneous fat, and as such, an indicator of obesity similar to the body mass index. The other variables are largely self-explanatory. The last variable is a binary indicator for whether the person has been diagnosed with diabetes or not.
+The original data set contained numerous missing values which apparently were encoded as zeros, such that there were a number of cases with e.g. blood pressure = 0! The file "Pima-indian-diabetes.csv" contains only the 332 complete cases in the original data set (i.e., no missing values). The Diabetes Pedigree Function (`ped`) was developed by [Smith et al. (1988)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2245318/pdf/procascamc00018-0276.pdf) to provide a synthesis of the diabetes history in relatives and the genetic relationship of those relatives to the subject. It uses information from parents, grandparents, siblings, aunts and uncles, and first cousins and provides a measure of the expected genetic influence of affected and unaffected relatives on the subject's eventual diabetes risk. The oral glucose tolerance test is a standard test for diabetes involving measuring plasma glucose 2 hours after oral intake of an amount of glucose. The triceps skin fold test is a standard measure of subcutaneous fat, and as such, an indicator of obesity similar to the body mass index. The other variables are largely self-explanatory. The last variable is a binary indicator for whether the person has been diagnosed with diabetes or not.
 
-A. Read the file "Pima-indian-diabetes.csv" into R. For the rest of the exercise it is more convenient if we change the variable `diabetes` from factor to a logical variable which is `TRUE` for factor level "Yes" (hint: `diabetes == "Yes"` gives a logical variable; notice the double equals sign). Use `head()` and `summary()` to assure yourself the file has been read properly.
+A. Read the file "Pima-indian-diabetes.csv" into R. For the rest of the exercise it is more convenient if we change the variable `diabetes` from factor to a logical variable which is `TRUE` for factor level "Yes", so do this conversion (hint: `diabetes == "Yes"` gives a logical variable; notice the double equals sign). Use `head()` and `summary()` to assure yourself the file has been read properly.
 
 B. Our task is to predict `diabetes` from other variables. It is therefore a good idea to first look at relationships between the predictor variables by making scatterplot and correlation matrices (hint: `plot()` on a `data.frame` object is identical to using the `pairs()` function). *Are there any predictor variables that are closely related? If so, can you think of explanations for this?* (hint: look at for example `bmi` vs. `skin`, or `age` vs. `npreg`). *Which considerations should we make when using any of these pairs in a model?*
 
 C. Use boxplots to investigate the distributions of at least 4 predictor variables grouped by diabetes status. You can use the `boxplot()` function with a formula like `glu ~ factor(diabetes)`. Notice that this works better if you cast the now logical variable `diabetes` into a factor again. Using the argument `horizontal=TRUE` in the `boxplot()` call makes the figure easier to read.
 
-D. Pick one of the predictor variables you investigated in part C and make a univariate binomial `glm` with logit link where you use this variable to predict diabetes status. Notice that since our dependent variable is binary, we do not need to use `cbind()` to make a 2-column vector for the dependent variable. *Explain how you interpret the intercept and slope estimates in this model.* *Make a 95% confidence interval for the relative change in odds per unit change in the predictor variable* (depending on the variable you choose, it may increase readability to compute the relative change per 10 or 100 units).
+D. Pick one of the predictor variables you investigated in part C and make a univariate binomial `glm` with logit link where you use this variable to predict diabetes status. Notice that since our response variable is binary, we do not need to use `cbind()` to make a 2-column vector for the response variable. *Explain how you interpret the intercept and slope estimates in this model.* *Make a 95% confidence interval for the relative change in odds per unit change in the predictor variable* (depending on the variable you choose, it may increase readability to compute the relative change per 10 or 100 units).
 
-E. Use the `predict()` function on your model. If your model is called `m` then `predict(m)` gives model predictions for all observations in link function units (i.e., logit units), while `predict(m, type="response")` gives predictions in probability units. Make a new variable `diabetes.true` equal to the `diabetes` column in your data frame, and a variable `diabetes.pred = (p > 0.5)` where `p` is a variable  containing the predicted probabilities from your model. Make a contingency table for true and predicted diabetes status (`table(diabetes.true, diabetes.pred`). *How do you interpret the diagonal and off-diagonal elements in this matrix? How many false positives and false negatives does your model predict?* Compute the Positive Prediction Value (PPV) for your model as the number of true positives divided by total positive predictions. *How useful would you consider your model to be for the predicting risk of diabetes in Pima Indians?*
+<!-- Tror vi blei enige om å ta bort denne, så jeg har kommentert den bort foreløpig: E. Use the `predict()` function on your model. If your model is called `m` then `predict(m)` gives model predictions for all observations in link function units (i.e., logit units), while `predict(m, type="response")` gives predictions in probability units. Make a new variable `diabetes.true` equal to the `diabetes` column in your data frame, and a variable `diabetes.pred = (p > 0.5)` where `p` is a variable  containing the predicted probabilities from your model. Make a contingency table for true and predicted diabetes status (`table(diabetes.true, diabetes.pred`). *How do you interpret the diagonal and off-diagonal elements in this matrix? How many false positives and false negatives does your model predict?* Compute the Positive Prediction Value (PPV) for your model as the number of true positives divided by total positive predictions. *How useful would you consider your model to be for the predicting risk of diabetes in Pima Indians?* -->
 
-F. Make a visualization of your model. A line drawn through the predicted probabilities looks messy because the observations are not necessarily ordered by the predictor variable of your model. We can make predictions for arbitrary values of the predictor variable by using the `newdata=` argument in the `predict()` function. `newdata` must be assigned to a list or data frame that includes exactly the same variable names as in the model. So, if we use `age` as predictor variable, and we are interested in predicting diabetes status over the age interval spanned by the data, we can set `newdata=data.frame(age = seq(20, 80))`. If we set `se.fit=TRUE` then `predict` will return a 2-column vector with predicted log(odds) and their standard errors. Use this information to produce a plot of predicted probability of diabetes with a 95% confidence belt for the predictions. Notice that you need to make predictions on link-function scale (`type="link`) and back-transform the confidence limits with the inverse link function, as illustrated in the `predict_my_glm` function above. Figure also out how to use the `rug()` function to represent observations of the predictor variable along the x-axis.
+E. Make a visualization of your model. A line drawn through the predicted probabilities looks messy because the observations are not necessarily ordered by the predictor variable of your model. We can make predictions for arbitrary values of the predictor variable by using the `newdata=` argument in the `predict()` function. `newdata` must be assigned to a list or data frame that includes exactly the same variable names as in the model. So, if we use `age` as predictor variable, and we are interested in predicting diabetes status over the age interval spanned by the data, we can set `newdata=data.frame(age = seq(20, 80))`. If we set `se.fit=TRUE` then `predict` will return a 2-column vector with predicted log(odds) and their standard errors. Use this information to produce a plot of predicted probability of diabetes with a 95% confidence belt for the predictions. Notice that you need to make predictions on link-function scale (`type="link`) and back-transform the confidence limits with the inverse link function, as illustrated in the `predict_my_glm` function above. Figure also out how to use the `rug()` function to represent observations of the predictor variable along the x-axis.
 
