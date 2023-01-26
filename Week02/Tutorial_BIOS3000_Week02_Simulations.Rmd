@@ -40,11 +40,11 @@ We will here show how you can draw random values from a probability distribution
 
 ## Preparations
 
-We assume that you are familiar with histograms and probability distributions. You may want to refresh these concepts from earlier course work or look at the [resources we refer to on Canvas](https://uio.instructure.com/courses/30115/pages/review-of-statistical-concepts-and-use-of-r).
+We assume that you are familiar with histograms and probability distributions. You may want to refresh these concepts from earlier course work or look at the [resources we refer to on Canvas](https://uio.instructure.com/courses/42893/pages/review-of-statistical-concepts-and-use-of-r?module_item_id=709386).
 
-We recommend that you download the R Markdown file (*.Rmd) for each tutorial to a local folders on your computer. Later tutorials may also include datasets that you need to download. Name the folders "Week01", "Week02", and so on. Using "...01" instead of just "...1" ensures that the folder gets sorted before "Week10". Change the name of the file if you modify the document!
+We recommend that you download the files for each tutorial to a local folders on your computer. Later tutorials may also include data sets that you need to download. Name the folders "Week01", "Week02", and so on. Using "...01" instead of just "...1" ensures that the folder gets sorted before "Week10". Change the name of the file if you modify the original documents!
 
-## Drawing random values in R
+## Drawing random values in R (and the law of large numbers)
 
 In R we can draw random values from a normal distribution with the `rnorm`-function. For example, the following draws 10 values from a normal distribution with mean 2 and standard deviation 3:
 
@@ -70,7 +70,7 @@ Since the sample size is so large (one million), the mean and standard deviation
 
 ---
 
-<div class="green"> Note, that if you rerun the above code, you will get slightly different numbers because you will draw different values. If you draw fewer numbers (say 10), then the mean and standard deviation of the sample may deviate more from the mean and standard deviation of the distribution you draw from. Go ahead - try this out in the Rmd file for this document: First find the R chunk that calculates the mean and standard deviation above and click on the downward pointing triangle on the right side to run all R code prior to this chunk. Then click on the green triangle pointing to the right to run the code in the current chunk. Try this by modifying the code! Try it several times! Pay attention to how the histogram changes when you when you change the argument values (inputs) to the `rnorm` function.</div>
+<div class="green"> Note, that if you rerun the above code, you will get slightly different numbers because you will draw different values. If you draw fewer numbers (say 10), then the mean and standard deviation of the sample may deviate more from the mean and standard deviation of the distribution you draw from. Go ahead - try this out in the Rmd file for this document: First find the R chunk that calculates the mean and standard deviation above and click on the downward pointing triangle on the right side to run all R code prior to this chunk. Then click on the green triangle pointing to the right to run the code in the current chunk. Try this by modifying the code! Try it several times! Pay attention to how the histogram changes when you change the argument values (inputs) to the `rnorm` function.</div>
 
 ---
 
@@ -121,8 +121,6 @@ plot(x~q)     # step 3 above
 abline(mean(x), sd(x)) # Plot a line with intercept = mean(x) and slope = sd(x)
 ```
 
-For further help to interpret qq-plots, see [this external resource](https://towardsdatascience.com/q-q-plots-explained-5aa8495426c0).
-
 To understand what the code chunk above (or any code you see) does, it is a good idea to try it out with a small example. Set `x2 = rnorm(n = 10000, mean = 2, sd = 3)`, replace `x` with `x2` (you don't want to overwrite `x`) and then run line by line in the Console window and look at the result.
 </div>
 
@@ -164,7 +162,7 @@ Let us look at the distribution of the means computed above:
 hist(means)
 ```
 
-What we have done in the loop above is to simulate the *sampling distribution* of mean($x$) when there are 10 values of $x$ drawn from a normal distribution with mean 2 and standard deviation 3. Note that increasing the number of iterations (this is the sample size of mean($x$) while the sample size of $x$ is 10) will get us closer and closer to the sampling distribution of mean($x$) due to the "Law of large numbers" which we investigated in the previous section. Since 10,000 is already a large number, increasing the number of iterations (sample size of mean($x$)) will not change the above histogram much (you can try it!). When increasing number of iterations further will not change the results of the simulations in a noticeable way, we say that the simulation has *converged*.
+What we have done in the loop above is to simulate the *sampling distribution* of mean($x$) where $x$ contains 10 random values drawn from a normal distribution with mean 2 and standard deviation 3. Note that increasing the number of iterations (this is the sample size of mean($x$) while the sample size of $x$ is 10) will get us closer and closer to the sampling distribution of mean($x$) due to the "Law of large numbers" which we investigated in the previous section. Since 10,000 is already a large number, increasing the number of iterations (sample size of mean($x$)) will not change the above histogram much (you can try it!). When increasing number of iterations further will not change the results of the simulations in a noticeable way, we say that the simulation has *converged*.
 
 Perhaps not surprisingly, this distribution looks quite "bell-shaped" like a normal distribution. The mean seems to be around 2 which is what we used as the mean of the normal distribution for which all the 10,000 samples of 10 were drawn from. However, if you compare the width of the histogram to the histogram we plotted earlier (note that we used the same standard deviation of 3 also here), we see that the histogram above is much narrower (look at the values on the x-axis). You may remember from your earlier statistics course that the standard deviation of the mean of $n$ values drawn independently from the same distribution is sd(x)/$\sqrt{n}$ where sd(x) is the standard deviation of the distribution that the values are drawn from (sd(x)/$\sqrt{n}$ is often called the "standard error of the mean"). Let us check if this is correct:
 
@@ -184,7 +182,7 @@ qqline(means)
 
 ## The central limit theorem
 
-In the previous section we saw that the mean of a sample of values drawn from a normal distribution is itself normally distributed (we showed this by simulation). The important central limit theorem states that this will be the case *no matter what the distribution the values are drawn from as long as the sample size is large enough*. For example, you can try to replace the normal distribution in the above simulation with a uniform distribution by replacing `rnorm(n, mux, sdx)` with `runif(n, min, max)`. In a uniform distribution, all values between `min` and `max` are equally likely. With a sample size of only `n = 10` you will see a slight deviation from a normal distribution, but as you increase `n` this deviation will be smaller.
+In the previous section we saw that the mean of a sample of values drawn from a normal distribution is itself normally distributed (we showed this by simulation). The important central limit theorem states that the mean of a set of random values drawn independently from the same distribution will be close to normally distributed *no matter what the distribution the values are drawn from as long as the sample size is large enough*. For example, you can try to replace the normal distribution in the above simulation with a uniform distribution by replacing `rnorm(n, mux, sdx)` with `runif(n, min, max)`. In a uniform distribution, all values between `min` and `max` are equally likely. With a sample size of only `n = 10` you will see a slight deviation from a normal distribution, but as you increase `n` this deviation will be smaller.
 
 ## Exercises
 
@@ -213,4 +211,6 @@ Pick a hypothetical example that you describe in words. You can for example look
 
 2. (**optional** - but recommended) Look up the expression for the variance of the distribution you have chosen in Wikipedia (look at the table to the right). What is the expected standard deviation of the mean in each simulation with sample size 2, 5, 10, 20, ...? How do the empirical standard deviations in your simulations compare to the expected values? Can you superimpose the expected normal distribution (using the `dnorm` function) on top of the histograms you plotted in point 1? You can include this in the same code chunks and text you use for answering point 1 above.
 
-Submit a pdf-file, together with the Rmd-file on Canvas. You can create the pdf-file either by saving (or printing) the html-file to a pdf-file from your browser, or (recommended) you can knit directly to a pdf-file if you have installed LaTeX (see instructions in the Week 1 module on Canvas). We need the pdf-file to provide comments in your text.
+Make sure your name is included in the beginning of the document. Include a short introduction and write in words what you are doing and how you interpret the results. **Do not include any text that you have not written yourself unless the text is included as a quotation and the source is given.**
+
+Submit a pdf-file, together with the Rmd-file on Canvas. The best way of creating a pdf-file is to knit directly to a pdf-file from the R Markdown document in RStudio. This requires that you have installed LaTeX (see instructions in the Week 1 module on Canvas). Alternatively, if you for some reason have problems knitting to a pdf-file, you can knit to a html-file and save (or print) this file to a pdf-file from your browser. We need the pdf-file to write comments in your text, so it is essential that you submit the pdf-file.
