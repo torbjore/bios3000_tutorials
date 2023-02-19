@@ -45,7 +45,7 @@ We will return to the students morphometric data that we used last week, so we m
 student_means = read.csv("../Week03/student_means.csv")
 ```
 
-The partial path `../Week03` tells R to first go one level back and then look for a directory (folder) called `Week03`. This assumes that R's current working directory is e.g. `Week04` and that `Week03`and `Week04` are both sub-directories under the same directory on your computer (remember that you can set the working directory under "Session > Set Working Directory" in R Studio).
+The partial path `../Week03` tells R to first go one level back and then look for a directory (folder) called `Week03`. This assumes that R's current working directory is e.g. `Week04` and that `Week03`and `Week04` are both sub-directories under the same directory on your computer. You can set the working directory under "Session > Set Working Directory" in R Studio, but if you work in a R Markdown file the working directory will always be where the Rmd-file is stored.
 
 ## Matrix formulation of linear models
 
@@ -64,13 +64,13 @@ $$
 \mathbf{y} = \mathbf{X} \boldsymbol{\beta} + \boldsymbol{\varepsilon}
 $$
 
-where $\boldsymbol{\varepsilon}$ is a column-vector of $N$ elements drawn independently from a normal distribution with mean zero and standard deviation $\sigma$.
+where $\boldsymbol{\varepsilon}$ is a column-vector of $N$ elements drawn independently from a normal distribution with mean zero and standard deviation $\sigma$. Note that we write vectors and matrices in bold font (lower case letters are used for vectors and upper case letters are used for matrices). Scalars (i.e., single values such as elements of a vector) are not in bold but in italics.
 
 <span style="color:blue"> You should pause here and make sure you understand this formulation of the linear model. Make your own example with e.g. 3 study units and 2 parameters (e.g. intercept and slope in a linear regression).</span>
 
 ## The design matrix
 
-The matrix $\mathbf{X}$ above is called a **design matrix** and is specific to the data you use and the model you define. In the case of the model we specified above, the first column of $\mathbf{X}$ is a column of ones, the second column is `student_means$foot`, the third column has 0 for females and 1 for males, and the fourth column has 0 for females and the value of `student_means$foot` for males (i.e., the product of the two previous columns). In R, we can create the design matrix with the function `model.matrix()` [In R the symbol `.` (period) has no particular meaning - it is just like any other character in the name. This may be confusing for Python users as `.` in Python has more or less the same meaning as `$` in R]. Let's do this for the `student_means` data:
+The matrix $\mathbf{X}$ above is called a **design matrix** and is specific to the data you use and the model you define. In the case of the model we specified above, the first column of $\mathbf{X}$ is a column of ones, the second column is `student_means$foot`, the third column has 0 for females and 1 for males, and the fourth column has 0 for females and the value of `student_means$foot` for males (i.e., the product of the two previous columns). In R, we can create the design matrix with the function `model.matrix()` [In R the symbol `.` (period) has no particular meaning - it is just like any other character in the name. This may be confusing for Python users, as `.` in Python has more or less the same meaning as `$` in R]. Let's do this for the `student_means` data:
 
 ```{r}
 X = model.matrix( ~ Sex * Foot, student_means)
@@ -255,7 +255,7 @@ You have now computed that males increase on average `r round(slope_male, 2)` cm
 
 ## Contrasts
 
-Parameters in models often represent differences that are meaningful and may be of interest to quantify. For example, in the additive model that we specified as `~ Sex + Foot`, the second parameter is the difference between mean of the sexes and the model assumes that this difference is the same regardless of foot length. This parameter would, however, not have been very meaningful in the interaction model as it is the difference in height when foot length is zero -- unless the `Foot` variable had been centered by subtracting the mean (or any other value in the range of reasonable foot lengths). However, regardless of how the model is parameterized, we can compute any difference between predicted values that we are interested in. Such a difference is called a **contrast** whether it is represented by a parameter or not.
+Parameters in models often represent differences that are meaningful and may be of interest to quantify. For example, in the additive model that we specified as `~ Sex + Foot`, the second parameter is the difference between mean of the sexes, and the model assumes that this difference is the same regardless of foot length. This parameter would, however, not have been very meaningful in the interaction model as it is the difference in height when foot length is zero -- unless the `Foot` variable had been centered by subtracting the mean (or any other value in the range of reasonable foot lengths). However, regardless of how the model is parameterized, we can compute any difference between predicted values that we are interested in. Such a difference is called a **contrast** whether it is represented by a parameter or not.
 
 As an example, let's compute the predicted difference (contrast) between mean height of males and mean height of females at the median foot length of females. Let us call the median foot length of females for $\alpha_F$. You could perhaps figure out how to compute this difference from the parameter estimates directly, but it might be easier to first find the prediction for males and then subtract the prediction for females. The prediction for males is $\mathbf{x}_M \boldsymbol{\beta}$ where
 $$
@@ -414,7 +414,7 @@ The experiment included 6 varieties of wheat and 3 types of nitrogen fertilizer 
 
 The aim of the analysis is to find out which wheat variety grows the fastest under the standardized conditions and which fertilizer promotes the fastest growth. We also want to estimate the degree to which different varieties respond differently to different fertilizers (i.e., the interaction effects).
 
-You may either do the exercise in an R Markdown document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script (or Markdown document) does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
+You may either do the exercise in an R Markdown document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
 
 1. <span style="color:blue"> Read the data into R with `read.csv("wheatlings_bio2150_F18.csv", stringsAsFactors = TRUE)` and give it the name `wheat`.</span> The argument `stringsAsFactors = TRUE` tells `read.csv` that variables containing characters (not numbers) should be stored as factors - this affects how some R-functions treat these variables (generally, you want to treat categorical predictor variables as 'factors' in R). <span style="color:blue">Have a first glance at the data by using `summary()` and `head()`. </span>
 
@@ -507,7 +507,7 @@ head(wheat)
 
 ## Assignment
 
-* Doing the exercises before you start with this assignment will greatly help you to complete the assignment - you can modify the code you used to do these when doing the assignment.*
+*Doing the exercises before you start with this assignment will greatly help you to complete the assignment - you can modify the code you used to do these when doing the assignment.*
 
 Your task in this assignment is to do a similar analysis as you did in the exercises to quantify the different responses to fertilizer type (variable `fertype`). You should only do this analysis for the 10% fertilizer treatment, in addition to the control, as this is where we should expect to see the largest difference between fertilizer types. 
 
@@ -515,7 +515,7 @@ You probably noticed when you tabulated the data (point 2 in the exercise) that 
 
 Specifically, you should do the following and submit a short report (pdf created by R Markdown) on Canvas containing the following:
 
-1. Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Look at the data structure by using the `table` function.
+1. Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Check that you have the subset that you want and look at the data structure by using the `table` function.
 
 2. Fit models with additive and interacting effects of wheat variety and fertilizer type, and models with and without student group as a predictor variable (four models in total). Rank the models with AICc in the same way as you did in point 5 of the exercises. Look at the summary of the best model (lowest AICc) and make some interpretations of the parameter estimates.
 

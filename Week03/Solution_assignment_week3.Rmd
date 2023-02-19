@@ -3,48 +3,46 @@ title: "Solution and notes for the assignment Week 3"
 author: "Torbjørn Ergon"
 date: "`r Sys.Date()`"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ## Assignment Task
 
-> Fit models to predict body height from a person's sex and neck circumference; one predictor variable at a time as well as an additive model and an interaction model (i.e., four models in total). Interpret confidence intervals of the parameters, and plot the predictions with confidence intervals for the predictions of the mean (and prediction intervals is you like). Write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height? You should try to say something about the population the data comes from and not just patterns in the data (this involves interpreting confidence intervals).
-
+> Fit models to predict body height from a person's sex and neck circumference; one predictor variable at a time as well as an additive model and an interaction model (i.e., four models in total). Interpret confidence intervals of the parameters, and plot the predicted means with confidence intervals (and prediction intervals if you like). Write some text to interpret what you see. What do you conclude about the relationship between neck circumference and body height, and how is this pattern different from the relationship between foot length and height? You should try to say something about the population the data comes from and not just patterns in the data (this involves interpreting confidence intervals).
 
 ## Reading in the data
 
 ```{r}
-student_means = read.csv("student_means.csv")
+student_means = read.csv("student_means.csv", stringsAsFactors = TRUE)
+summary(student_means)
 ```
 
 ## Looking at the data
 
-Before fitting any models to the data it's a good idea to look at a scatter plot (with the response variable on the y-axis, the continuous predictor variable (`Foot`) on the x-axis, and the categorical predictor variable (`Sex`) shown as colours (red is 'female', blue is 'male'):
+Before fitting any models to the data it's a good idea to look at a scatter plot. Since we will later superimpose the various model predictions on this plot, we put it in a function so we can easily reproduce it:
 
 ```{r}
-plot(student_means$Neck_circumference,student_means$Height,col=ifelse(student_means$Sex=="female", "red", "blue"))
+Plot_data = function(){
+    plot(student_means$Neck_circumference, student_means$Height,
+     col=ifelse(student_means$Sex=="female", "red", "blue"),
+     xlab="Neck circumference (cm)",
+     ylab = "Height (cm)")
+    legend("topleft", legend = c("Females", "Males"), col = c("red", "blue"), pch = 1)
+}
+Plot_data()
 ```
 
-We now fit a series of models with `Sex` and `Neck_circumference` as predictor variable. For each model we will look at the summary of the model and the confidence intervals of the parameters, as well as the "Multiple R-squared" value, to interpret the results.
+We see that there is quite a lot of variation in both these variables among people, and (not surprisingly) there is a clear difference between the sex-specific means of both variables.
 
-### Only sex as a predictor variable (this was also fitted in the tutorial)
+We now fit a series of models with `Sex` and `Neck_circumference` as predictor variable. For each model we will look at the summary of the model and the confidence intervals of the parameters, as well as the "Multiple R-squared" value, to interpret the results. We also plot the predictions as well as the 95% confidence interval for the conditional means and the 95% prediction intervals. 
 
-```{r}
-fit_Sex = lm(Height ~ Sex, data = student_means)
-summary(fit_Sex)
-confint(fit_Sex)
-```
-
-Mean height of males is 15.8 cm higher than mean height of females. The 95% confidence interval for this difference is 12.6 cm to 19.0 cm. This confidence interval refers the *statistical population* that the sample of students represent. Since we have not done any random sampling, it is not clear what this statistical population is, but it would not be unreasonable to assume that these students are representative for all students at the University of Oslo - or at least each sex group is (it would be much more questionable to assume that the results are representative for the Norwegian population - why?). The overall mean height in the sample (and the confidence interval for this mean) would *not* be representative for all students at the University of Oslo because there are a higher proportion of females in the course than at the University as a whole.
-
-The multiple R-squared value tells us that sex accounts for 71% of the variance in the height measurements in the data (i.e., the residual variance when accounting for the difference in mean height of the sexes is 29% of the variance in the height measurements).
-
-### Only neck_circumference as a predictor variable
+## Only 'Neck_circumference' as a predictor variable
 
 ```{r}
 fit_Neck = lm(Height ~ Neck_circumference, data = student_means)
@@ -52,95 +50,155 @@ summary(fit_Neck)
 confint(fit_Neck)
 ```
 
-Increasing neck circumference with 1 cm increases mean height by 1.5 cm (95% c.i.: 0.8 cm to 2.1 cm). This model explains 34% of the variance.
+We see that increasing neck circumference with 1 cm increases mean height by `r round(coef(fit_Neck)["Neck_circumference"], 1)` cm (95% c.i.: `r sprintf("%.1f", confint(fit_Neck)["Neck_circumference",1])` cm to `r sprintf("%.1f", confint(fit_Neck)["Neck_circumference",2])` cm). This confidence interval represent uncertainty of the slope in the *statistical population* that the sample of students represent (with higher sample size, we should expect to get a narrower confidence interval). Since we have not done any random sampling, it is not clear what this statistical population is, but it would not be unreasonable to assume that these students are representative for all students at the University of Oslo - or at least each sex group is. The overall mean height in the sample (and the confidence interval for this mean) would *not* be representative for all students at the University of Oslo because there are a higher proportion of females in the course than at the University as a whole.
+
+This model explains `r round(summary(fit_Neck)$r.squared*100, 0)`% of the variance, and the residual standard deviation (estimate of $\sigma$ in the normal distribution fitted to the data) is `r sprintf("%.1f", summary(fit_Neck)$sigma)` cm.
+
+We can reuse the code from the tutorial for plotting the predictions and 95% confidence intervals for the conditional means. I also plot the 95% prediction intervals.
+
+
+```{r}
+Plot_data()
+x_range = range(student_means$Neck_circumference)
+pred_data_Neck = data.frame(Neck_circumference = seq(x_range[1], x_range[2], length.out = 50))
+pred_ci = predict(fit_Neck, pred_data_Neck, interval = "confidence")
+pred_pi = predict(fit_Neck, pred_data_Neck, interval = "prediction")
+pred_Neck = cbind(pred_data_Neck, pred_ci, pi_lwr = pred_pi[,"lwr"], pi_upr = pred_pi[,"upr"]  )
+with(pred_Neck, lines(Neck_circumference, fit))
+with(pred_Neck, lines(Neck_circumference, lwr, lty=2))
+with(pred_Neck, lines(Neck_circumference, upr, lty=2))
+with(pred_Neck, lines(Neck_circumference, pi_lwr, lty=3))
+with(pred_Neck, lines(Neck_circumference, pi_upr, lty=3))
+title("Height ~ Neck_circumference")
+```
+
+The solid line here shows the predicted mean heights of students at University of Oslo^[If we accept the assumption that these students is a representative sample with respect to these variables.] with the given neck circumferences on the x-axis. The stippled lines closest to the solid line show the 95% confidence intervals for these means. If we collect more data, these confidence intervals will become narrower and approach zero width as sample size becomes large (law of large numbers). The outer dotted lines are the 95% prediction intervals and show our estimated 95% central ranges of height measurements^[I say "measurements" here because the observations (means of three repeated measurements) contain measurement errors and this has not been accounted for in the model (later in the course, you will learn how to do that by using "random effects").] of people in the *population* with given neck circumference. These intervals will *not* approach zero as sample size becomes large (but they will become more *accurate*). We expect that about 2.5% of the data points will be above the upper dotted line, and that 2.5% will be below the lower dotted line (here we got "lucky" and have exactly 5% (3 of 60) of the data points outside the prediction intervals).
+
+## Models with seperate prediction lines for each sex
+
+If we look at one sex at the time in the plot above (red and blue points) it seems like the model doesn't fit the data for each of the sexes very well, although the model is a reasonable fit to the data as a whole (ignoring sex); We see that there are a lot more positive residuals for males than negative ones, and it looks like we would get a lot shallower slopes if we fit separate models for the red and blue data points.
+
+### Interaction model
+
+Let's first fit an interaction model with separate slopes and intercepts for the two sexes and plot the predictions for this model (again, we make a function that we can use to plot other models later (for simplicity, I leave the prediction intervals out)):
+
+```{r}
+fit_Sex_Neck_interaction = lm(Height ~ Sex * Neck_circumference, data = student_means)
+
+Plot_predict = function(fit, newplot = TRUE, col = c("red", "blue")){
+    if(newplot) Plot_data()
+    x_range_F = range(student_means$Neck_circumference[student_means$Sex=="female"])
+    x_range_M = range(student_means$Neck_circumference[student_means$Sex=="male"])
+    pred_data_F = data.frame(
+        Sex = "female",
+        Neck_circumference = seq(x_range_F[1], x_range_F[2], length.out = 50)
+        )
+    pred_data_M = data.frame(
+        Sex = "male",
+        Neck_circumference = seq(x_range_M[1], x_range_M[2], length.out = 50)
+        )
+    pred_data = rbind(pred_data_F, pred_data_M)
+    pred_ci = predict(fit, pred_data, interval = "confidence")
+    pred = cbind(pred_data, pred_ci)
+
+    lines(fit ~ Neck_circumference, data = pred, subset = Sex=="female", col=col[1])
+    lines(lwr ~ Neck_circumference, data = pred, subset = Sex=="female", col=col[1], lty=2)
+    lines(upr ~ Neck_circumference, data = pred, subset = Sex=="female", col=col[1], lty=2)
+
+    lines(fit ~ Neck_circumference, data = pred, subset = Sex=="male", col=col[2])
+    lines(lwr ~ Neck_circumference, data = pred, subset = Sex=="male", col=col[2], lty=2)
+    lines(upr ~ Neck_circumference, data = pred, subset = Sex=="male", col=col[2], lty=2)
+}
+
+Plot_predict(fit_Sex_Neck_interaction)
+title("Height ~ Sex * Neck_circumference")
+```
+
+As expected, the slopes *within* sexes are a lot shallower that the slope we estimated on the data as a whole. Let's look at the summary of the fitted model object and the confidence intervals:
+
+```{r}
+summary(fit_Sex_Neck_interaction)
+confint(fit_Sex_Neck_interaction)
+```
+
+The first parameter is where the line for females (red line) crosses the y-axis and the second parameter is the difference in the intercept for males and females (the intercept for males is the sum of the two first parameters). Neither of these parameters have a direct biological interpretation (nobody has neck circumference of zero). The third parameter is the slope for females; increasing neck circumference with 1 cm increases mean height of females by `r sprintf("%.2f", coef(fit_Sex_Neck_interaction)["Neck_circumference"])` cm (95% c.i.: `r sprintf("%.2f", confint(fit_Sex_Neck_interaction)["Neck_circumference",1])` cm to `r sprintf("%.2f", confint(fit_Sex_Neck_interaction)["Neck_circumference",2])` cm). To find the point estimate for the slope for males, we sum the two last parameters and find that a 1 cm increase in neck circumference for males is associated with an increased mean height of `r sprintf("%.2f", sum(coef(fit_Sex_Neck_interaction)[3:4]))` (Tutorial Week 4 tells you how to compute a confidence interval for this sum).
+
+From the last confidence interval in the output, we see that difference in the slope for males and females has a 95% confidence interval that includes zero, so this difference is not statistically significant. However, the confidence interval is rather wide (suggesting that the increase in body height per cm increase in neck circumference may be as much as `r sprintf("%.2f", confint(fit_Sex_Neck_interaction)[4,2])` cm higher for males than for females). Hence, we can by no means conclude that the difference between the slopes for males and females in the population is small. To misinterpret lack of statistical significance to mean "no difference" is a very common mistake that is important to avoid. We can just conclude that we do not have enough data to estimate the difference precisely enough to make any inference about this difference, which is a very different thing. When we don't have enough data to make such "fine grained" inference or predictions, we better use a more simplified model where we have the same slope for both sexes (but still different intercepts) - i.e., a model with additive effects. Let's fit this model, plot it, and look at the confidence intervals of the parameters: 
 
 ### Additive model
+
 ```{r}
 fit_Sex_Neck = lm(Height ~ Sex + Neck_circumference, data = student_means)
+Plot_predict(fit_Sex_Neck)
+title("Height ~ Sex + Neck_circumference")
+
 summary(fit_Sex_Neck)
 confint(fit_Sex_Neck)
 ```
 
-One cm increase in neck circumference within sexes (i.e., when the difference among sexes are accounted for) is estimated to *decrease* height by 0.2 cm. The 95% confidence interval for the effect of increasing neck circumference by 1 cm ranges from a 0.8 cm *decrease* to a 0.4 cm *increase*. Note also that adding neck circumference as a predictor variable to the model with only sex as a predictor variable increase the proportion of variance explained from 71.3% to only 71.5%, but the estimate for the difference between sexes becomes more uncertain (i.e., less precise); standard error increases from 1.57 cm to 2.33 cm.
+Since we now have forced the two lines to be parallel (as they have the same slope), the second parameter now has a biological interpretation; It is the difference between the expected height of males and the expected height of females with the *same* neck circumference (we say that we "control for" the effect of neck circumference). We see that males are `r sprintf("%.1f", coef(fit_Sex_Neck)[2])` cm (95% c.i.: `r sprintf("%.1f", confint(fit_Sex_Neck)[2,1])` cm to `r sprintf("%.1f", confint(fit_Sex_Neck)[2,2])` cm) taller that females with the same neck circumference.  
 
-To better understand what is going on here, we can make a plot of the fitted predictions with confidence intervals from the additive model. Here we also add black lines for the predictions from the model with only neck circumference as the predictor variable:
+One cm increase in neck circumference within sexes (i.e., when the difference among sexes are accounted for) is estimated to increase height by only `r signif(coef(fit_Sex_Neck)["Neck_circumference"], 2)` cm. The 95% confidence interval for the effect of increasing neck circumference by 1 cm ranges from a `r sprintf("%.2f", -confint(fit_Sex_Neck)["Neck_circumference",1])` cm *decrease* to a `r sprintf("%.2f", confint(fit_Sex_Neck)["Neck_circumference",2])` cm *increase*. From this we can conclude that there is *not* a very strong association between neck circumference *within* sexes. The confidence interval for the slope within sexes is lower than, and does not overlap with, the confidence interval we estimated when we did not control for sex (i.e., the over-all slope). 
+
+To better understand what is going on here, we can make a plot of the fitted predictions for the two models in the same plot:
 
 ```{r}
-model_fit = fit_Sex_Neck
-Title = "Additive model"
-x_range_F = range(student_means$Neck_circumference[student_means$Sex=="female"])
-x_range_M = range(student_means$Neck_circumference[student_means$Sex=="male"])
-pred_data_F = data.frame(Sex = "female", Neck_circumference = seq(x_range_F[1], x_range_F[2], length.out = 50))
-pred_data_M = data.frame(Sex = "male", Neck_circumference = seq(x_range_M[1], x_range_M[2], length.out = 50))
-pred_data = rbind(pred_data_F, pred_data_M)
-pred = predict(model_fit, pred_data, interval = "confidence")
-pred = cbind(pred_data, pred)
-
-with(student_means,
-     plot(Neck_circumference, Height, type="n", xlab="Neck_circumference (cm)", ylab = "Height (cm)")
-     )
-with(student_means, points(Neck_circumference, Height, col=ifelse(Sex=="female", "red", "blue")))
-with(pred[pred$Sex=="female",], lines(Neck_circumference, fit, col="red"))
-with(pred[pred$Sex=="female",], lines(Neck_circumference, lwr, col="red", lty=2))
-with(pred[pred$Sex=="female",], lines(Neck_circumference, upr, col="red", lty=2))
-with(pred[pred$Sex=="male",], lines(Neck_circumference, fit, col="blue"))
-with(pred[pred$Sex=="male",], lines(Neck_circumference, lwr, col="blue", lty=2))
-with(pred[pred$Sex=="male",], lines(Neck_circumference, upr, col="blue", lty=2))
-
-# Adding the fitted predictions from the model with only neck circumference as a predictor variable
-pred_data_Neck = data.frame(Neck_circumference = seq(x_range_F[1], x_range_M[2], length.out = 50))
-pred_Neck = cbind(pred_data_Neck, predict(fit_Neck, pred_data_Neck, interval = "confidence"))
-with(pred_Neck, lines(Neck_circumference, fit))
-with(pred_Neck, lines(Neck_circumference, lwr, lty=2))
-with(pred_Neck, lines(Neck_circumference, upr, lty=2))
-
-legend("topleft", legend=c("Females", "Males", "Overall"), pch=c(1,1, NA), lty = c(NA,NA,1), col = c("red", "blue", "black"))
-title(Title)
+Plot_predict(fit_Sex_Neck)
+Plot_predict(fit_Neck, newplot = FALSE, col = c("black", "black"))
+title("Two alternative models")
 ```
 
-It is not really wrong to say that people with thicker necks tend to be taller than people with thinner necks (black line). However, this is only due to a correlation among groups (sexes in this case); males tend to be both taller and have thicker necks than females. There is no evidence of such an association withing groups (the correlation is weak, and it may well be of opposite sign). It is a common mistake in data analysis (and a common mistake by journalists, politicians and common people, as well as professional researchers) to interpret patterns in data to be due to patterns/mechanisms at the individual level, when the patterns are in fact caused by a correlation among groups instead. Such confusions are referred to as "Simpson's paradox" and "the fallacy of ecological correlations" (the latter especially in social sciences). We will give more examples of this in the lectures later in the course. This also relates to the concept of "confounding": In the model with only neck circumference, we may say that the effect of neck thickness is confounded by the effect of sex (imagine studying a species where it was difficult to sex the individuals).
+The black line is from the mode where we did not include 'Sex', whereas the coloured lines are the predictions from the additive model above (when "controlling for" 'Sex').
 
-Note that there is not a striking lack of fit for the "neck only" model (black line above):
+It is not really wrong to say that people with thicker necks tend to be taller than people with thinner necks (black line). However, this is only because males tend to be both taller and have thicker necks than females. Within sexes, the association is weak and it may well be of opposite sign. It is a common mistake to interpret patterns in data to be due to patterns/mechanisms at the individual level, when the patterns are in fact caused by a correlation among groups instead. Such confusions are referred to as "Simpson's paradox" and "the fallacy of ecological correlations" (the latter especially in social sciences). We will give more examples of this in the lectures later in the course. This also relates to the concept of "confounding": In the model with only neck circumference, we may say that the effect of neck thickness is confounded by the effect of sex (imagine studying a species where it was difficult to sex the individuals and hence this confoundig variable would be unknown). This is also something we return to later in the course.
+
+Note that we include 'Sex' in the model when we want to estimate the "effect" of neck thickness on body height because this is the model that address our research question; "What is the association between body height and neck circumference?". We do not prefer this model just because the model fits the data better in a relative (based on e.g. AIC-values) or absolute (based on goodness-of-fit assessments) sense. We can see from the diagnosis plots below that there is no striking lack of fit for the "neck only" model (black line above):
 
 ```{r}
+par(mfrow = c(2,2))
 plot(fit_Neck)
 ```
 
+Note finally that, even though we may conclude that there is a weak "effect" of neck circumference on body height, it is meaningless to claim that there is *no* effect, regardless of how narrow the confidence interval is. We would not believe that this could be the case - it goes against biological theory to believe that the correctional between two morphological traits could ever be *exactly zero*. I high p-value and a confidence interval overlapping with zero can *never* be taken as evidence for the null-hypothesis.
 
-### Interaction model
+
+## Only 'Sex' as a predictor variable
+
+Finally, we fit and plot the model with only 'Sex' as a predictor variable. This model was also fitted in the tutorial. If we are only interested in making predictions about people's body height based on their sex and neck circumference (i.e., we are not interested in the relationship between neck circumference and body height), we would be justified in considering such a model.
 
 ```{r}
-fit_Sex_Neck_inter = lm(Height ~ Sex * Neck_circumference, data = student_means)
-summary(fit_Sex_Neck_inter)
-confint(fit_Sex_Neck_inter)
+fit_Sex = lm(Height ~ Sex, data = student_means)
+Plot_predict(fit_Sex)
+title("Height ~ Sex")
 ```
 
-Here we see that difference in the slope for males and females has a 95% confidence interval that includes zero, so this difference is not statistically significant. However, the confidence interval for the difference between the sexes is very wide (remember that the units is in cm). Hence, we can by no means conclude that males and females have the same (or nearly the same) slope in the population! To misinterpret lack of statistical significance to mean "no difference" is a **very common mistake that is important to avoid**. We can just conclude that we do not have enough data to estimate the difference precisely enough to make any inference, which is a very different thing. When we don't have enough data to make such "fine grained" inference or predictions, we better use more simplified models.
+Since 'Neck circumference' is not included as a predictor variable in this model, the predictions and the confidence intervals are the same regardless of 'Neck circumference'. Let's look at the summary of the fitted model and the confidence intervals of the parameters:
 
-Plot of fitted predictions with confidence intervals, interaction model:
 ```{r}
-model_fit = fit_Sex_Neck_inter
-Title = "Interaction model"
-x_range_F = range(student_means$Neck_circumference[student_means$Sex=="female"])
-x_range_M = range(student_means$Neck_circumference[student_means$Sex=="male"])
-pred_data_F = data.frame(Sex = "female", Neck_circumference = seq(x_range_F[1], x_range_F[2], length.out = 50))
-pred_data_M = data.frame(Sex = "male", Neck_circumference = seq(x_range_M[1], x_range_M[2], length.out = 50))
-pred_data = rbind(pred_data_F, pred_data_M)
-pred = predict(model_fit, pred_data, interval = "confidence")
-pred = cbind(pred_data, pred)
-
-with(student_means,
-     plot(Neck_circumference, Height, type="n", xlab="Neck_circumference (cm)", ylab = "Height (cm)")
-     )
-with(student_means, points(Neck_circumference, Height, col=ifelse(Sex=="female", "red", "blue")))
-with(pred[pred$Sex=="female",], lines(Neck_circumference, fit, col="red"))
-with(pred[pred$Sex=="female",], lines(Neck_circumference, lwr, col="red", lty=2))
-with(pred[pred$Sex=="female",], lines(Neck_circumference, upr, col="red", lty=2))
-with(pred[pred$Sex=="male",], lines(Neck_circumference, fit, col="blue"))
-with(pred[pred$Sex=="male",], lines(Neck_circumference, lwr, col="blue", lty=2))
-with(pred[pred$Sex=="male",], lines(Neck_circumference, upr, col="blue", lty=2))
-legend("topleft", legend=c("Females", "Males"), pch=c(1,1), col = c("red", "blue"))
-title(Title)
+summary(fit_Sex)
+confint(fit_Sex)
 ```
 
-Presenting such a figure invites misinterpretations; many people will interpret this as evidence that males have a positive slope, while females have a negative slope, but such a conclusion is unjustified (the predictions are way to uncertain to predict this) - remember that we seek to make inference about the statistical population and not just the sample.
+This tells us that the mean height of females in the population is estimated to be (point estimate) `r sprintf("%.1f", coef(fit_Sex)[1])` cm, and the 95% confidence interval is `r sprintf("%.1f", confint(fit_Sex)[1,1])` cm to `r sprintf("%.1f", confint(fit_Sex)[1,2])` cm. Further, mean height of males is `r sprintf("%.1f", coef(fit_Sex)["Sexmale"])` cm higher than mean height of females. The 95% confidence interval for this difference is `r sprintf("%.1f", confint(fit_Sex)["Sexmale",1])` cm to `r sprintf("%.1f", confint(fit_Sex)["Sexmale",2])` cm.
+
+The multiple R-squared value tells us that sex accounts for `r sprintf("%.0f", summary(fit_Sex)$r.squared*100)`% of the variance in the height measurements in the data (i.e., the residual variance when accounting for the difference in mean height of the sexes is `r 100 - round(summary(fit_Sex)$r.squared*100, 0)`% of the variance in the height measurements). This is a substantially higher R-squared value than the model with only 'Neck circumference' as a predictor variable (which also has only two parameters), and only very marginally lower than the more complex models which also include an effect of 'Neck circumference'. Hence, if we are only interested in predicting peoples height, we are better off not including 'Neck circumference' in the model (model selection for prediction is treated in more detail in the Week 4 tutorial).
+
+## Conclusion
+
+Males have both a higher mean neck circumference and a higher mean body height than females. However, within sexes, there is a weak association between people's body height and neck circumference. An increase in neck circumference by 1 cm is associated with an increase in body height of between `r sprintf("%.2f", confint(fit_Sex_Neck)["Neck_circumference",1])` cm and `r sprintf("%.2f", confint(fit_Sex_Neck)["Neck_circumference",2])` cm (95% confidence interval).
+
+It is a bit hard to relate to increase in body height per 1 cm increase in neck circumference, so we can also compute the confidence interval for the difference in expected body height for a female with neck circumference at the estimated 97.5 percentile and a female with with neck circumference at the estimated 2.5 percentile (in a normal distribution, these percentiles are about $\pm$ 1.96 standard deviations from the mean, and hence about $2 \times 1.96$ standard deviations apart). Let's do the computation:
+
+```{r}
+(sd_height = sd(student_means$Height[student_means$Sex == "female"]))
+(sd_neck = sd(student_means$Neck_circumference[student_means$Sex == "female"]))
+2*1.96*sd_neck*confint(fit_Sex_Neck)["Neck_circumference",]
+```
+
+```{r echo=FALSE}
+CI = 2*1.96*sd_neck*confint(fit_Sex_Neck)["Neck_circumference",]
+```
+
+Hence, a female with a 97.5 percentile neck circumference is predicted by the 95% confidence interval to be between `r sprintf("%.1f", -CI[1])` cm *shorter* to `r sprintf("%.1f", CI[2])` cm *taller* than a female with a 2.5 percentile neck circumference. This is about $\pm$ one standard deviation in body height. To get a more precise estimate of the effect of neck circumference on body height, we need more data.
+
+This pattern differs from the relationship between body height and foot length that we looked at in the tutorial; body height clearly increases with foot length within sexes, and the mean body heights of males are still higher than the mean body height of females with the same foot length (i.e., there are substantial effects of both foot length and sex). 
