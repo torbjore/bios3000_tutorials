@@ -1,5 +1,5 @@
 ---
-title: Tutorial Week 8 - Log-linear log-normal models
+title: Tutorial Week 9 - Log-linear log-normal models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
@@ -530,7 +530,7 @@ In this week's assignment you will estimate the allometric proportions of studen
 
 If you work together with other students, you should pick different variables to estimate the allometric relationship for.
 
-To use all the data we have available, you should combine the "vitruvian" data (BIO2150 students) you used during the R course of Week 1 with the mean measurements of last year's BIOS3000/4000 students. Start by reading in these data and look at their summary:
+To use all the data we have available, you should combine the "vitruvian" data (BIO2150 students) you used during the R course of Week 1 with the mean measurements of BIOS3000/4000 students. Start by reading in these data and look at their summary:
 
 ```{r}
 bio2150 = read.table("../Week01/vitruvian.txt", header = TRUE, stringsAsFactors = TRUE)
@@ -576,10 +576,10 @@ names(bio2150)[8] = "Foot"
 names(bio2150)[9] = "Neck_circumference"
 
 names(bio2150)[6] = "Underarm"
-names(bios3000)[5] = "Underarm"
+names(bios3000)[6] = "Underarm"
 
 names(bio2150)[7] = "Underarm_and_hand"
-names(bios3000)[6] = "Underarm_and_hand"
+names(bios3000)[7] = "Underarm_and_hand"
 ```
 
 We are then ready to combine the data with `rbind`:
