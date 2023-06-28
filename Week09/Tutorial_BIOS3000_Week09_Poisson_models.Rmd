@@ -1,5 +1,5 @@
 ---
-title: Tutorial Week 9 and 10 - Log-linear Poisson models
+title: Tutorial Week 10 and 11 - Log-linear Poisson models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
@@ -19,27 +19,28 @@ header-includes:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{=html}
 <style>
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
 </style>
-
-This tutorial is a fairly comprehensive (but not in-depth) overview of Poisson models commonly used in Biology. Sections (or parts of sections) marked with a "<span style="color:red">*</span>" are not part of the syllabus but are included to give you an overview of related topics that you likely have to read up on later in your career. It may also be that some of the groups can use this in their research project.
+```
+This tutorial is a fairly comprehensive (but not in-depth) overview of Poisson models commonly used in Biology. Sections (or parts of sections) marked with a "<span style="color:red">\*</span>" are not part of the syllabus but are included to give you an overview of related topics that you likely have to read up on later in your career. It may also be that some of the groups can use this in their research project.
 
 ## Key terms and concepts covered in this tutorial
 
-* Poisson distribution
-* Generalized linear models
-* Overdispersion
+-   Poisson distribution
+-   Generalized linear models
+-   Overdispersion
 
 ## Preparations
 
-Before you read this tutorial you need to understand what a Poisson distribution is. Hence, if you don't already have a good understanding of this distribution, it is essential that you read the short tutorial on [Poisson point processes and the Poisson distribution](https://uio.instructure.com/courses/30115/files/1024640?fd_cookie_set=1) in the Week 1 review material (see also the [Rmd-file](https://uio.instructure.com/courses/30115/files/1024641/download?download_frd=1)). We will also give an introduction of the Poisson-distribution during the lectures.
+Before you read this tutorial you need to understand what a Poisson distribution is. Hence, if you don't already have a good understanding of this distribution, it is essential that you read the short tutorial on [Poisson point processes and the Poisson distribution](https://uio.instructure.com/courses/42893/files/2112199/download?download_frd=1) in the Week 1 review material (see also the [Rmd-file](https://uio.instructure.com/courses/42893/files/2112201/download?download_frd=1)). We will also give an introduction of the Poisson-distribution during the lectures.
 
-We will use log-linear models (but now with Poisson distributed data instead of log-normal), so it is essential that you have a good understanding of log-linear models covered in the [Week 8 tutorial](https://uio.instructure.com/courses/30115/files/1127664?wrap=1&fd_cookie_set=1).
+We will use log-linear models (but now with Poisson distributed data instead of log-normal), so it is essential that you have a good understanding of log-linear models covered in the [Week 9 tutorial](https://uio.instructure.com/courses/42893/pages/week-9-log-linear-log-normal-models).
 
 ## An example with simulations - ticks on chicks
 
-Imagine a grouse chick walking around in the vegetation searching for food. In the vegetation there are also ticks (ecto-parasites) that would jump on the chicks and infest themselves in their skin whenever they have a chance. Each chick will be exposed to an *intensity* of such events depending on the density of ticks and the type of vegetation where they live. This is similar to the rain drop example used in the short tutorial on the Poisson distribution, and it is hence reasonable to assume that tick infestation on the chicks could be a Poisson process such that the number of ticks on chicks in a given area is a Poisson distributed random variable. <span style="color:blue"> Can you imagine processes that would violate this assumption?</span>
+Imagine a grouse chick walking around in the vegetation searching for food. In the vegetation there are also ticks (ecto-parasites) that would jump on the chicks and infest themselves in their skin whenever they have a chance. Each chick will be exposed to an *intensity* of such events depending on the density of ticks and the type of vegetation where they live. This is similar to the rain drop example used in the short tutorial on the Poisson distribution, and it is hence reasonable to assume that tick infestation on the chicks could be a Poisson process such that the number of ticks on chicks in a given area is a Poisson distributed random variable. [ Can you imagine processes that would violate this assumption?]{style="color:blue"}
 
 In R, we can draw Poisson distributed random variables with the `rpois` function. For example, the below code simulates number of ticks on 10 chicks of the same age (same brood) that live in the same area and have been exposed to the same intensity of tick infestations such that the expected number of ticks on a chick is 5 (I set a seed for the random generator such that I can write about a sample that doesn't change the next time I knit the document).
 
@@ -60,14 +61,13 @@ If you run this many times you will see that the numbers will tend to increase a
 
 When we fit models to a Poisson-distributed response variable, we are modelling the expectation parameter $\lambda$ (i.e., we are creating a model that predicts $\lambda$ for a set of predictor variables). Imagine for example that tick infestation intensity declines with altitude above sea level. Since infestation intensity is a **ratio scaled** variable, it is reasonable to model $\lambda$ on a logarithmic scale. This ensures that $\lambda$ is positive (you can't have a negative number of ticks, so a negative $\lambda$ will not make sense). If we also use a linear model on the logarithmic scale (i.e. a log-linear model) we will estimate relative effects on $\lambda$.
 
-Let's decide that we want to simulate the number of ticks that we find on chicks in an altitude gradient from 400 meters above sea level to 900 meters. At 400 meters the expected number of ticks on a chick is 10 and at 900 meters the expected number of ticks on a chick is only 1. In a log-linear model where we *don't* log-transform altitude, the decline in $\log(\lambda)$ will be linear (meaning that a certain *absolute* change in altitude will lead to a certain *relative* (percentage-wise) change in $\lambda$ regardless of altitude). In this case the slope of the linear function will be $(\log(1) - \log(10))/(900 - 400) \approx -0.0046$. **<span style="color:blue">Please draw this on a piece of paper so you are sure you understand!</span>**
+Let's decide that we want to simulate the number of ticks that we find on chicks in an altitude gradient from 400 meters above sea level to 900 meters. At 400 meters the expected number of ticks on a chick is 10 and at 900 meters the expected number of ticks on a chick is only 1. In a log-linear model where we *don't* log-transform altitude, the decline in $\log(\lambda)$ will be linear (meaning that a certain *absolute* change in altitude will lead to a certain *relative* (percentage-wise) change in $\lambda$ regardless of altitude). In this case the slope of the linear function will be $(\log(1) - \log(10))/(900 - 400) \approx -0.0046$. [**Please draw this on a piece of paper so you are sure you understand!**]{style="color:blue"}
 
 The model for $\lambda$ that we have now formulated (and that you have drawn on paper) can be formulated mathematically as
 
 $$
 \log(\lambda_i) = \beta_0 + \beta_1 x_{i,1}
-$$
-where $\lambda_i$ is the expected number of ticks on a chick living at altitude $x_{i,1}$ meters and $\beta_1$ is the slope that we decided was $(\log(1) - \log(10))/500$ when $x_1$ is expressed in meters. The intercept is then $\beta_0 = \log(10) - 400\beta_1$ (<span style="color:blue">check your drawing!</span>). <span style="color:blue">Can you find the expression for $\lambda_i$ by taking the anti-log (`exp()`) on both sides of the equal sign?</span>
+$$ where $\lambda_i$ is the expected number of ticks on a chick living at altitude $x_{i,1}$ meters and $\beta_1$ is the slope that we decided was $(\log(1) - \log(10))/500$ when $x_1$ is expressed in meters. The intercept is then $\beta_0 = \log(10) - 400\beta_1$ ([check your drawing!]{style="color:blue"}). [Can you find the expression for $\lambda_i$ by taking the anti-log (`exp()`) on both sides of the equal sign?]{style="color:blue"}
 
 To complete the specification of the stochastic model, we specify that number of ticks on a chick, $y_i$, is Poisson distributed with expectation $\lambda_i$.
 
@@ -147,12 +147,11 @@ $$
 y_i \sim \text{Binomial}(n_i, p_i)
 \\
 \log \left( \frac{p_i}{1-p_i} \right)  = \mathbf{x}_i \boldsymbol{\beta}
-$$
-where $n_i$ is number of trials (not a parameter!) and $p_i$ is the probability of "success" for each independent trial. Such a model is specified in R as `glm(formula, family = binomial(link = "logit"))`
+$$ where $n_i$ is number of trials (not a parameter!) and $p_i$ is the probability of "success" for each independent trial. Such a model is specified in R as `glm(formula, family = binomial(link = "logit"))`
 
-## <span style="color:red">*</span>Offset in Poisson GLM
+## <span style="color:red">\*</span>Offset in Poisson GLM
 
-In the rain drop example in the tutorial on the Poisson distribution, we defined the "intensity" as the expected number of points (e.g., rain drops or number of ticks) per unit area (e.g. a square meter or chick). We can also use the Poisson distribution for the number of events occurring within time intervals when the events result from a Poisson point process. In this case, the intensity is the expected number of events per time-unit (e.g., second, hour, day, or year). The expectation in the Poisson distribution ($\lambda_i$) is the intensity times the size of the area or length of the interval. Hence, if we use the symbol $\alpha$ (Greek letter 'alpha') for the intensity and $A$ for the size of the area or length of the interval, we have $\lambda_i = \alpha_i A_i$. If all observations ($i$) have the same $A_i=A$ it is convenient to to use $A$ as the unit of measurement for the intensity (e.g. $A = 1$ m$^2$ if all counts $y_i$ are counts per m$^2$) such that $\lambda_i = \alpha_i$. However, for many reasons the size of areas or length of intervals often vary in the data. When this is the case, we want to create a log-linear model for the intensity $\alpha_i$ (i.e., the expectation per unit area) and not $\lambda_i$. To achieve this, we should first realize that the product $\lambda_i = \alpha_i A_i$ is equivalent to  $\log(\lambda_i) = \log(\alpha_i) + \log(A_i)$. If we then use a log-linear model for $\alpha_i$ such that $\log(\alpha_i) =  \mathbf{x}_i \boldsymbol{\beta}$, we get a Poisson GLM on the form 
+In the rain drop example in the tutorial on the Poisson distribution, we defined the "intensity" as the expected number of points (e.g., rain drops or number of ticks) per unit area (e.g. a square meter or chick). We can also use the Poisson distribution for the number of events occurring within time intervals when the events result from a Poisson point process. In this case, the intensity is the expected number of events per time-unit (e.g., second, hour, day, or year). The expectation in the Poisson distribution ($\lambda_i$) is the intensity times the size of the area or length of the interval. Hence, if we use the symbol $\alpha$ (Greek letter 'alpha') for the intensity and $A$ for the size of the area or length of the interval, we have $\lambda_i = \alpha_i A_i$. If all observations ($i$) have the same $A_i=A$ it is convenient to to use $A$ as the unit of measurement for the intensity (e.g. $A = 1$ m$^2$ if all counts $y_i$ are counts per m$^2$) such that $\lambda_i = \alpha_i$. However, for many reasons the size of areas or length of intervals often vary in the data. When this is the case, we want to create a log-linear model for the intensity $\alpha_i$ (i.e., the expectation per unit area) and not $\lambda_i$. To achieve this, we should first realize that the product $\lambda_i = \alpha_i A_i$ is equivalent to $\log(\lambda_i) = \log(\alpha_i) + \log(A_i)$. If we then use a log-linear model for $\alpha_i$ such that $\log(\alpha_i) = \mathbf{x}_i \boldsymbol{\beta}$, we get a Poisson GLM on the form
 
 $$
 y_i \sim \text{Poisson}(\lambda_i)
@@ -162,9 +161,9 @@ $$
 
 This model can be described as a "**Poisson GLM with an offset**". In the `glm` function, we specify an offset by adding `+ offset(log(A))` in the formula (see specific example below).
 
-[Note that many texts use $\lambda$ to denote the intensity instead of the expectation when these differ and write the above model (or similar) as $y_i \sim \text{Poisson}(\lambda_iA_i); \log(\lambda_i) = \mathbf{x}_i \boldsymbol{\beta}$. I have however here used the notation that corresponds with the definitions used by the `glm` function as well as the the distribution functions `rpois`, `dpois, etc. in R. This is also the notation used in the Wikipedia entry on the Poisson distribution.]
+[Note that many texts use $\lambda$ to denote the intensity instead of the expectation when these differ and write the above model (or similar) as $y_i \sim \text{Poisson}(\lambda_iA_i); \log(\lambda_i) = \mathbf{x}_i \boldsymbol{\beta}$. I have however here used the notation that corresponds with the definitions used by the `glm` function as well as the the distribution functions `rpois`, \`dpois, etc. in R. This is also the notation used in the Wikipedia entry on the Poisson distribution.]
 
-### <span style="color:red">*</span>Example - flower visitation rates
+### <span style="color:red">\*</span>Example - flower visitation rates
 
 To better understand what this means, let's consider a typical situation in pollination ecological studies. To study the intensity of flower visitation by pollinating insects, observers (people or cameras) may record insects visiting a patch of flowers. The aim is then to model the flower visitation intensity (or "rate") per flower per time. However, both the number of flowers per patch ($N_i$) and the duration of the observation period ($D_i$) may vary between patches for several reasons. If the aim of the study is to estimate how the flower visitation intensity changes with altitude, one may fit the model
 
@@ -172,13 +171,11 @@ $$
 y_i \sim \text{Poisson}(\lambda_i)
 \\
 \log(\lambda_i) = \beta_0 + \beta_1 x_{i,1} + \log(N_i) + \log(D_i)
-$$
-where $x_{i,1}$ is the altitude of flower patch $i$, and the linear predictor $\beta_0 + \beta_1 x_{i,1}$ is the log of flower visitation intensity, such that flower visitation rate is $\alpha_i = \exp(\beta_0 + \beta_1 x_{i,1})$, and the expected number of observed insect visits at the patch is $\lambda_i = \alpha_i N_i D_i$.
+$$ where $x_{i,1}$ is the altitude of flower patch $i$, and the linear predictor $\beta_0 + \beta_1 x_{i,1}$ is the log of flower visitation intensity, such that flower visitation rate is $\alpha_i = \exp(\beta_0 + \beta_1 x_{i,1})$, and the expected number of observed insect visits at the patch is $\lambda_i = \alpha_i N_i D_i$.
 
 It is essential to realize that $\log(N_i)$ and $\log(D_i)$ are *not* predictor variables in the model. There are no parameters (coefficients) associated with these variables - they are simply **offsets**. If we want to investigate whether a larger patch of flowers attracts more insects *per flower* than smaller patches, we may add $N_i$ or $\log(N_i)$ as predictor variables in the model *in addition to* having $\log(N_i)$ as an offset in the model (the role of the offset is to model the *per flower* intensity).
 
-If we have the variables `n_visits` ($y$), `alt` ($x_1$), `n_flow` ($N$) and `dur` ($D$), we specify the above model in `glm` as `glm(n_visits ~ alt + offset(log(n_flow)) + offset(log(dur)),
-family = poisson)`.
+If we have the variables `n_visits` ($y$), `alt` ($x_1$), `n_flow` ($N$) and `dur` ($D$), we specify the above model in `glm` as `glm(n_visits ~ alt + offset(log(n_flow)) + offset(log(dur)), family = poisson)`.
 
 It may seem natural in situations like this to just divide the response variable with e.g. number of flowers. However, this new response variable will *not* be Poisson distributed (it's not a whole number for one thing), and it is generally not reasonable to assume that this variable would be normal distributed with a constant residual variance either (it does not comply with the assumptions of the regular linear model). So this approach is not advisable!
 
@@ -218,17 +215,18 @@ Now we can compare this to the sample size we get from the fitted Poisson model:
 ```{r}
 exp(confint(fit_0))
 ```
+
 We see that this confidence interval is even narrower. This underestimation of uncertainty may not seem very serious in this case as the confidence interval is already so narrow. However, as we will see in the worked example below, the bias in the confidence intervals (for predictions and contrasts) due to overdispersion in the data can be substantial and this is something we should definitely worry about to avoid making over-confident conclusions.
 
 ### Causes of overdispersion (and underdispersion)
 
 We have already seen that failure to include important predictor variables can lead to overdispersion. If the data has arisen from a complex point process (as in ecological systems) we will never be able to model all the processes that determines the expectation ($\lambda$) of the Poisson distribution. Hence, when analyzing such data, there will usually be some degree of overdispersion.
 
-Another cause of overdispersion is when the "points" of whatever point process we are studying are not independent of each other. For example, location of individuals are often not independent of each other - individuals may "attract" each other (family, mates, cooperating individuals) and this will lead to overdispersion (there will be more areas with many and few individuals than expected, and fewer with intermediate numbers). Individuals may also "repel" each other (e.g., competitors). This will however lead to **underdispersion** (individuals are more regularly dispersed than expected - see the raindrop example). Underdispersion leads to confidence intervals that are too wide. As it is generally better to be conservative than overstating the precision, this is less of a problem than overdispersion. However, if you have underdispersed data relative to a Poisson distribution, you should ask yourself whether a model that assumes that the data has been generated from a Poisson process is the best alternative for your data.   
+Another cause of overdispersion is when the "points" of whatever point process we are studying are not independent of each other. For example, location of individuals are often not independent of each other - individuals may "attract" each other (family, mates, cooperating individuals) and this will lead to overdispersion (there will be more areas with many and few individuals than expected, and fewer with intermediate numbers). Individuals may also "repel" each other (e.g., competitors). This will however lead to **underdispersion** (individuals are more regularly dispersed than expected - see the raindrop example). Underdispersion leads to confidence intervals that are too wide. As it is generally better to be conservative than overstating the precision, this is less of a problem than overdispersion. However, if you have underdispersed data relative to a Poisson distribution, you should ask yourself whether a model that assumes that the data has been generated from a Poisson process is the best alternative for your data.
 
 Finally, a common cause of overdispersion in the data is **zero-inflation**, which we will briefly explain in the next section.
 
-### <span style="color:red">*</span>Zero-inflation
+### <span style="color:red">\*</span>Zero-inflation
 
 Count data often have an excess of zeros compared to what should be expected by the Poisson distribution for the given mean. Such data occurs when for example when habitat patches are either suitable for a species or not, and given that it is suitable, the number of individuals is Poisson distributed. Hierarchically, we can formulate a model for this process as
 
@@ -238,8 +236,7 @@ y_i \sim \text{Poisson}(\lambda_i z_i)
 \log(\lambda_i) = \mathbf{x}_i \boldsymbol{\beta}
 \\
 z_i \sim \text{Bernoulli}(p)
-$$
-Here $z_i$ is a Bernoulli random variable that takes value 1 with probability $p$ and value 0 with probability $1 - p$ (a Bernoulli random variable is Binomial random variable with number of trials equal to 1). When $z_i$ is 0 (indicating e.g. that the species is not present) the Poisson expectation becomes 0 and we can only observe $y_i = 0$. When $z_i$ is 1 we have a regular log-linear Poisson model. The parameters to be estimated in this model is the parameter vector $\boldsymbol{\beta}$ and the probability $p$. The probability $p$ is however usually modeled with a logit-link (possible including predictor variables). There are several functions in R that can fit such models, so search for it when you need it!
+$$ Here $z_i$ is a Bernoulli random variable that takes value 1 with probability $p$ and value 0 with probability $1 - p$ (a Bernoulli random variable is Binomial random variable with number of trials equal to 1). When $z_i$ is 0 (indicating e.g. that the species is not present) the Poisson expectation becomes 0 and we can only observe $y_i = 0$. When $z_i$ is 1 we have a regular log-linear Poisson model. The parameters to be estimated in this model is the parameter vector $\boldsymbol{\beta}$ and the probability $p$. The probability $p$ is however usually modeled with a logit-link (possible including predictor variables). There are several functions in R that can fit such models, so search for it when you need it!
 
 ### How to detect and assess the degree of overdispersion
 
@@ -250,21 +247,22 @@ Let's check the summary of the intercept-only model that we also fitted to these
 ```{r}
 summary(fit_0)
 ```
+
 Here we see that the residual deviance is `r sprintf("%5.0f", fit_0$deviance)` and the residual degrees of freedom is `r round(fit_0$df.residual, 0)`, and their ratio is about `r round(fit_0$deviance/fit_0$df.residual, 2)`. Note that this ratio is almost the same as the variance/mean ratio that we computed above. This is no coincidence: The ratio between the residual deviance and degrees of freedom is an estimate of how much larger the variance is in the data relative to what is expected from the Poisson model that has been fitted - this is the case for any model (not just the intercept only model)! Note however, that with limited data, we may get a quite high ratio between the residual deviance and degrees of freedom just by chance (this can be investigated by bootstrapping).
 
 ### Remedies for overdispersion
 
 There are several ways to deal with the problem of overdispersion. We have already mentioned the zero-inflated Poisson model that you can use if you think such a process is behind your data. We will here mention three other options (that can be combined with a zero-inflated model):
 
-1. Using a Poisson model with random effects (Generalized Linear Mixed Effects (GLMM) models)
+1.  Using a Poisson model with random effects (Generalized Linear Mixed Effects (GLMM) models)
 
-2. <span style="color:red">*</span>[Using another probability distribution that allows a larger residual variance than the Poisson distribution, such as the negative binomial distribution.]
+2.  <span style="color:red">\*</span>[Using another probability distribution that allows a larger residual variance than the Poisson distribution, such as the negative binomial distribution.]
 
-3. Fitting a "**quasi-Poisson GLM**" 
+3.  Fitting a "**quasi-Poisson GLM**"
 
 Now that you have learned about mixed effects models (Week 6 of the course), you probably have a feel for what this option is about.
 
-<span style="color:red">*</span>[The second option of using a negative binomial distribution is actually a special case of the first option as this is equivalent to a Poisson model with a Gamma-distributed $\lambda$ (with certain constraints).]
+<span style="color:red">\*</span>[The second option of using a negative binomial distribution is actually a special case of the first option as this is equivalent to a Poisson model with a Gamma-distributed $\lambda$ (with certain constraints).]
 
 The third option does not build on a proper probability distribution and is a "quick fix" to adjust estimates of standard errors and confidence intervals. This approach will give you the same parameter estimates and predictions (as point estimates) as the regular Poisson GLM, but instead of assuming that the variance equals the mean we just assume that the variance is *proportional* to the mean and we get an estimate of the proportionality constant. This is then used to adjust the standard errors of the parameter estimates.
 
@@ -274,7 +272,7 @@ The most ideal approach is usually the first (using a GLMM), unless there are sp
 
 We will here analyse a real data set that inspired the "ticks on chicks" example above. Elston et al. 2001[^1] analyzed data on sheep ticks *Ixodes ricinus* on red grouse *Lagopus lagopus scoticus* chicks along an altitude gradient in Scottland in three different years (1995 to 1997). Ectoparasites at high densities can severely affect the survival of the host species and limit its distribution. With changing climate, historic data like these are interesting as a reference, allowing new studies to address long-term trends. In such studies it is important to compare the long-term trends to year-to-year variability.
 
-[^1]: (ELSTON, D., MOSS, R., BOULINIER, T., ARROWSMITH, C., & LAMBIN, X. (2001). Analysis of aggregation, a worked example: Numbers of ticks on red grouse chicks. Parasitology, 122(5), 563-569. doi:10.1017/S0031182001007740) 
+[^1]: (ELSTON, D., MOSS, R., BOULINIER, T., ARROWSMITH, C., & LAMBIN, X. (2001). Analysis of aggregation, a worked example: Numbers of ticks on red grouse chicks. Parasitology, 122(5), 563-569. <doi:10.1017/S0031182001007740>)
 
 The data has been included as example data in the `lme4` package that you worked with last week. We start by loading the package and the data, and look at the description of the data:
 
@@ -296,7 +294,7 @@ The last variable cHEIGHT is a centered version of the HEIGHT variable (altitude
 grouseticks$cALTITUDE = grouseticks$HEIGHT - mean(grouseticks$HEIGHT)
 ```
 
-Centering is often done to improve convergence in the model fitting routines. In the GLMM example below, we need to use the centered variable to achieve convergence, so we will use this variable from the start. Note that centering variables *does not* change the models we are fitting; we will get exactly the same predictions, contrasts and residuals. However, the meaning of the intercept changes such that the intercept when using cALTITUDE is the predicted value at mean altitude (i.e., when HEIGHT equals mean(HEIGHT)). <span style="color:blue">You should draw this on a piece of paper to make sure you understand!</span>
+Centering is often done to improve convergence in the model fitting routines. In the GLMM example below, we need to use the centered variable to achieve convergence, so we will use this variable from the start. Note that centering variables *does not* change the models we are fitting; we will get exactly the same predictions, contrasts and residuals. However, the meaning of the intercept changes such that the intercept when using cALTITUDE is the predicted value at mean altitude (i.e., when HEIGHT equals mean(HEIGHT)). [You should draw this on a piece of paper to make sure you understand!]{style="color:blue"}
 
 Before we start with models, let's also reuse the plotting routine we made above to plot the data with the mean values for every 20 meter altitude bin:
 
@@ -321,12 +319,13 @@ plot(mean_y, var_y)
 abline(0,1, col="blue")
 ```
 
-Clearly, the variance is much greater than the mean (especially when the mean is high - remember that the blue line is the one-to-one line). This indicates a large overdispersion in the data. This overdispersion could however at least partly be due to variation among years. Let's fit a Poisson GLM  with both year and altitude as predictor variables and check the ratio between residual deviance and degrees of freedom (here I use a model with interaction effects):
+Clearly, the variance is much greater than the mean (especially when the mean is high - remember that the blue line is the one-to-one line). This indicates a large overdispersion in the data. This overdispersion could however at least partly be due to variation among years. Let's fit a Poisson GLM with both year and altitude as predictor variables and check the ratio between residual deviance and degrees of freedom (here I use a model with interaction effects):
 
 ```{r}
 fit_yr_alt_int = glm(TICKS ~ YEAR*cALTITUDE, data = grouseticks, family = poisson)
 summary(fit_yr_alt_int)
 ```
+
 Here we see that the residual deviance is about `r round(3009/397)` times higher than the degrees of freedom, indicating a high overdispersion even after accounting for differences between years. We also see from the parameter estimates that there appear to be some differences among years (1995 having a steeper negative slope than the two other years and 1996 having the highest numbers of ticks per chick at the mean altitude (remember that we have centred the altitude variable)). However, due to the high overdispersion, the standard errors are much smaller than they should should be. This is something we clearly need to do something about.
 
 ### Quasi-Poisson GLM
@@ -337,11 +336,12 @@ Let's first try the approach of fitting a quasi-Poisson GLM to the data. To do t
 fit_yr_alt_int_quasi = glm(TICKS ~ YEAR*cALTITUDE, data = grouseticks, family = quasipoisson)
 summary(fit_yr_alt_int_quasi)
 ```
+
 Note that the text "`(Dispersion parameter for poisson family taken to be 1)`" in the first GLM summary now changed to `...taken to be 11.3272)`. This dispersion parameter (also called a "variance inflation factor") is an estimate of how many times higher the variance in the data is relative to the residual variance assumed by the Poisson GLM, and is used for adjusting the standard errors we have in the output. The whole variance-covariance matrix has simply been multiplied by this number (you can confirm that by typing `vcov(fit_yr_alt_int_quasi)/vcov(fit_yr_alt_int)` in the Console window). Note that the point estimates of the parameters have not changed.
 
 At this stage it would have been nice to make a plot of the prediction of tick infestation intensity ($\hat{\lambda}$) from this model, but we leave that for you to do in the Assignment.
 
-### <span style="color:red">*</span> GLMM
+### <span style="color:red">\*</span> GLMM
 
 Ending our analysis with the quasi-Poisson model is somewhat unsatisfactory because we can get a lot more information out of the data from a GLMM. With a quasi-Poisson model we just compute a "fudge factor" (a term from physics) to adjust the variance-covariance matrix (and thereby standard errors, confidence intervals and p-values) to account for over-dispersion. With a GLMM we could decompose the extra-Poisson variation in the data into variation among locations, among broods within locations and among chicks within broods. With a GLMM we can fit the following model:
 
@@ -365,36 +365,36 @@ This model can be fitted with the `glmmTMB` function in the R package with the s
 
 Since we have been using a log-link in the worked example above, we can interpret the parameters in much the same way as the parameters in the log-linear models that we worked with last week. Use the fitted model object `fit_yr_alt_int_quasi` to answer the following questions:
 
-1. What is the expected number of ticks per chick for each of the three years at mean altitude? Compute both point estimates and confidence intervals.
+1.  What is the expected number of ticks per chick for each of the three years at mean altitude? Compute both point estimates and confidence intervals.
 
-2. What is the expected number of ticks per chick for each of the three years at the lowest and highest altitude in the data? Compute both point estimates and confidence intervals.
+2.  What is the expected number of ticks per chick for each of the three years at the lowest and highest altitude in the data? Compute both point estimates and confidence intervals.
 
-3. How does expected number of ticks relate to altitude in each of the three years? Express the effects of altitude (slopes) in an easily interpretable way, both as point estimates and confidence intervals.
+3.  How does expected number of ticks relate to altitude in each of the three years? Express the effects of altitude (slopes) in an easily interpretable way, both as point estimates and confidence intervals.
 
 ## Assignment
 
 A. Make a plot of predicted intensity, with confidence intervals, of tick infestation ($\lambda$) from the quasi-Poisson model (`fit_yr_alt_int_quasi`) fitted in the worked example above. Make one plot with different coloured lines for each of the three years so that it is easier to interpret the the differences between years. Here are some hints to help you complete the task (if you need them - you can try without!):
 
-* You first need to create a new data frame with the `expand.grid` function that you use for the `newdata` argument in the `predict function`. This data frame should contain all the values for the predictor variables that you want to plot the predictions for (alternatively, you can make one data frame for each year).
+-   You first need to create a new data frame with the `expand.grid` function that you use for the `newdata` argument in the `predict function`. This data frame should contain all the values for the predictor variables that you want to plot the predictions for (alternatively, you can make one data frame for each year).
 
-* Remember that you have used the centered `cALTITUDE` variable when fitting the model. In the plot, however, you want the actual altitude on the x-axis. The easiest way to do this is to first include a variable with the altitudes you want to make the predictions for (e.g. every meter between the lowest and highest altitude in the data), and then make a `cALTITUDE` variable in the data frame where you transform the altitude in the *exactly same* way as you did before fitting the model. This is a step where it is easy to go wrong, so think carefully about what you are doing (what should you subtract?). Then you can use the original altitude variable on the x-axis in your plot.
+-   Remember that you have used the centered `cALTITUDE` variable when fitting the model. In the plot, however, you want the actual altitude on the x-axis. The easiest way to do this is to first include a variable with the altitudes you want to make the predictions for (e.g. every meter between the lowest and highest altitude in the data), and then make a `cALTITUDE` variable in the data frame where you transform the altitude in the *exactly same* way as you did before fitting the model. This is a step where it is easy to go wrong, so think carefully about what you are doing (what should you subtract?). Then you can use the original altitude variable on the x-axis in your plot.
 
-* When you use the generic `predict` function on a `glm`model object, the function you are actually using is `predict.glm` (this is called a "method" in R), although you can just use `predict()` (R figures it out based on the class of the object). You need the argument `se.fit = TRUE` to get standard errors of the predictions (unlike in `predict.lm`, you cannot get the confidence intervals out directly in `predict.glm`).
+-   When you use the generic `predict` function on a `glm`model object, the function you are actually using is `predict.glm` (this is called a "method" in R), although you can just use `predict()` (R figures it out based on the class of the object). You need the argument `se.fit = TRUE` to get standard errors of the predictions (unlike in `predict.lm`, you cannot get the confidence intervals out directly in `predict.glm`).
 
-* First compute the confidence interval for the linear predictor (i.e., for $\log(\lambda)$) and then transform the interval before plotting. 
+-   First compute the confidence interval for the linear predictor (i.e., for $\log(\lambda)$) and then transform the interval before plotting.
 
 B. The following questions are about the interpretations of the plot you have made - try to be critical (there are no right or wrong answers, but some answers are better than others and we may agree or disagree with your interpretations):
 
-i. Can you say that these results indicate that there was a statistically significant decline or increase over time (years) in the density of ticks in this area? Explain. What are the possible explanations for the patterns that you see? 
+i.  Can you say that these results indicate that there was a statistically significant decline or increase over time (years) in the density of ticks in this area? Explain. What are the possible explanations for the patterns that you see?
 
 ii. Imagine you are asked by a group of researchers to comment on their project proposal to study how the tick distribution in this area has changed since this study. They plan to re-sample the same study area during a single season. What advice would you give them?
 
-<span style="color:red">* [</span> C. OPTIONAL (and a bit advanced): Use `glmmTMB()` to fit the model specified as `glmmTMB(TICKS ~ YEAR * cALTITUDE + (1|LOCATION/BROOD/INDEX), family=poisson, data=grouseticks)` to the data. Make your interpretation of the estimated variances/standard deviations of the random effects. Re-use the your plot-code from part A above to make a plot of the predicted median and mean $\lambda$ from this model. Some hints:
+[\* []{style="color:red"} C. OPTIONAL (and a bit advanced): Use `glmmTMB()` to fit the model specified as `glmmTMB(TICKS ~ YEAR * cALTITUDE + (1|LOCATION/BROOD/INDEX), family=poisson, data=grouseticks)` to the data. Make your interpretation of the estimated variances/standard deviations of the random effects. Re-use the your plot-code from part A above to make a plot of the predicted median and mean $\lambda$ from this model. Some hints:
 
-* You need to install the `glmmTMB` package with `install.packages("glmmTMB")`.
+-   You need to install the `glmmTMB` package with `install.packages("glmmTMB")`.
 
-* To make predictions for the median among locations, broods and chicks in the whole population (and not for specific or random locations, broods or chicks), include `LOCATION`, `BROOD` and `INDEX` as variables with only `NA` values in `newdata` and include the argument `re.form=~0` in `predict.glmmTMB`.
+-   To make predictions for the median among locations, broods and chicks in the whole population (and not for specific or random locations, broods or chicks), include `LOCATION`, `BROOD` and `INDEX` as variables with only `NA` values in `newdata` and include the argument `re.form=~0` in `predict.glmmTMB`.
 
-* To get predictions for the *mean* among locations, broods and chicks in the whole population you need to multiply the predictions of the median with `exp(Var/2)` (see Week 8 tutorial) where `Var` is the sum of the three random effects variances (the three variance components are assumed to be independent in the model).
+-   To get predictions for the *mean* among locations, broods and chicks in the whole population you need to multiply the predictions of the median with `exp(Var/2)` (see Week 8 tutorial) where `Var` is the sum of the three random effects variances (the three variance components are assumed to be independent in the model).
 
-<span style="color:red">]</span> 
+[]]{style="color:red"}
