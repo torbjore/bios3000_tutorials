@@ -68,33 +68,37 @@ to the "Week03" folder. Note that the data file must be in the same folder as an
 
 <!-- Here, each row is a different student. The first column is a personal ID ('g' stands for group and 'p' stands for person), the other columns (= variables) should be self-explanatory. All measurements are in centimeters. It is also a good idea to use the `summary` function to look at summary of the distribution of each variable, but this is not shown here (it has been commented out). -->
 
-I have copy-pasted the data from the 6 groups into a single Excel-sheet and standardized the labeling etc. before saving the data as a tab-delimited text-file (such files can be read with the `read.delim` function using default arguments - see `?read.delim`). Start by reading in the data and assign it to an object:
+I have copy-pasted the data from the 5 groups into a single Excel-sheet and standardized the labeling etc. before saving the data as a tab-delimited text-file (such files can be read with the `read.delim` function using default arguments - see `?read.delim`). Start by reading in the data and assign it to an object:
 
 ```{r}
-students_2023 = read.delim("MeasurementData_2023.txt", stringsAsFactors = TRUE)
+students_2025 = read.delim("MeasurementData_2025.txt", stringsAsFactors = TRUE)
 ```
 
 Look at a summary of the data:
 
 ```{r}
-summary(students_2023)
+summary(students_2025)
 ```
 
-This shows a summary of the distribution of each of the variables in the data. When importing data, it is important to check the summary to make sure that there are no unexpected NA's (missing values) or inconsistent labeling such as "male" and "male " (note the accidental extra space; I had to fix some issues of this type, but that data looks as expected now).
+This shows a summary of the distribution of each of the variables in the data. When importing data, it is important to check the summary to make sure that there are no unexpected NA's (missing values) or inconsistent labeling such as "male" and "Male" (I had to fix some issues of this type).
 
-Since there are rather few students this year, and there are only four males, we will combine the data with the data from 2020 (there were no measurements in 2021 and 2022 due to COVID):
+Since there are rather few students this year, we will combine the data with the data from 2020 and 2023 (there were no measurements in 2021 and 2022 due to COVID and the course was not offered in 2024):
 
 ```{r}
 students_2020 = read.delim("MeasurementData_2020.txt", stringsAsFactors = TRUE)
+students_2023 = read.delim("MeasurementData_2023.txt", stringsAsFactors = TRUE)
 students_2020$Year = "year_2020"
 students_2023$Year = "year_2023"
+students_2025$Year = "year_2025"
 students_2020$ID = paste(students_2020$ID, "2020", sep="_")
 students_2023$ID = paste(students_2023$ID, "2023", sep="_")
-all(names(students_2020) == names(students_2023)) # Checking that column names are identical
-students = rbind(students_2020, students_2023)
-#summary(students)
+students_2025$ID = paste(students_2025$ID, "2025", sep="_")
+
+# all(names(students_2025) == names(students_2023)) # Checking that column names are identical
+students = rbind(students_2020, students_2023, students_2025)
+# summary(students)
 ```
-Note that before we combine the two data sets with `rbind()` ("row bind") we make a new variable called `Year` and we add year to the ID so that there are unique IDs for each person also in the combined data. We also check that the column names in the two data sets are identical. You should also check again that the summary looks as expected (commented out with "#" here).
+Note that before we combine the three data sets with `rbind()` ("row bind") we make a new variable called `Year` and we add year to the ID so that there are unique IDs for each person also in the combined data. We also check that the column names in the data sets are identical. You should also check again that the summary looks as expected (commented out with "#" here).
 
 Let's make a scatter plot of `Height` against `Length_of_right_foot`:
 
@@ -102,7 +106,7 @@ Let's make a scatter plot of `Height` against `Length_of_right_foot`:
 plot(students$Length_of_right_foot, students$Height)
 ```
 
-Note that the data points appears to be clustered in many groups. This is because we have three values of each person and the only thing that separates them is measurement error (some groups also rounded off to closest cm, so some points are plotted on top of each other and appear as one). Ignoring this fact would clearly be wrong as we would think have three times as many individuals in the data as we actually have (this would be a case of "pseudoreplication" that will get back to later in the course).
+Here there are three measurement for each individual. Ignoring this fact would clearly be wrong as we would think have three times as many individuals in the data as we actually have (this would be a case of "pseudoreplication" that will get back to later in the course).
 
 In this tutorial, we will mainly work with the means for each person. We will also ignore the categorical variables `Eye_colour` and `Hair_colour`. To compute the means of the numerical measurements for each person, we can use the `aggregate()` function. We do this here and use the `head()` to see the first lines in the new data frame:
 
