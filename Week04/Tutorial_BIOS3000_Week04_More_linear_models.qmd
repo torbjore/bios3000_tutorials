@@ -34,7 +34,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Preparations
 
-This tutorial makes use of matrices and vectors as well as matrix multiplication. If you are not familiar with this, this external resource explains what you need to know: https://www.mathsisfun.com/algebra/matrix-multiplying.html. We also assume that you know what is meant by *variance* and *covariance* of stochastic variables. 
+This tutorial makes use of matrices and vectors as well as matrix multiplication. If you are not familiar with this, this external resource explains what you need to know: [https://www.mathsisfun.com/algebra/matrix-multiplying.html](https://www.mathsisfun.com/algebra/matrix-multiplying.html). We also assume that you know what is meant by *variance* and *covariance* of stochastic variables. 
 
 We will return to the students morphometric data that we used last week, so we might as well start by reading those data:
 
@@ -42,7 +42,7 @@ We will return to the students morphometric data that we used last week, so we m
 student_means = read.csv("../Week03/student_means.csv")
 ```
 
-The partial path `../Week03` tells R to first go one level back and then look for a directory (folder) called `Week03`. This assumes that R's current working directory is e.g. `Week04` and that `Week03`and `Week04` are both sub-directories under the same directory on your computer. You can set the working directory under "Session > Set Working Directory" in R Studio, but if you work in a R Markdown file the working directory will always be where the Rmd-file is stored.
+The partial path `../Week03` tells R to first go one level back and then look for a directory (folder) called `Week03`. This assumes that R's current working directory is e.g. `Week04` and that `Week03`and `Week04` are both sub-directories under the same directory on your computer. You can set the working directory under "Session > Set Working Directory" in R Studio.
 
 ## Matrix formulation of linear models
 
@@ -210,7 +210,7 @@ Here $\mathbf{\Sigma}$ is the variance-covariance matrix (this is the capital Gr
 
 The nice thing about writing this with matrices is that it applies to any length of the vectors $\mathbf{x}$ and $\boldsymbol{\beta}$! (you would have to write down a very long sum of variances and covariances if these vectors are long).
 
-We may also replace the vector $\mathbf{x}$ above with the whole design matrix $\mathbf{X}$. We then get the variance-covariance matrix of the predictions. The diagonal of this matrix holds the variances of the predictions, and the square-root of these are the standard errors of the predictions.
+We may also replace the vector $\mathbf{x}$ above with the whole design matrix $\mathbf{X}$. We then get the variance-covariance matrix of the predictions. The diagonal of this matrix holds the variances of the predictions (the square-root of these are the standard errors of the predictions), and the off-diagoal elements are covariances.
 
 In R, we can extract the variance-covariance matrix of the parameters for most fitted model objects with the `vcov` function:
 
@@ -252,9 +252,9 @@ You have now computed that males increase on average `r round(slope_male, 2)` cm
 
 ## Contrasts
 
-Parameters in models often represent differences that are meaningful and may be of interest to quantify. For example, in the additive model that we specified as `~ Sex + Foot`, the second parameter is the difference between mean of the sexes, and the model assumes that this difference is the same regardless of foot length. This parameter would, however, not have been very meaningful in the interaction model as it is the difference in height when foot length is zero -- unless the `Foot` variable had been centered by subtracting the mean (or any other value in the range of reasonable foot lengths). However, regardless of how the model is parameterized, we can compute any difference between predicted values that we are interested in. Such a difference is called a **contrast** whether it is represented by a parameter or not.
+Parameters in models often represent differences that are meaningful and may be of interest to quantify. For example, in the additive model that we specified as `~ Sex + Foot`, the second parameter is the difference between mean of the sexes, and, in the model, this difference is the same regardless of foot length. This parameter would, however, not have been very meaningful in the interaction model as it is the difference in height when foot length is zero -- unless the `Foot` variable had been centered by subtracting the mean (or any other value in the range of reasonable foot lengths). However, regardless of how the model is parameterized, we can compute any difference between predicted values that we are interested in. Such a difference is called a **contrast** whether it is represented by a parameter or not.
 
-As an example, let's compute the predicted difference (contrast) between mean height of males and mean height of females at the median foot length of females. Let us call the median foot length of females for $\alpha_F$. You could perhaps figure out how to compute this difference from the parameter estimates directly, but it might be easier to first find the prediction for males and then subtract the prediction for females. The prediction for males is $\mathbf{x}_M \boldsymbol{\beta}$ where
+As an example, let's compute the predicted difference (contrast) between mean height of males and mean height of females at the median foot length of females. Let us denote the median foot length of females as $\alpha_F$. You could perhaps figure out how to compute this difference from the parameter estimates directly, but it might be easier to first find the prediction for males and then subtract the prediction for females. The prediction for males is $\mathbf{x}_M \boldsymbol{\beta}$ where
 $$
 \mathbf{x}_M =
 \left[
@@ -405,13 +405,13 @@ You should always remember that confidence interval computed with the delta-meth
 
 *We will introduce some new concepts as part of the exercises, so it is important that you do them before you do the assignment.*
 
-In these exercises, you will analyze data from a growth experiment of wheat seedlings that was conducted by students in the BIO2150 course during the fall of 2018. With an increasing human population and limited space for food production there is a strong interest in increasing yield per unit area. With fast growing plants one may harvest the wheat twice per year even in climates with a shorter growing season. It is possible to increase plant growth by both breeding new genetic varieties and by supplying the right type of fertilizers at sufficient amounts.
+In these exercises, you will analyze data from a growth experiment of wheat seedlings that was conducted by students in the BIO2150 course during the fall of 2018. With an increasing human population and limited space for food production, there is a strong interest in increasing yield per unit area. With fast growing plants one may harvest the wheat twice per year even in climates with a shorter growing season. It is possible to increase plant growth by both breeding new genetic varieties and by supplying the right type of fertilizers at sufficient amounts.
 
-The experiment included 6 varieties of wheat and 3 types of nitrogen fertilizer (Kristalon) given at 2 different concentrations in addition to a control treatment with just water (the solvent). I.e., there are 7 treatment types. The seedlings grew in pots in a standardized medium, under standardized temperature and light conditions (by "standardized" we mean that these factors were kept the same for all pots, although small random variation may always occur). Each group of students had all six varieties in six separate pots. At 14 days after seeding, 5 randomly selected plants from each pot were cut for measurements of mean length and weight (wet mass). Plants were then re-potted and received different fertilizer treatments. At the end of the experiment, 5 randomly selected plants were cut for measurements of mean length and all plans were used for measuring mean plant weight of each pot.
+The experiment included 6 varieties of wheat and 3 types of nitrogen fertilizer (Kristalon) given at 2 different concentrations in addition to a control treatment with just water (the solvent). I.e., there are 7 treatment types. The seedlings grew in pots in a standardized medium, under standardized temperature and light conditions (by "standardized" we mean that these factors were kept the same for all pots, although small random variation may always occur). Each group of students had all six varieties in six separate pots. At 14 days after seeding, 5 randomly selected plants from each pot were cut for measurements of mean length and weight (wet mass). The other plants were re-potted and received different fertilizer treatments. At the end of the experiment, 5 randomly selected plants were cut for measurements of mean length and all plans were used for measuring mean plant weight of each pot.
 
 The aim of the analysis is to find out which wheat variety grows the fastest under the standardized conditions and which fertilizer promotes the fastest growth. We also want to estimate the degree to which different varieties respond differently to different fertilizers (i.e., the interaction effects).
 
-You may either do the exercise in an R Markdown document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
+You may either do the exercise in a Quarto document or a plain R script. When starting something new in R, it is a good idea to start by clearing the memory of all R objects with `rm(list = ls(all = TRUE))` (there is also a button for this in the 'Environment' tab in the top-right window in R Studio). This ensures that your script does not depend on objects that are already in the memory. Anything you use in the script, except data that you load in the script, should be created in the script such that the script is autonomous and everything you do is saved with it. If you don't start by erasing the memory, you may also accidentally use objects already in the memory instead of the ones you create in the script. 
 
 1. <span style="color:blue"> Read the data into R with `read.csv("wheatlings_bio2150_F18.csv", stringsAsFactors = TRUE)` and give it the name `wheat`.</span> The argument `stringsAsFactors = TRUE` tells `read.csv` that variables containing characters (not numbers) should be stored as factors - this affects how some R-functions treat these variables (generally, you want to treat categorical predictor variables as 'factors' in R). <span style="color:blue">Have a first glance at the data by using `summary()` and `head()`. </span>
 
@@ -432,7 +432,7 @@ head(wheat)
 * `startlength`: Mean length of the plants at the start of the experiment in cm
 * `startwetmass`: Mean wet mass of the plants at the start of the experiment in gram
 
-  <span style="color:blue"> Use the `table` function on the first four variables to get an overview of the experimental design (you can apply this function to one or more variables at a time). Is the design completely "crossed" with respect to all these variables (i.e., all combinations of levels exist in the data), or are some variables nested under others (i.e., the levels of one variable only exist in combination with one level of another variable each)?</span> 
+  <span style="color:blue"> Use the `table` function on the first four variables to get an overview of the experimental design (you can apply this function to one or more variables at a time). Is the design completely "crossed" with respect to all these variables (i.e., do all combinations of levels exist in the data?), or are some variables nested under others (i.e., the levels of one variable only exist in combination with one level of another variable each)?</span> 
   
 <!--- NB! leave line-breaks and indentations like this to get several paragraphs indented under the same numbered item-->
   
@@ -504,13 +504,13 @@ head(wheat)
 
 ## Assignment
 
-*Doing the exercises before you start with this assignment will greatly help you to complete the assignment - you can modify the code you used to do these when doing the assignment.*
+*Doing the exercises before you start with this assignment will greatly help you to complete the assignment - you can modify the code you used to do these when doing the assignment (a solution note to the exercises will also be shared on Canvas).*
 
 Your task in this assignment is to do a similar analysis as you did in the exercises to quantify the different responses to fertilizer type (variable `fertype`). You should only do this analysis for the 10% fertilizer treatment, in addition to the control, as this is where we should expect to see the largest difference between fertilizer types. 
 
 You probably noticed when you tabulated the data (point 2 in the exercise) that each fertilizer type was not used by all student groups; each student group only used one type of fertilizer, but each fertilizer was given to four different groups. If the student groups measured the plants somewhat differently, then this could influence the estimated difference among the fertilizer types if not controlled for (the two predictor variables are partly "confounded"). Including `student_gr` as a predictor variable adds 11 parameters to the model as there were 12 student groups. The best way to account for variation among student groups would have been to treat `student_gr` as a "random effects factor" in the model (assuming that the effects of `student_gr` are normally distributed and only estimating the standard deviation in this distribution). This is something we will get to later in the course. For now we will just treat `student_gr` as an ordinary "fixed effects factor" in the same way as we have treated other categorical predictor variables so far.
 
-Specifically, you should do the following and submit a short report (pdf created by R Markdown) on Canvas containing the following:
+Specifically, you should do the following and submit a short report (pdf created by Quarto) on Canvas containing the following:
 
 1. Start by creating a subset of the data with only 10% fertilizer treatment and the control. To subset the data, you can either use the `subset` function in R (look up in the Help and try it out with a small example) or the `%in%` operator (try `c("a", "b", "c", "a") %in% c("a","c")` as an example). Check that you have the subset that you want and look at the data structure by using the `table` function.
 
