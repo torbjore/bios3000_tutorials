@@ -1,0 +1,848 @@
+---
+title: 'Mixed Effect Models'
+subtitle: 'Tutorial and assignment week 7 and 8'
+author: 'Yngvild Vindenes'
+date: 'March 2023'
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+urlcolor: blue
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+#remotes::install_github("rlesur/klippy")
+library(klippy)
+#https://ladal.edu.au/regression.html#Remarks_on_Prediction
+```
+
+```{=html}
+<style>
+div.blue { background-color:#e6f0ff;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+```{=html}
+<style>
+div.green { background-color:#d8e4bc;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+```{=html}
+<style>
+div.purple { background-color:#EBDEF0  ;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+```{=html}
+<style>
+div.cornsilk { background-color:#FFF8DC ;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+
+**Mixed effects models** were developed to deal with situations where data are structured in various ways that create dependence and different variance levels, where we are primarily interested in effects other than the grouping itself. This is often the case when dealing with designs that exhibit variation on different scales, both with experimental and observational data. The **fixed effects** part of a mixed model represents continuous or categorical variables that are generalizable across groups and new data (corresponding to effects of a basic linear model). The **random effects** represent group-level effects that are assumed to be random according to some distribution (here we will only consider normally distributed random effects). 
+
+One common and useful application of mixed effects models is to avoid **pseudoreplication**, for instance due to repeated measurements. With a mixed effects model we can estimate the measurement error and separate it from other sources of variance in the response.
+
+ 
+
+<br>
+
+## Key concepts covered 
+
+* Grouping of data
+* Box plots and dependence
+* Pseudoreplication
+* Mixed effects models
+* Fixed and random effects
+* How to classify variables
+* Random slopes and intercepts
+* Nesting of variables
+
+
+<br>
+
+
+
+
+<div class="purple">
+
+In this document, you will find tips on R code, ggplot2, and plot types in purple boxes. Most plots in this tutorial are built with ggplot2, which is an efficient method to plot information stored as data frames. You have been introduced to ggplot2 in an earlier tutorial and help desk.
+
+Note that you can copy the contents of each code chunk (grey boxes) by clicking the button in the top right corner.
+
+</div>
+
+
+
+
+<br>
+
+<div class="green">
+
+Some important concepts and definitions are discussed in green boxes.
+</div>
+
+<br>
+
+
+<div class="cornsilk">
+
+Solutions are given in yellow boxes.
+</div>
+
+<br>
+
+
+<br>
+
+## Setup
+
+Before starting we need to upload  some  R packages to run the analyses (install them the first time if necessary). 
+
+
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position="right",color="#7D5E88")
+```
+
+
+```{r, message=FALSE}
+library(tidyverse) #For ggplot etc
+library(lme4)# For mixed models (lmer)
+library(patchwork)#To assemble plots
+library(merTools) #To estimate prediction intervals for mixed effects models
+```
+
+<br>
+
+
+# Tutorial: Dragon IQ and body size
+
+This tutorial is adapted from a tutorial made by Gabriela K Hajduk (https://ourcodingclub.github.io/tutorials/mixed-models/), based on a fictional data set and study question on dragons. We will explore the data first to understand the grouping structure, and then fit some different models to the data, ending with mixed effects models. 
+
+**Study question:** We are interested in capturing the most intelligent dragons for training. Capturing a large dragon  is more cumbersome than capturing a small one, so we want to know whether dragon intelligence is related to body size before going out to capture one.
+
+You have access to data from eight different mountain ranges, where dragons of different sizes have been measured (body length) and scored on an intelligence scale from 0 to 100. At each mountain range 20 dragons were captured, representing a random sample from the local population. 
+
+<center>
+
+![Dragon from unknown mountain range.](dragon2.jpg){width=400px}
+
+</center>
+
+```{r, include=FALSE, eval=FALSE}
+#load("OriginalDragons.RData") #Original data with site
+dragons2 <- dragons
+names(dragons2)[names(dragons2) == "site"] <- "event"
+save(dragons2, file="Dragons2.RData")
+
+dragons1 <- subset(dragons, site=="a")
+dragons1 <- dplyr::select(dragons1, -site)
+#head(dragons1)
+#str(dragons1)
+dragons <- dragons1
+
+#save(dragons, file="Dragons.RData")
+```
+
+<br>
+
+## Data exploration / preliminary models
+
+### Load and inspect dataset
+
+It is always a good idea to get an overview of the dataset first (using `head()`, `summary()`, `str()`, etc), and make some preliminary plots to get an idea the data.  Start by loading the dataset 'dragons.RData' and look at the first few rows as well as the variable types:
+
+```{r, message=FALSE}
+load("Dragons.RData")
+
+head(dragons)
+str(dragons)
+```
+
+Each row of the dataset represents the measurement from one dragon capturing event. The 'testScore' variable refers to the IQ test score of the dragon (a numerical variable from 0 to 100), 'bodyLength' is a numerical variable referring to the size measurement of the dragon (unit not provided), 'mountainRange' is a categorical variable referring to the location (8 levels).
+
+We can also look at the summary for the data set:
+
+```{r, message=FALSE}
+summary(dragons)
+```
+
+The output shows us some statistics for each continuous variable, and the number of data points for each level of the categorical variable. There are 20 data points for each mountain range. 
+
+<br>
+
+### Standardize predictor variables 
+
+<div class="green">
+
+**Standardizing** a continuous predictor means that we subtract the mean from each value (**centering**) and divide by the standard deviaion (**scaling**), to obtain a variable with mean 0 and standard deviation 1 (often called a 'z-score'):  
+
+$$z_i=\frac{x_i-\mu_{x}}{SD(x)}$$
+
+In R, the function 'scale()' can be used to do this. Scaling is not strictly necessary in basic regression models, but simplifies many calculations and makes it easier to interpret main effects if there are interaction terms in the model. Standardized coefficients are estimated on the same scale, facilitating comparisons. In more complex regression models like mixed effects models, standardizing variables will often improve convergence in the algorithms used to fit the models, and can sometimes be necessary to make the model converge. 
+
+</div>
+
+<br>
+
+To standardize the body length variable (check the mean and standard deviation of the new variable):
+
+```{r, message=FALSE}
+dragons$bodyLength2 <- scale(dragons$bodyLength)
+mean(dragons$bodyLength2)
+sd(dragons$bodyLength2)
+```
+
+<br>
+
+### Plot relationship ignoring group structure
+
+Let us start by plotting the IQ test scores against body length for the entire data set (we already know that the data are structured due to mountain ranges and therefore not independent, but pretend for now we did not have this information):
+
+```{r, message=FALSE}
+(prelim_plot <- ggplot(dragons, aes(x = bodyLength, y = testScore)) +
+  geom_point() +
+    theme_bw()+
+   labs(y="IQ test score", x="Body length")+
+  geom_smooth(method = "lm"))
+```
+
+<br>
+
+
+<div class="purple">
+
+The function `geom_smooth(method = "lm")` fits a linear model to the data using the variables specified in the `ggplot()` function, and plots a prediction (blue line)with 95% confidence interval (the shaded ribbon area). You can also try to run the code with just `geom_smooth()` - ggplot2 will then fit a non-parametric smoothing function to the data points.
+
+</div>
+
+<br>
+
+
+We see from the plot that there is much variation in the data, both regarding body size and IQ scores. There seems to be a positive relationship between body length and IQ test score of dragons, however we know that the data are not independent, which is an important assumption in the linear model.
+
+
+<br>
+
+### Plotting the grouped data
+
+####  Box plots
+
+We can also  take a closer look at the data from different mountain ranges using a boxplot:
+
+
+
+```{r, message=FALSE}
+(prelim_plot2 <- ggplot(dragons, aes(x=mountainRange, y = testScore)) +
+  geom_boxplot(aes(fill=mountainRange),alpha=.5) +
+   theme_bw()+
+  theme(legend.position = "none"))
+```
+
+ 
+<div class="purple">
+
+A **box plot** provides a quick overview of the distribution of data points. The solid horizontal line in the middle of each box represents the median (the 50th percentile), and the colored box represents the range from the 25th percentile to the 75th percentile (known as the interquartile range: IQR). The vertical line (known as 'whiskers') indicates the minimum and maximum, calculated as the 25th percentile - 1.5IQR and the 75th percentile + 1.5IQR, respcetively. Any outliers (data points outside the whiskers) are plotted as separate data points.
+
+</div>
+
+
+<br>
+This clearly shows there is a large difference in dragon IQ between mountain ranges. 
+
+
+<br>
+
+#### Colored scatterplot 
+
+We can also reveal the group structure in a scatter plot of the relationship between body size and test score, by colouring the points for each mountain range:
+
+```{r, message=FALSE}
+(prelim_plot3 <- ggplot(dragons, aes(x=bodyLength, y = testScore,col=mountainRange)) +
+  geom_point() +
+  theme_bw()+
+   labs(x="Body length", y="IQ test score")+
+  theme(legend.position = "top",legend.title = element_blank()))
+```
+
+
+Here we see that also body lengths vary among mountain ranges. The dragons from the Southern and Bavarian ranges have overall lower test scores, but are also smaller.  
+
+
+
+
+<br>
+
+
+
+## Fitting a multivariate linear model
+
+There are two main approaches to account for group structure. One that you have seen already is to include the group as a covariate in a multivariate linear model. This comes with the assumption that the variance is the same in each level of the grouping variable (here mountain range). The other approach, which we will consider  below, is to use a mixed effects model.  
+
+Assuming both the slope and intercept can depend on mountain range the model equation is given by 
+
+
+$$y_{ij}=\beta_0+\beta_Lx_{ij}+\beta_{Mj}+\beta_{LMj}x_{ij}+\varepsilon_{ij},$$
+where the different elements can be described as follows (see also week 3):
+
+* $y_{ij}$ is the test score number $i$ within the mountain range $j$.
+* $x_{ij}$ is the (standardized) body length measured with the test score
+* $\beta_0$ is the intercept representing the IQ score of a dragon of length 0 in the reference mountain range (in this case `Bavarian` because this is alphabetically first)
+* $\beta_L$ is the slope of the body length regression for the reference
+* $\beta_{Mj}$ is the **difference in intercept** between mountain range $j$ and the reference (0 for the reference), 
+* $\beta_{LMj}$ is the **difference in slope** between mountain range $j$ and the reference (0 for the reference)
+* $\varepsilon_{ij}$ is the residual, assumed to be normally distributed with mean 0. 
+
+<br>
+
+To fit this model in R we can use the following code:
+
+```{r}
+dragon.lm2 <- lm(formula = testScore ~ bodyLength2*mountainRange, data = dragons)
+summary(dragon.lm2)
+```
+
+<br>
+
+This model summary presents  a lot of estimated parameters:  The  `(Intercept)` and `bodyLength` here represent the reference intercept $\beta_0$ and slope $\beta_L$, respectively, where the reference is the mountain range 'Bavarian' (due to the alphabetical order of the levels). The following 7 effects that are listed represent the differences in intercept between each mountain range and the reference, while the next 7  effects represent the differences in slope between each mountain range and the reference. We see from the `Multiple R-squared` values that this model explains around 64% of the variation in IQ test scores in the data set.
+
+
+We can also plot the predicted effects for each mountain range, with confidence interval (note that you can also use `geom_smooth(method="lm")` instead of making the prediction first, here we include this to demonstrate how to do the prediction from the model as well):
+
+```{r}
+#Predict from the model
+predfit <-  predict(dragon.lm2, newdata=dragons,interval="confidence")
+dragonfit <- cbind(dragons,predfit)
+
+#Plot prediction with data
+ggplot(dragons, aes(x = bodyLength, y = testScore, colour = mountainRange)) +
+      facet_wrap(~mountainRange, nrow=2, scale="free_x" )  +
+      geom_point(alpha = 0.5) +
+      theme_bw() +
+      geom_line(data = dragonfit, aes(x=bodyLength, y=fit,colour=mountainRange)) +  
+  geom_ribbon(data = dragonfit, aes(x=bodyLength,ymin = lwr,ymax=upr,fill=mountainRange),alpha=.3,colour=NA) +  # adding confidence interval
+      theme(legend.position = "none")
+```
+
+<br>
+ 
+<div class="purple">
+
+Note that the `scales="free_x"` argument allows the x-axes of different panels to have a different range. This makes it easier to see the relationship within each mountain range (just remove this argument to restrict the x-axes to the same range).
+
+</div>
+ 
+ <br>
+ 
+This model assumes that the residuals have the same distribution irrespective of group. We should look at diagnostic plots for this model to check if residuals are (at least approximately) normally distributed:
+
+```{r}
+par(mfrow=c(1,2))
+plot(dragon.lm2,which=1)
+plot(dragon.lm2,which=2)
+```
+
+<br>
+
+These plots look quite good: There is no systematic pattern in the residuals plotted against fitted values and the points are not too far from the line in  the Normal qqplot.
+
+Overall the multivariate linear model tells us the difference in dragon IQ (and its relationship to body size) among the specific mountain ranges. However, we are not primarily interested in that question! We are interested in the effect of body length on IQ, irrespective of mountain range. In other words, we want to know if there is a remaining effect of body length on IQ after we have accounted for variation due to mountain range.
+
+To answer this question we can use a **mixed effects model**,  where we include the mountain range as a random effect. In some ways this is a much simpler model, as there are fewer model coefficients to be estimated.
+
+<br>
+
+ 
+
+## Fitting a mixed effects model
+The mixed effects model for dragon IQ can be written as 
+
+$$y_{ij}=\beta_0+\beta_Lx_{ij}+M_j+\varepsilon_{ij},$$
+
+where 
+
+* $y_{ij}$ is the test score number $i$ in mountain range $j$.
+* $x_{i}$ is the (standardized) body length measured with the test score. 
+* $\beta_0$ is the intercept representing the IQ score of a dragon of length 0 in the average mountain range.
+* $\beta_L$ the slope in the body length regression in the average mountain range.  
+* $M_j$ is the random effect of mountain range $j$, representing the difference between the intercept $\beta_0$ and the mountain range $j$ and assumed to be drawn from a Normal distribution with mean 0.
+* $\varepsilon_{ij}$ is the residual, assumed to be drawn from a Normal distribution with mean 0. 
+
+To fit this model in R we can use the following code:
+
+```{r}
+dragons.lmer <- lmer(testScore ~ bodyLength2 + (1|mountainRange), data = dragons)
+summary(dragons.lmer)
+```
+
+
+
+<div class="purple">
+
+The R syntax for the mixed model defined here is specific to the package `lme4`$^1$. Here, `testScore ~ bodyLength2`   represents the fixed effects part and is similar to the syntax defining a basic linear model. The random effects part is specified in parentheses,  `+ (1|mountainRange)`. Here, the number 1 means that we **add the random effect to the intercept**, while  `|mountainRange` specifies which categorical variable to use as random effect. 
+
+Here we use the R package `lme4` to fit mixed effects models. Another main package for fitting such models is `nlme`$^{2,3}$, which uses a different syntax. We will use only `lme4` here, just note that the two packages have a few differences and for certain studies `nlme` may be more useful (although in general the two produce very similar results). 
+ 
+Here we only consider linear mixed effects models, where random effects are normally distributed. Generalized linear mixed effects models are based on other distributions, such as Poisson or Binomial.
+</div>
+
+
+
+<br>
+
+The summary output shows us the estimated variance of the random effects and residuals (under 'Random effects'), and  the estimated fixed effects (here intercept and standardized body length). We see that mountain range explains much of the variance in IQ of dragons (after accounting for body length), around 57% ($276.4/(276.4+208.5 )≈0.57$). There is only a small effect of body length, as expected.
+
+
+
+<br>
+
+
+<div class="green">
+
+**How do we decide whether a variable should be included as a fixed effect or a random effect in the model?**  This question is not always straightforward to answer, and does not necessarily have just one answer, but there are some rules of thumb we can use. In general, the main question of our analysis will guide what we should include as fixed effects, while other variables that are not relevant to the main question but still need to be accounted for are included as random effects. These variables are typically factor variables that group the data, that we imagine can be realizations from a random distribution. The random effects are assumed to be drawn from a normal distribution. This means that any grouping factor that we decide to include as a random effect should have more than a few levels, and it should be possible to imagine that if we sampled more data we would get more levels.  If there are very few levels, for instance if we had included sex as a variable (levels male and female), it makes little sense to define this as a random variable (the model would still run if you do so). If we sample more data there will still only be males and females.  Sex is therefore typically modeled as a fixed effect. For the mountain range variable in the dragon example we have eight levels in the data, and we can imagine other mountain ranges as well that if sampled would have contributed to the variation. Thus, it makes sense to imagine that the effect of mountain range is random and approximately normally distributed. But if the main question of our analysis had been to investigate the difference in IQ among these eight particular mountain ranges, we would instead include this as a covariate in a standard linear model.
+
+</div>
+
+<br>
+
+### Confidence intervals on estimated effects
+
+We can use the function `confint()` to extract confidence intervals for the estimated standard deviations of the random effect and residuals, and for the fixed effects (different methods can be specified in the function, look at `?confint.merMod` for more details):
+
+```{r}
+confint(dragons.lmer, level=0.95)
+```
+
+Here `.sig01` refers to the random effect, in this case mountain range, and we see that the confidence interval for the estimated standard deviation is quite wide.  The confidence interval for the residuals (`.sigma`) is more narrow. The confidence interval for standardized body length includes zero.
+
+
+An issue with mixed effects models is that the degree of freedom is not exactly known for such models, which means the exact distributions of estimated parameters are uncertain as well. The authors of the `lme4` package recommend bootstrapping to obtain confidence intervals, which works well as long as the model is not too computationally intensive (this is one of the options in the confint funtion).
+
+<br>
+
+### Predicting from mixed effect models
+
+Predicting from mixed models can be done in a similar way as for linear models, by making a new data frame containing the values of the variables for which we want to make a prediction and then using the estimated model. However, we need to specify whether we want to predict at the group level (for each mountain range) or if we want to predict for the average group level (set the random group effect to zero). 
+
+We usually want to add a confidence or prediction interval as well (for instance, if we  want to predict the IQ irrespective of mountain range we would include the random effect variance in the prediction interval).
+
+Let us first forget about the intervals and simply use the `predict` function to make a prediction for each mountain range:
+
+
+```{r}
+(predplot1 <- ggplot(dragons, aes(x = bodyLength, y = testScore, colour = mountainRange)) +
+      facet_wrap(~mountainRange, nrow=2, scale="free_x" )  +
+      geom_point(alpha = 0.5) +
+      theme_bw() +
+      geom_line(data = cbind(dragons, pred = predict(dragons.lmer)), aes(y = pred)) +  # adding predicted lines from mixed model
+   labs(x="Body length", y="IQ test score")+
+      theme(legend.position = "none")
+)
+```
+
+<br>
+
+
+Note that the estimated slope here is the same for all mountain ranges (and very weak), only the intercept differs (because we added the random effect to the intercept). 
+
+<br>
+
+#### Add confidence interval
+
+The code below uses the function `predictInterval()` from the package `merTools` to define a confidence interval for the predicted score at each mountain range based on simulation from sampling distributions for the fixed and random effects.
+
+
+```{r}
+#Predict from full model (include random effect of groups), not including residual variance 
+predDragons <- predictInterval(dragons.lmer, dragons, which = "full",
+      level = 0.95, n.sims = 10000, stat = c( "mean"),
+      type = c("linear.prediction"), include.resid.var = FALSE)
+
+predframe <- cbind(dragons,predDragons)
+predframe$testScore <- predframe$fit
+predframe$bodyLength <- predframe$bodyLength2*sd(dragons$bodyLength)+mean(dragons$bodyLength)
+
+
+#Plot
+(predplot2 <- ggplot(predframe, aes(x = bodyLength, y = testScore, color = mountainRange, fill=mountainRange)) +
+      geom_line(size=1) +
+      facet_wrap(~mountainRange, nrow=2,scales="free_x")  +
+      geom_point(data = dragons, aes(x = bodyLength, y = testScore, color = mountainRange), alpha = 0.5) +
+      theme_bw() +
+     labs(x="Body length", y="IQ test score")+
+      geom_ribbon( alpha=.3, aes(ymin=lwr, ymax=upr),color=NA)+
+      theme(legend.position = "none")
+)
+
+```
+ 
+
+<br>
+
+
+###  Random effects and residuals
+
+We should check the normality assumption for residuals and random effects.  Using the `plot()` function on the fitted model we get diagnostic plots made for this particular type of model. We can use a model form specification to define what kind of plot we want.
+ 
+
+To get a boxplot of standardized residuals by mountain range:
+```{r}
+plot(dragons.lmer, mountainRange ~ resid(., scaled=TRUE))
+```
+
+
+To plot standardized residuals across standardized body lenght for each mountain range:
+```{r}
+plot(dragons.lmer, resid(., scaled=TRUE) ~ bodyLength2 | mountainRange, abline = 0)
+```
+
+
+With only eight mountain ranges it is not easy to verify the assumption that the random effect is normally distributed. But we can plot something similar to a Normal QQ-plot:
+
+```{r}
+plot(ranef(dragons.lmer))
+```
+
+ 
+
+<br>
+
+## Including a random slope
+
+In the previous model the random effect was included on the intercept only, meaning that we fit the same slope for each mountain range. We could also imagine that the slope varies randomly among mountain ranges as well, and fit a model with a random slope effect $S_j$:
+
+$$y_{ij}=\beta_0+\beta_Lx_{ij}+M_j+S_jx_{ij}+\varepsilon_{ij},$$
+
+where the different elements can be explained as follows: 
+
+* $y_{ij}$ is the test score number $i$ in mountain range $j$.
+* $x_{i}$ is the (standardized) body length measured with the test score. 
+* $\beta_0$ is the intercept representing the IQ score of a dragon of length 0 in the average mountain range.
+* $\beta_L$ the slope in the body length regression in the average mountain range.  
+* $M_j$ is the random intercept effect of mountain range $j$, representing the difference between the intercept $\beta_0$ and the mountain range $j$ and assumed to be drawn from a multivariate Gaussian distribution (see next point).
+* $S_j$ is the random slope effect of mountain range $j$, representing the difference between the overall slope $\beta_L$ and the slope in mountain range $j$.  The vector $[M_j,S_j]$ is assumed to be drawn from a multivariate Gaussian distribution with mean $\mathbf{0}=[0,0]$ and variance-covariance matrix 
+
+$$\mathbf{\Sigma}=\left[\begin{matrix}\text{Var}(M)=\sigma_M^2&\text{Cov}(M,S)=\sigma_{MS}^2\\\text{Cov}(M,S)=\sigma_{MS}^2&\text{Var}(S)=\sigma_{S}^2\end{matrix}\right]$$
+
+* $\varepsilon_{ij}$ is the residual, assumed to be drawn from a Normal distribution with mean 0. 
+
+To fit this model in R (except for the covariance term) we try the following code:
+
+
+
+```{r, warning=TRUE}
+dragons.lmer2 <- lmer(testScore ~ bodyLength2 + (1+bodyLength2|mountainRange),data = dragons)  
+
+summary(dragons.lmer2)
+```
+
+
+<br>
+
+The model is fitted and we get a summary as before. However, note that there is a message in the end here:  'boundary (singular) fit: see help('isSingular')'. If we look at the help page it explains that a singular fit means that 'the parameters are on the boundary of the feasible parameter space: variances of one or more linear combinations of effects are (close to) zero'. In our case we see from the summary that the variance of the random slope effect is very small and close to zero, and the estimated correlation with the intercept is 1. What does the singular fit mean besides that? We still get estimated effects, but it suggests that the model we specified is not good (we cannot reliably separate the variance components). We will also run into problems if we try to estimate confidence intervals for the random effects:
+
+
+```{r, warning=TRUE}
+confint(dragons.lmer2)
+```
+
+<br>
+
+The warning messages tell us that there are issues with estimating confidence intervals as well - in particular for `.sig02` which refers to the correlation between the random slope and intercept. The first row presents the confidence interval for the standard deviation of the random intercept (here `.sig01`), which seems quite close to before (the random intercept only model). The second row is the confidence interval for the correlation between the slope and intercept (here `.sig02`), which spans from -1 to 1 (all possible values a correlation coefficient might have), reflecting that this parameter could not be estimated. The third row presents the confidence interval for the standard deviation of the random slope (here `.sig03`), which starts at 0 (lowest possible value a standard deviation can have). The confidence intervals for the fixed effects (intercept and slope) are quite close to what they were for the model with random intercept only.
+
+
+While there are ways we can attempt to deal with singular fits like the model above (e.g. by restricting the model to have zero covariance, or change the optimization method used by `lmer`), warnings about singular fits are usually an indication that we have not specified a good model for the data (or a too complex model), and that we should take a step back and think again on the model structure. In this particular case, it tells us that the model with a random slope was not good.  So we go back to including only a random intercept.
+
+
+ 
+<br>
+
+ 
+
+ 
+## Including nested random effects
+
+Assume that the dragon researchers went back to each mountain range two more times and sampled 20 dragons each time,  to increase their sample size of dragon IQ. In the updated dataset `Dragons2.RData` there are 60 data points for each mountain range, representing 20 dragons for each sampling event 'a' (corresponding to the first data set), 'b' and 'c'. We will use this dataset to demonstrate how to include nested random effects in the mixed effects model.
+
+Loading the new data set:
+
+```{r, message=FALSE}
+load("Dragons2.RData")
+#Standardize body length variable
+dragons2$bodyLength2 <- scale(dragons2$bodyLength)
+summary(dragons2)
+```
+
+<br>
+
+From looking at this summary it may seem like each sampling event 'a', 'b', or 'c' has 160 data points, but this is not correct since there were actually three different sampling events within each mountain range. In other words, the summary does not reflect that the events are **nested** within  mountain range.  
+
+<div class="green">
+
+**Nested and crossed designs:**  The categorical variables in a study can show different kinds of hierarchical relationships, and this can be a source of confusion both in study design and analyses.  Nested designs means that one categorical variable occurs at different levels within each level of another categorical variable, i.e. there is a clear hierarchical structure of the variables. For instance, sampling events can be 'a',  'b', etc. within each mountain range. Then 'a' in Bavaria is not the same as 'a' in Liguria, because sampling event is **nested** within mountain range. We can define a nested variable explicitly across all mountain ranges by defining a new variable with unique levels. If 'a' had been the same in all mountain ranges (e.g. the mountain ranges were overlapping) we would have a **crossed design** (also called multiple membership: The same level of a variable occurs within multiple levels of another).  While crossed design is not relevant for the dragon example, it is often used in experimental studies where for instance each subject is given two different treatments  and measurements are done at different times for each treatment. 
+
+</div>
+
+<br>
+
+We can look at the test scores across different events within each mountain range using a boxplot:
+
+
+```{r, message=FALSE}
+(prelim_plot22 <- ggplot(dragons2, aes(x=event, y = testScore,fill=mountainRange)) +
+  geom_boxplot(alpha=.5) +
+   facet_wrap(vars(mountainRange),nrow=2)+
+  theme_bw()+
+    theme(legend.position = "none"))
+```
+
+There is some variation among sampling events, but not as much as among different mountain ranges. 
+
+When we have nested random effect variables it is  important to specify this nesting structure in R, otherwise R will happily fit a model that assumes that `event` is a separate categorical variable with three levels for the entire data set (which would correspond to a crossed design).
+
+Let us try this **wrong** analysis first (adding random effects to the intercept only)
+
+```{r}
+dragons.wrong <- lmer(testScore ~ bodyLength + (1|mountainRange)+ (1 |event), data = dragons2)
+summary(dragons.wrong)
+```
+
+
+We see from this output that R believes the variable `event` has 3 levels, crossed for each mountain range. 
+
+The perhaps safest approach to account for nesting is to define an explicitly nested factor variable named 'sample':
+
+```{r, message=FALSE}
+dragons2 <- within(dragons2, sample <- factor(mountainRange:event))
+summary(dragons2)
+```
+
+<br>
+
+From this we see that each  unique sample has 20 data points. Now we can fit a mixed effects model using this new variable:
+
+```{r}
+dragons.nested <- lmer(testScore ~ bodyLength2 + (1 |mountainRange)+ (1 |sample), data = dragons2)
+summary(dragons.nested)
+```
+
+<br>
+
+Here we see that the new variable `sample` has 24 levels (3 levels within each of the 8 mountain ranges). The estimated standard deviation is much lower than for mountain range.
+
+We can also specify the nesting structure directly using the syntax of `lmer` by writing `(1|mountainRange/event)`, which lets R know that `event` is nested within `mountainRange`:
+
+```{r}
+dragons.nested2 <- lmer(testScore ~ bodyLength2 + (1| mountainRange/event), data = dragons2)
+summary(dragons.nested2)
+```
+
+<br>
+
+This gives us the same output as the previous model. To calculate confidence intervals for the estimated effects:
+
+ 
+
+```{r}
+confint(dragons.nested2)
+```
+
+
+The residuals and random effects should also be checked:
+
+```{r}
+plot(dragons.nested2, mountainRange ~ resid(., scaled=TRUE))
+plot(dragons.nested2, event ~ resid(., scaled=TRUE))
+plot(dragons.nested2, resid(., scaled=TRUE) ~ bodyLength2 , abline = 0)
+```
+
+ 
+The overall conclusion of our analysis is that there is no effect of body length on IQ in dragons (confidence intervals overlap 0), and we can go ahead and capture a small dragon.
+
+<br>
+
+
+# Exercises: Student morphometrics
+
+The exercises below are based on the same student measurement data set that you have been working with earlier, but instead of mean measurements per individual these data also include the repeated measurements. 
+
+
+
+```{r, include=FALSE}
+students_2023 <- read.delim("MeasurementData_2023.txt", stringsAsFactors = TRUE)
+students_2020 = read.delim("MeasurementData_2020.txt", stringsAsFactors = TRUE)
+students_2020$Year = "year_2020"
+students_2023$Year = "year_2023"
+students_2020$ID = paste(students_2020$ID, "2020", sep="_")
+students_2023$ID = paste(students_2023$ID, "2023", sep="_")
+all(names(students_2020) == names(students_2023))
+students = rbind(students_2020, students_2023)
+students$ID <- as.factor(students$ID)
+
+ 
+students$Measurement_number <- as.factor(students$Measurement_number)
+save(students,file="students.RData")
+```
+
+<br>
+
+To load the dataset:
+
+```{r}
+load("students.RData")
+```
+<br>
+
+1. Consider the categorical variables in the `students` dataset. Make some boxplots to explore how height varies among sex, year, eye color, and hair color. Do you expect a priori that height will vary within these categories?
+
+ 
+
+
+
+2.  Make a scatter plot showing the measurement numbers for each individual (hint: use `shape` to define a different shape for each measurement number and `color` to define a different color for each individual). Interpret what you see. 
+ 
+
+3. Fit an ordinary linear model to the data to investigate how height is related to sex and parental height (for simplicity assume only additive effects), and interpret the results. There is one major assumption behind this model that is not met by the data - what is that? Can you trust the confidence intervals from this model?
+ 
+
+4. Define and fit a mixed effects model where the fixed effects part is the same as in the ordinary linear model fitted in the previous poing, that accounts for repeated measurements (hint: You need to specify a random intercept with one of the categorical variables defined as the grouping factor). Look at the summary and confidence intervals. What is the main difference between this and the previous model? 
+ 
+
+
+5. What can you say about the measurement error in this case?  What do you think can contribute to this error, given your knowledge of how the data were collected?
+  
+
+<br>
+
+<br>
+
+# Assignment: Troll activity levels in Norway
+
+In this assignment you will do a similar kind of analysis as for the dragons, but this time your job is to investigate whether troll activity levels are affected by their body weight. **The prevailing hypothesis is that small trolls are more active than large ones, as they need to hunt more often for Christian kids to eat (large trolls are believed to hunt more rarely but eat more Christian kids at a time), but this remains to be tested.** 
+<center>
+
+![](ActiveTroll.png){width=400px}
+
+</center>
+
+<br>
+
+
+
+
+The dataset `trolls.RData` contains information on individual trolls from different mountainous and remote regions of Norway, painfully collected by troll researchers. Trolls were captured and weighed (weight in tons), and fitted with custom made Fitbits to measure their activity levels (reported on a numerical scale from 0 to 500). As trolls are notoriously difficult to measure, four measurements of size and activity level were taken per individual within each region (you may expect the measurement error is quite high). 
+
+
+```{r, eval=FALSE, echo=FALSE}
+#SIMULATE TROLL DATA SET
+set.seed(100)
+
+Region <- c("Jotunheimen", "Hardangervidda", "Rondane", "Saltfjellet", "Blåfjella", "Dovre", "Breheimen", "Reinheimen", "Børgefjell", "Varanger")
+
+Replicate <- c("A", "B", "C", "D")
+
+#Assume linear relationships between size and activity: y = ax + b
+Aslopes <- rnorm(10,1,3)
+Aintercepts <- c(70, 300, 200, 150,210, 80,150,100,150,100)
+AsdInt <- c(5, 20,20,8,15,10,5,10,4,5)
+simframe <- data.frame(Region,Aslopes,Aintercepts,AsdInt)
+#plot(Aslopes[1]*10:60+Aintercepts[1],type="l",ylim=c(0,500))
+#for(i in 2:10)
+ #   lines(2*Aslopes[i]*10:60+Aintercepts[i])
+
+trolls <- expand.grid(BodyWeight =rep(NA,20), Activity=rep(NA,20), "Region"=Region, "Replicate"=Replicate)
+
+
+simframe$meansize <- meansize <- 10+c(40, 5, 10, 20, 10, 30, 15, 20, 30, 20)
+simframe$sdsize <- sdsize <- c(3, 1, 2, 3, 2, 4, 4, 3, 5, 4)
+
+#Measurement error size
+Serror <- 5
+
+#Measurement error activity level
+Aerror <- 20
+
+#Make dataset
+trolls <- data.frame(NULL)  
+for (i in 1:10){
+    #True sizes
+    Sizes <- rnorm(20, meansize[i], sdsize[i])
+    #True activity levels
+    Activities <- rnorm(20, Aintercepts[i]+Sizes*Aslopes[i],AsdInt[i])
+    #Add measurement errors
+    RepA <- data.frame(Individual=1:20, Region=Region[i], Measurement="A", BodyWeight=rnorm(20, Sizes+2, Serror), ActivityLevel=rnorm(20, Activities+1, Aerror))
+    RepB <- data.frame(Individual=1:20, Region=Region[i], Measurement="B", BodyWeight=rnorm(20, Sizes, Serror), ActivityLevel=rnorm(20, Activities+10, Aerror))
+    RepC <- data.frame(Individual=1:20, Region=Region[i], Measurement="C", BodyWeight=rnorm(20, Sizes-3, Serror), ActivityLevel=rnorm(20, Activities-3, Aerror))
+    RepD <- data.frame(Individual=1:20, Region=Region[i], Measurement="D", BodyWeight=rnorm(20, Sizes, Serror), ActivityLevel=rnorm(20,Activities+1, Aerror))
+    trolls <- rbind(trolls, RepA, RepB, RepC, RepD)
+}
+
+trolls$Individual<- factor(trolls$Individual)
+trolls$Region <- factor(trolls$Region)
+trolls$BodyWeight <- trolls$BodyWeight 
+trolls$Measurement <- factor(trolls$Measurement)
+
+tplot <- ggplot(trolls, aes(x=BodyWeight, y = ActivityLevel, col=Region)) +
+    geom_point() +
+    theme_bw()+
+    theme(legend.position = "top",legend.title = element_blank())
+#save(trolls, file="trolls.RData")  
+
+```
+  
+
+To load the dataset (dataframe named `trolls`):
+
+```{r}
+load("trolls.RData")
+```
+
+
+Specifically, you should do the following and submit a short report (pdf created by R Markdown) in Canvas:
+
+1. Start by exploring the  dataset (`trolls`) and write a short summary of the variables.  What kind of variables are included, and what are the levels of the categorical variables?  How many data points are there in each of the different category levels, and what is the structure among them? (Hint: Remember that R cannot distinguish which factors of a data frame that are nested. You need to read the information on how data were collected to understand the nesting structure).  
+
+ 
+
+2. Make a scatter plot of the relationship between body weight and activity level for the entire dataset (not accounting for group structure). Why is it a bad idea to fit an ordinary linear model to these data? What would be the conclusion from such a model?
+
+ 
+
+3. Make another scatter plot of body weight versus activity level where you color the data points for each region. What do you see?
+ 
+
+4. Make a boxplot for the troll activity levels in each region, and a scatter plot that shows the different measurements of individuals (use `facet_wrap` to make a panel for each region). What can you say about the data and variation in different groups based on these plots?
+
+ 
+
+5. Fit a linear mixed model with region as a random effect on the intercept, and look at the model summary and confidence intervals for estimated effects. What can you say about the variance within and between regions? What is still missing from this model? Can we trust the confidence intervals?
+ 
+
+6.   Fit another mixed effects model that fixes the issue with the previous one, and compare the outputs (model summary and confidence intervals).  If you want, also plot the predicted effects for each region with confidence intervals. 
+ 
+7. What can you conclude about the relationship between body weight and activity levels of trolls? 
+  
+8. How could you modify the model to best help a Christian friend who plans to hike in one of the regions and is anxious to know the difference in risk of meeting a troll between regions?  Which region would you recommend to hike in?
+ 
+<br>
+
+<br>
+ 
+
+
+
+## References
+
+1. Douglas Bates, Martin Maechler, Ben Bolker, Steve Walker (2015). Fitting Linear Mixed-Effects Models Using lme4. Journal of Statistical Software, 67(1), 1-48. doi:10.18637/jss.v067.i01.
+
+2.  Pinheiro J, Bates D, R Core Team (2022). _nlme: Linear and Nonlinear Mixed Effects Models_. R package version 3.1-160, https://CRAN.R-project.org/package=nlme.
+
+3. Pinheiro JC, Bates DM (2000). _Mixed-Effects Models in S and S-PLUS_. Springer, New York. doi:10.1007/b98882 https://doi.org/10.1007/b98882.
