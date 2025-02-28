@@ -845,7 +845,7 @@ summary(students)
 ggplot(students, aes(x = Height_of_father, y = Height , col = ID)) +
   geom_point() +
   theme_bw()+
-   labs(x="Mother height", y="Height") +
+   labs(x="Father height", y="Height") +
   theme(legend.position = "right", legend.title = element_blank())
 ```
  
