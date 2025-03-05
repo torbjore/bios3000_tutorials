@@ -1,0 +1,306 @@
+---
+title: "Solution notes to Exercises Week 6 - Simulations and Mixed Models"
+date: now
+authors: Torbjørn Ergon
+number-sections: false
+format:
+  html:
+    embed-resources: true
+    theme: journal
+---
+
+<style>
+div.green { background-color:lightgreen; border-radius: 5px; padding: 8px;}
+</style>
+
+<div class="green">
+The simulations in this exercise were a bit complex and therefor perhaps difficult, but hopefully you have at least learned something by trying. Well done if you made it!
+</div>
+
+# Exercises
+
+Daily energy expenditure (DEE) measured by use of doubly labelled water in voles has been shown to have opposite relationship with body mass (BM) within and among locations: Within a location, larger individuals have higher DEE, whereas among locations, the locations with the lowest average BM has the highest average DEE.
+
+a) Try to simulate data and fit a mixed model to the simulated data and see if you can estimate the model parameters you used in the simulation. Use the following design and model parameters to start with:
+    - 10 locations with 5 individuals within each location.
+    - Expected mean BM at the 10 locations are drawn from a Normal distribution with mean 20g and standard deviation 2g.
+    - Within each location BM is Normally distributed with with standard deviation 1g.
+    - Expected mean DEE is 100 kJ/day at the mean location (where mean BM is 20g), and and declines with 10g for every 1g increase in mean BM.
+    - The standard deviation for the random variation (due to other factors than mean BM) in DEE among locations is 3 kJ/day.
+    - Within each location, expected individual DEE increases with 3 kJ/day for every 1g increase in BM.
+    - Measurement error is Normally distributed with zero mean and standard deviation 2 kJ/day.  
+
+<br>
+
+<div class="green">
+Simulations can be done in many different ways. The most important thing is that you understand your approach and that it works (see point c below for a better test of this). However, it is important to do it in a tidy way so you can more easily spot mistakes.
+
+I will here use the general approach I showed during the Week 7 Wednesday lecture, outlined as follows:
+
+1. Decide on the design (treatments/predictor variables, number of replicates) and create a data frame with predictor variables
+
+2. Create a design matrix with ‘model.matrix()’ based on predictor variables and model. Same for any random effects.
+
+3. Decide on parameter values and compute the linear predictor. Add random effects if relevant.
+
+4. Compute the relevant distribution parameter ($\mu$, $\lambda$, $p$, ...). Draw random values for the response variable (‘rnorm()’, ‘rbinom()’, ‘rpois()’, ‘rlnorm()’, ...)
+
+5. Fit the model and compare the parameter estimates to the true parameter values.
+
+6. Test with huge sample size (or MC-simulations) - If all OK, you now have a tool to play with to evaluate alternative designs, etc.
+
+Our situation here is a bit different than a standard mixed model (which we also simulated with live-coding during the Wednesday Week 7 lecture - see R script on Canvas) because we use the mean of individual body mass as a group level covariate. Note in particular that the expected mean DEE at a location is related to the *true* mean body mass at the location and not the *observed* mean body mass in our sample. Although we assume that individual body mass measured without error (we get back to situations where this is not the case later in the course), we will not know the *true* mean body mass at the site since we have a limited sample of voles from each site. Hence, when we simulate the data, we should use *true* mean body mass at the locations (we call this a **latent variable** as it is not observed), but when we fit the model, we will use the *observed* mean body mass at each location. Later in the course, we will see that the fact that we have measurement error in a predictor variable (here mean body mass) will actually bias the slope towards zero cue to "*regression dilution*", depending on how large the measurement error variance is (we could have investigated this with Monte Carlo simulations here, but I'll leave that to those who want to make a try).
+
+Note also that, since this is a bit complex simulation exercise, I did not write the code simply by following the 6 steps in the procedure in sequence, but I went a bit back and forth. Having this outline still helps to do the simulations in a systematic way. To understand the code, I strongly advice you to run each little bit by itself to see what it does (you can also try things out with smaller examples you make yourself)
+
+** Using the general approach presented in lecture: **
+
+```{r}
+library(lme4)
+
+# Setting a seed so I get the same results each time and can more easily comment
+# on the results:
+set.seed(123)
+
+# 1. Decide on the design (treatments/predictor variables, number of replicates)
+# and create a data frame with predictor variables
+
+n_loc <- 10
+n_ind <- 5
+
+BM_true_mean <- rnorm(n_loc, 20, 2) # unknown true mean at the locations
+
+Data <- data.frame(
+    loc = rep(paste("loc", 1:n_loc, sep = "_"), each = n_ind),
+    BM_true_mean = rep(BM_true_mean, each = n_ind)
+    )
+Data$BM <- rnorm(nrow(Data), mean = Data$BM_true_mean, sd = 1)
+Data$BM_mean <- tapply(Data$BM, list(Data$loc), mean)[Data$loc] # empirical mean
+
+# NB! Note that Data$BM_true_mean is unobserved (we call it a latent variable).
+# Hence, we should perhaps not have inculded it the data - but it is convenient 
+# to have it there for teh steps below.
+
+# 2. Create a design matrix with ‘model.matrix()’ based on predictor variables
+# and model. 
+
+X <- model.matrix(~ BM_true_mean + I(BM - BM_true_mean), Data)
+Z <- model.matrix(~ -1 + loc, Data)
+
+# Note 1: Note that we use 'BM_true_mean' and not 'BM_mean' to simulate the
+# data (see text above)
+
+# Note 2: Note that we remove the intercept in the formula for Z (otherwise we
+# would have got one random effect for a reference group and many random effects
+# for differences to this group, all drawn form the same distribution, which 
+# would have made no sense)
+
+# 3. Decide on parameter values and compute the linear predictor. Add random
+# effects if relevant.
+
+slope_BM_mean <- -10
+intercept <- (100 - slope_BM_mean*20)
+slope_BM <- 3
+
+beta <- c(intercept, slope_BM_mean, slope_BM)
+delta <- rnorm(n_loc, 0, 3)
+
+eta <- X %*% beta + Z %*% delta
+
+
+# 4. Compute the relevant distribution parameter (𝝁, 𝝀, 𝒑, …).
+
+mu <- eta
+#cbind(Data, mu)
+
+
+# 5. Draw random values for the response variable (‘rnorm()’, ‘rbinom()’,
+# ‘rpois()’, ‘rlnorm()’, … )
+
+Data$DEE <- rnorm(nrow(Data), mu, 2)
+
+# Plot the data
+library(ggplot2)
+ggplot(Data, aes(x = BM, y = DEE , col = loc)) +
+  geom_point() +
+  theme_bw() +
+  labs(x="Body mass", y="DEE")
+
+# Fit the model and compare the parameter estimates to the true parameter
+# values.
+
+# NOTE: Here we used the observed mean body mass values as this is the only
+# values we have (we should expect a bias towards zero when sample size within
+# locations is small (and hence the means are uncertain) due to "regression
+# dilution").
+
+fit_DEE <- lmer(DEE ~ BM_mean + I(BM - BM_mean) + (1|loc), data = Data)
+summary(fit_DEE)
+confint(fit_DEE)
+
+## True values used in the simulatinos (same order as in output):
+
+# SD of random effect: 3
+# SD of residuals (sigma): 2
+# Intercept: 300 (intercept <- (100 - slope_BM_mean*20))
+# Slope with respect to BM_mean: -10
+# Slope with respect to BM (within locations): 3
+```
+</div>
+
+<br>
+
+
+b) Modify the code for making coloured scatter plots in the tutorial to plot your simulated data. Does your data look reasonable? Do the estimated parameters seem reasonable?
+
+<div class="green">
+The plot is included above. The data looks reasonable.
+
+We see that except for the standard deviation of the random effect, all the true parameter values are included in the 95% confidence interval. Remember that we expect that in 5% of cases (1 of 20 cases), the true parameter will not be included in the 95% confidence interval when we do simulations. We have no reason to believe we have done something wrong, but we should check this with a larger sample size (see below).
+</div>
+
+<br>
+
+c) To get a better check of whether you have done everything correctly, boost your sample size to 50 locations with 30 individuals within each location. Are the true parameter values close to the estimated ones? Are they included in the 95% confidence intervals? If you think you have done the simulations correctly, you should give yourself a pat on your back! :)  
+
+<div class="green">
+Here I just copy-paste the code from above and change the sample size
+
+```{r}
+# Setting a seed so I get the same results each time and can more easily comment
+# on the results:
+set.seed(123)
+
+# 1. Decide on the design (treatments/predictor variables, number of replicates)
+# and create a data frame with predictor variables
+
+n_loc <- 50
+n_ind <- 30
+
+BM_true_mean <- rnorm(n_loc, 20, 2) # unknown true mean at the locations
+
+Data <- data.frame(
+    loc = rep(paste("loc", 1:n_loc, sep = "_"), each = n_ind),
+    BM_true_mean = rep(BM_true_mean, each = n_ind)
+    )
+Data$BM <- rnorm(nrow(Data), mean = Data$BM_true_mean, sd = 1)
+Data$BM_mean <- tapply(Data$BM, list(Data$loc), mean)[Data$loc] # empirical mean
+
+# NB! Note that Data$BM_true_mean is unobserved (we call it a latent variable).
+# Hence, we should perhaps not have inculded it the data - but it is convenient 
+# to have it there for teh steps below.
+
+# 2. Create a design matrix with ‘model.matrix()’ based on predictor variables
+# and model. 
+
+X <- model.matrix(~ BM_true_mean + I(BM - BM_true_mean), Data)
+Z <- model.matrix(~ -1 + loc, Data)
+
+# Note 1: Note that we use 'BM_true_mean' and not 'BM_mean' to simulate the
+# data (see text above)
+
+# Note 2: Note that we remove the intercept in the formula for Z (otherwise we
+# would have got one random effect for a reference group and many random effects
+# for differences to this group, all drawn form the same distribution, which 
+# would have made no sense)
+
+# 3. Decide on parameter values and compute the linear predictor. Add random
+# effects if relevant.
+
+slope_BM_mean <- -10
+intercept <- (100 - slope_BM_mean*20)
+slope_BM <- 3
+
+beta <- c(intercept, slope_BM_mean, slope_BM)
+delta <- rnorm(n_loc, 0, 3)
+
+eta <- X %*% beta + Z %*% delta
+
+
+# 4. Compute the relevant distribution parameter (𝝁, 𝝀, 𝒑, …).
+
+mu <- eta
+#cbind(Data, mu)
+
+
+# 5. Draw random values for the response variable (‘rnorm()’, ‘rbinom()’,
+# ‘rpois()’, ‘rlnorm()’, … )
+
+Data$DEE <- rnorm(nrow(Data), mu, 2)
+
+# Plot the data
+library(ggplot2)
+ggplot(Data, aes(x = BM, y = DEE , col = loc)) +
+  geom_point() +
+  theme_bw() +
+  labs(x="Body mass", y="DEE")
+
+# Fit the model and compare the parameter estimates to the true parameter
+# values.
+
+# NOTE: Here we used the observed mean body mass values as this is the only
+# values we have (we should expect a bias towards zero when sample size within
+# locations is small (and hence the means are uncertain) due to "regression
+# dilution").
+
+fit_DEE <- lmer(DEE ~ BM_mean + I(BM - BM_mean) + (1|loc), data = Data)
+summary(fit_DEE)
+confint(fit_DEE)
+
+## True values used in the simulatinos (same order as in output):
+
+# SD of random effect: 3
+# SD of residuals (sigma): 2
+# Intercept: 300 (intercept <- (100 - slope_BM_mean*20))
+# Slope with respect to BM_mean: -10
+# Slope with respect to BM (within locations): 3
+```
+
+This time all the true parameter values are included in the confidence intervals, and the confidence intervals are rather narrow. Hence, we can assume that we have done the simulations correctly, and we can use this code to evaluate our study design etc. (we could of course also boost the sample size even more to be more certain about this).
+
+Above, I noted that we should expect a small bias towards zero in the slope with respect to `BM_mean` due to "regression dilution". However, when we boost the sample size, the measurement error in `BM_mean` becomes very small, and hence the expected bias will be very small too. To investigate "regression dilution" we could use smaller sample size in Monte Carlo simulations (you can try this on your own).
+</div>
+
+
+
+<!-- ```{r, echo=FALSE, eval=FALSE} -->
+<!-- library(tidyverse) # For ggplot etc -->
+<!-- library(lme4)      # For mixed models (lmer) -->
+
+<!-- n_loc <- 10 -->
+<!-- n_ind <- 5 -->
+
+<!-- # Parameters -->
+<!-- sd_loc <- 3 -->
+<!-- sd_epsilon <- 2 -->
+<!-- slope_BM_mean <- -10 -->
+<!-- intercept <- (100 - slope_BM_mean*20) -->
+<!-- slope_BM <- 3 -->
+
+<!-- BM_true_mean <- rnorm(n_loc, 20, 2) # unknown mean -->
+<!-- DEE_true_mean <- rnorm(n_loc, intercept + slope_BM_mean*BM_true_mean, sd_loc)  -->
+<!-- # plot(BM_true_mean, DEE_true_mean) -->
+
+<!-- Data <- data.frame( -->
+<!--     loc = rep(paste("loc", 1:n_loc, sep = "_"), each = n_ind), -->
+<!--     BM_true_mean = rep(BM_true_mean, each = n_ind), -->
+<!--     DEE_true_mean = rep(DEE_true_mean, each = n_ind) -->
+<!--     ) -->
+<!-- Data$BM <- rnorm(nrow(Data), mean = Data$BM_true_mean, sd = 1) -->
+<!-- Data$BM_mean <- tapply(Data$BM, list(Data$loc), mean)[Data$loc] # empirical mean -->
+<!-- Data$DEE_true <- Data$DEE_true_mean + slope_BM*(Data$BM - Data$BM_true_mean) -->
+<!-- Data$DEE <- rnorm(nrow(Data), mean = Data$DEE_true, sd = sd_epsilon) -->
+
+<!-- # Plot the data -->
+<!-- ggplot(Data, aes(x = BM, y = DEE , col = loc)) + -->
+<!--   geom_point() + -->
+<!--   theme_bw() + -->
+<!--   labs(x="Body mass", y="DEE") -->
+
+<!-- fit_DEE <- lmer(DEE ~ BM_mean + I(BM - BM_mean) + (1|loc), data = Data) -->
+<!-- #fit_DEE <- lmer(DEE ~ BM_true_mean + BM + (1|loc), data = Data, REML = FALSE) -->
+<!-- summary(fit_DEE) -->
+<!-- confint(fit_DEE) -->
+
+<!-- ``` -->
+
