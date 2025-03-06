@@ -138,7 +138,7 @@ fit_DEE <- lmer(DEE ~ BM_mean + I(BM - BM_mean) + (1|loc), data = Data)
 summary(fit_DEE)
 confint(fit_DEE)
 
-## True values used in the simulatinos (same order as in output):
+## True values used in the simulations (same order as in output):
 
 # SD of random effect: 3
 # SD of residuals (sigma): 2
