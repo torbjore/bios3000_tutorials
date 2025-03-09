@@ -1,0 +1,174 @@
+---
+title: 'Solution notes to assignment Week 6 - Mixed Effect Models'
+author: 'Torbjørn Ergon'
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    number_sections: true
+    toc: yes
+    toc_float: true
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+urlcolor: blue
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+#remotes::install_github("rlesur/klippy")
+library(klippy)
+#https://ladal.edu.au/regression.html#Remarks_on_Prediction
+```
+
+```{=html}
+<style>
+div.blue { background-color:#e6f0ff;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+
+<style>
+div.green { background-color:#d8e4bc;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+
+<style>
+div.purple { background-color:#EBDEF0  ;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+
+<style>
+div.cornsilk { background-color:#FFF8DC ;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+<br>
+
+<div class="green">
+Solution notes are inserted in green boxes (like this one) in the original assignment text below.
+</div>
+
+
+# Assignment: Student morphometrics
+
+This assignment is based on the same student measurement data set that you have been working with earlier, but instead of mean measurements per individual these data also include the repeated measurements. 
+
+First, load the dataset:
+
+```{r}
+load("students.RData")
+summary(students)
+```
+
+1.  Modify the code for making coloured scatter plots above to plot `Height` on the y-axis and `Height_of_father` on the x-axis. Colour the points by `Sex`and `ID` (one at a time) to get an overview of the data. TIP: Use `legend.position = "right"`, otherwise you won't see the plot itself when using `col = ID`. You can also try to have `Height_of_mother` on the x-axis. Interpret what you see.
+
+<div class="green">
+The original code for making the plot with `ggplot` is given in the assignment. We only show the plots with `Height_of_father` on the x-axis here:
+
+```{r}
+library(ggplot2)
+
+# Colour by 'Sex'
+ggplot(students, aes(x = Height_of_father, y = Height , col = Sex)) +
+  geom_point() +
+  theme_bw()+
+   labs(x="Father height", y="Height") +
+  theme(legend.position = "right", legend.title = element_blank())
+
+# Colour by ID
+ggplot(students, aes(x = Height_of_father, y = Height , col = ID)) +
+  geom_point() +
+  theme_bw()+
+   labs(x="Father height", y="Height") +
+  theme(legend.position = "right", legend.title = element_blank())
+
+```
+
+<br>
+
+Not surprisingly, males tend to be taller than females. For both sexes, there is a positive correlation between height and height of father (and height of mother). We also see that there are (mostly) three measurements per student. Some of the measurements are the same, and hence the points will sometimes be plotted on top of each other. Height of father (and mother) has not been measured (only reported by the students) and hence does not vary within students - i.e., `Height_of_father` is a group level covariate as it applies to each student and not each measurement.
+</div>
+ 
+ 
+<br>
+ 
+2. Fit an ordinary linear model (using `lm()`) to the data to investigate how height is related to sex and parental height (include both `Height_of_mother` and `Height_of_father`, and for simplicity assume only additive effects), and interpret the results. Can you trust the confidence intervals from this model? Explain in your own words.
+
+<div class="green">
+```{r}
+fit_lm <- lm(Height ~ Sex + Height_of_mother + Height_of_father, data = students)
+summary(fit_lm)
+confint(fit_lm)
+```
+
+The estimates indicate that expected student height increases by 0.28 cm (standard error = 0.08 cm; 95% C.I.: 0.12 to 0.44 cm) when mother height increases by 1 cm, and by 0.40 cm (standard error = 0.06 cm; 95% C.I.: 0.28 to 0.51 cm) when father height increases by 1 cm. The lower 95% confidence interval for the effect of `Height_of_father` excludes the point estimate for the effect of `Height_of_mother`. Hence, if we trust these results, we may say we have some indication that fathers could have a stronger influence on the height of their offspring than mothers. However, we have here treated the three repeated measurements of each individual as if they were independent measurements in the data as a whole - i.e., as if the three repeated measurements were from three different *individuals* with mothers and fathers of the same height. This is a case of pseudoreplication, and hence we cannot trust the standard errors (they are too small) or the confidence intervals (they are too narrow).
+
+See next point for interpretation of `(Intercept)` and `Sexmale`.
+
+```{r, eval=FALSE, echo=FALSE}
+#...just checking difference with SE
+x <- c(0,0,-1,1)
+VC <- vcov(fit_lm)
+x %*% coef(fit_lm)
+sqrt(diag(x %*% VC %*% x))
+# ...well, this is quite far for "significance" at the 5% level...
+```
+</div>
+
+<br>
+
+3. Define and fit a mixed effects model with the same fixed effects that avoids pseudorepliation (hint: you need to specify a random effect on the intercept). Look at the summary and confidence intervals. What is the main difference between this and the previous model? What is the interpretation of each of the parameters in the model?
+
+
+<div class="green">
+```{r}
+library(lme4)
+fit_lmer <- lmer(Height ~ Sex + Height_of_mother + Height_of_father + (1|ID), data = students)
+summary(fit_lmer)
+confint(fit_lmer)
+```
+
+<br>
+
+**Interpretation of the parameters and their estimates (in the order they appear in the outputs above):**
+
+* `ID`/`.sig01`: The standard deviation for the random effects of `ID` (individual). The point estimate is 5.11 cm, and the 95% confidence interval goes from 4.13 cm to 6.01 cm. This is an estimate of the true residual standard deviation among *individuals* (not measurements) in the statistical population when we have accounted for the individuals' sex and height of their parents. I.e., this standard deviation descibes the *biological* variation in the statistical population and we can refer to it as "process variation" (as opposed to "sampling variation"). To get a better feel for what a standard deviation of 5.11 cm means (the point estimate), remember that in a Normal distribution, the 2.5 percentile is 1.96 standard deviations lower than the mean, and the 97.5 percentile is 1.92 standard deviations higher than the mean. Hence, if you imagine getting 1000 people with the same sex and parents' height (but otherwise sampled at random) and line them up from shortest to tallest, you should expect that the 25th person in the line is 1.96 $\times$ 5.11 cm = 10.0 cm shorter then the mean, and the 975th person in the line is 10.0 taller than the mean (you can do the same calculations to interpret the confidence limits).
+
+* `Residual`/`.sigma`: The standard deviation of the residuals at the observation level (i.e., the standard deviation of the measurement error). The point estimate is 0.56 cm, and the 95% cofidence interval goes from 0.49 cm to 0.65 cm. This parameter does not tell you anything about biology - it tells you how *precise* (not *accurate*!) the measurements are. Doing the same kind of interpretation as in the previous point, if you imagne taking a large number of repeated measurements of the same *individual*, you should expect that the measurement that is larger than 2.5% of the measurements (i.e., the 2.5 percentile (the 2.5% quantile)) is 1.96 $\times$ 0.56 cm = 1.1 cm lower than the mean measurement, and the measurement that is larger than 97.5% of the measurements is 1.1 cm higher than the mean.
+
+* `(Intercept)`: This is the prediction you get when you set all the predictor variables to zero. Since the output says `Sexmale` for the effect of `Sex`, we know that the intercept represents females. We here have two continous predictor variables, and hence we could have made a 3D plot (or you can imagne a physical 3D structure) with two horizontal x-axis crossing each other at 90 degrees and a vertical y-axis. The predictions is then a plane (i.e., a flat surface) that crosses the y-axis at 53.8 cm (95% confidence interval range from -3.7 cm to 111.3 cm). Since parents cannot be 0 cm tall, this parameter does not have any biological interpretation. To get a more meaningfull interpretation, you could center the variables `Height_of_mother` and `Height_of_father` by subtracting their mean (i.e. use `I(Height_of_mother - mean(Height_of_mother))` and `I(Height_of_father - mean(Height_of_father))` in the call to `lmer`). Alternatively, you could have computed the prediction from the model at mean `Height_of_mother` and mean `Height_of_father`. These two approaches should give *exactly* the same result if the model fitting routine has proprely converged (not shown here, but you can try it yourself).
+
+* `Sexmale`: This is the estimated difference in mean height of females and mean height of males for people with the same height of their parents. Since we have an additive model, this predicted difference does not depend on height of the parents. The point estimate is 14.46 cm and the 95% confidence interval goes from 11.58 cm to 17.34 cm.
+
+* `Height_of_mother` and mean `Height_of_father`: The interpretation of these parameters is the same as in point 2 above (i.e., the increase in a person's height per cm increase in their mother's or father's height).
+
+**What is the main difference between this and the previous model?**
+
+In this model we have accounted for the fact that there are differences in people's height that can not be explained by their parents' height. By including individual `ID` as a ramdom effects variable in the model, we now only assume that the three repeated measurements of each individual are independent conditional on the individual that is being measured, and not that they are independent in the data as a whole. As a result the standard errors of the fixed effects parameters are larger and the confidence intervals are wider. We can now assume that the confidence intervals will cover the "true" vaules if we simulate data from the model, and refit the model, 95% of the times. In contrast, if we refit the model from point 2 to the simulated data, the confidence intervals will include the "true" value much less than 95% of the time (since this model is based on pseudoreplication).  
+</div>
+
+<br>
+
+4. [**Optional:** Heritability of a trait can be estimated as the slope in a linear model where the trait is the response variable and the mean trait of the parents as the predictor variable. Alternatively, one can use the trait of *one* parent as the predictor variable and multiply the slope by 2 to get an estimate of heritability. Since there is a sex-difference on Height, we can define the trait as how much the height of an individual differs from the sex-specific mean height (i.e., subtract the mean height of females from all female heights, and the mean height of males from all males). Fit appropriate mixed-models to estimate heritability of height. You may also try to estimate different heritabilities for males and females.]
+
+<div class="green">
+First, we compute the trait value (as defined above) for each student, and the mean trait value of their parents:
+
+```{r}
+students$trait[students$Sex == "female"] <- students$Height[students$Sex == "female"] - mean(students$Height[students$Sex == "female"])
+
+students$trait[students$Sex == "male"] <- students$Height[students$Sex == "male"] - mean(students$Height[students$Sex == "male"])
+
+students$mothers_st <- students$Height_of_mother - mean(students$Height_of_mother, na.rm = TRUE)
+
+students$father_st <- students$Height_of_father - mean(students$Height_of_father, na.rm = TRUE)
+
+students$mid_parent <- (students$mothers_st + students$father_st)/2
+```
+
+Then we fit a mixed model (to account for repeated mesurements) for the trait with mean trait value of their parents as the predictor variable: 
+
+```{r}
+fit_parent_offspring <- lmer(trait ~ mid_parent + (1|ID), data = students)
+summary(fit_parent_offspring)
+confint(fit_parent_offspring)
+```
+
+Based on this, the heritability of body height is 0.68 (95% C.I.: 0.35 to 1.00). Note that although heritability can never be larger than 1 (100%), the estimates (and in particular upper the confidence limits) can become larger than 1 in this model. This is because there is no constraint in the model that forces the parameter (the slope) to be between 0 and 1. With little data, we can also get estimates lower than 0 (which also does not make sense biologically). 
