@@ -163,7 +163,7 @@ students$father_st <- students$Height_of_father - mean(students$Height_of_father
 students$mid_parent <- (students$mothers_st + students$father_st)/2
 ```
 
-Then we fit a mixed model (to account for repeated mesurements) for the trait with mean trait value of their parents as the predictor variable: 
+Then we fit a mixed model (to account for repeated measurements) for the trait with mean trait value of their parents as the predictor variable: 
 
 ```{r}
 fit_parent_offspring <- lmer(trait ~ mid_parent + (1|ID), data = students)
