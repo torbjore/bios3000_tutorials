@@ -1,0 +1,957 @@
+---
+title: "Tutorial and assignment week 12 and 13 - Binomial models"
+author: "Torbjørn Ergon, Tom Andersen, Yngvild Vindenes"
+date: "April 2023"
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+  df_print: paged
+header-includes:
+  \usepackage{amsmath}
+urlcolor: blue
+---
+
+```{=html}
+<style>
+div.blue { background-color:#e6f0ff;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+```{=html}
+<style>
+div.purple { background-color:#EBDEF0  ;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+
+```{=html}
+<style>
+div.green { background-color:#d8e4bc;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+```{=html}
+<style>
+div.cornsilk { background-color:#FFF8DC ;  border: 1px solid black; border-radius: 3px; padding: 8px;}
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#remotes::install_github("rlesur/klippy")
+library(klippy)
+#https://ladal.edu.au/regression.html#Remarks_on_Prediction
+```
+
+
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position="right",color="#7D5E88")
+```
+
+# Tutorial
+
+This tutorial is a fairly comprehensive (but not in-depth) overview of binomial models commonly used in biology. 
+
+
+
+<br>
+
+<div class="blue">
+
+Parts written in blue boxes or marked with a "<span style="color:red">*</span>" are not part of the syllabus, but are included to give you an overview of related topics that you likely have to read up on later in your career. 
+</div>
+
+<br>
+
+<div class="purple">
+
+You will find some tips on R code and plot types in purple boxes. Note that you can copy the contents of each code chunk (grey boxes) by clicking the button in the top right corner.
+</div>
+
+
+<br>
+
+<div class="green">
+Questions (mainly the exercise and assignment, a few in the tutorial) are in green boxes.
+</div>
+
+<br>
+
+## Key concepts covered 
+
+* Binomial models
+* Maximum likelihood estimation "<span style="color:red">*</span>"
+* Generalized linear models (glm) - continued
+* Contingency tables, odds and odds ratios
+* Binomial glm with logit link
+* Hazard rate and survival "<span style="color:red">*</span>"
+* Binomial glm with complementary log-log link "<span style="color:red">*</span>"
+
+<br>
+
+## Prerequisites
+
+We assume that you have a general understanding of terms and concepts from the previous tutorials and lectures, and in addition we assume you are familiar with the following (from STK1000 or similar):
+
+* Binomial distribution and probabilities
+* Generalized linear models (see [Tutorial week 10 ](https://uio.instructure.com/courses/42893/files/2112251?wrap=1)  )
+* Exponentials and logarithms (see the extra [Tutorial on Exponents and Logarithms](https://uio.instructure.com/files/635816/download?download_frd=1) at the end of the Week 1 module)
+
+<br>
+
+## Binomial models
+
+With binomial models we aim to predict probabilities. Instead of having a continuous response variable like length, light intensity, etc., the response variable is now a count of the number of "successes" $y$ within a number of "trials" $n$ (note that predictor variables may still be continuous or discrete variables). For example, we may want to investigate how the prevalence of a  disease varies between locations. 
+
+
+
+### The binomial distribution
+In a specific sample of $n$ individuals, we may find that $y$ individuals have the disease ($y$ is called "number of successes" even when we count something that is bad). If the individuals have been sampled independently, $y$ can be considered as having been randomly drawn from a **binomial distribution**:
+
+$$
+y \sim \text{Binomial}(n,p)
+$$
+
+The symbol "$\sim$" means "drawn from". The binomial distribution describes the probability of drawing exatly $y$ successes in a sample of $n$: 
+
+$$P(Y=y) = \binom{n}{y} p^{y} (1-p)^{n-y}$$ 
+Here, $Y$ is the stochastic variable representing the number of successes in $n$ independent trials. The notation $P(Y=y)$ means "the probability that $Y$ takes the value $y$".The parameter $p$ is the probability of success (e.g., testing positive) for each independent trial. 
+
+The expression  $\binom{n}{y}$ is called a "binomial coefficient". It is defined by the number of different ways we can get $y$ successes in $n$ trials:
+
+$$\binom{n}{y} = \frac{n!}{y!(n-y)!}$$
+Here the symbol "!" means [factorial](https://en.wikipedia.org/wiki/Factorial), defined by $n!=n\cdot (n-1) \cdot (n-2) \cdots 1$.
+
+<div class="purple">
+NB! In R the factorial is calculated by the function `factorial()`, and must not be confused with the operator "!" which means "not" (for instance, `!=` in R means "not equal to"). To calculate the binomial coefficient in R we can use the function `choose(n,y)`. The binomial distribution for a number of successes $y$ is given by `dbinom(x=y, size=n, prob=p)`. 
+
+For instance:
+
+```{r}
+#Number of ways to get 5 successes in 10 trials
+choose(10, 5) 
+
+#Use "factorial" to calculate the same:
+factorial(10)/(factorial(5)*factorial(10-5)) 
+
+#Use dbinom to calculate the probability of getting exactly 5 successes in 10 trials, if the success probability is 0.2:
+dbinom(x=5, size=10, prob=0.2)
+```
+</div >
+
+<br>
+
+### Modelling $p$
+
+Binomial models are different from regular linear models in that the response variable (number of successes $y$, $0\leq y\leq n$) is not on the same scale as what we are trying to predict (the probability of success $p$, $0\leq p\leq 1$). The probability $p$ is always the success probability of an **individual trial** (study unit) in the sample. Unlike e.g. body weight, we cannot direclty measure an individual's probability of e.g. getting a disease or dying during a time interval (at the individual level we can only observe the outcome: It either does or it doesn't get the disease). We say that such probabilities are **latent characteristics** which can only be predicted based on statistical modelling of outcomes from many individual trials (but the characteristics are nevertheless characteristics of the individuals).
+
+We are often interested in trying to model how the success probability ($p$) varies among individuals depending on certain properties. For example, we may want to study how the probability of having a condition is associated with age or some environmental factor. Let's say that the overall probability of being positive for a chronic medical condition (e.g. diabetes) is 0.05. This means that if we pick a random individual from the population, the probability that this individual has the condition is 0.05. We can call this an **unconditional probability**, because this is our prediction of the probability of having the condition without knowing anything  about the individual. If, however, we know the age  or sex of the individual, we may be able to give a better prediction (probability conditional on age or sex). For example, we may expect a lower probability of the condition for young individuals and a higher probability for old.  
+
+So, how can we make a model for individual $i$'s probability $p_i$ depending on age? Just making $p_i$ a linear function of age would be a strange model as it is hard to come up with any good mechanism for why we should expect a straight line. Besides, such a model would predict probabilities outside the 0 to 1 range, violating the definition of probability and leading to nonsensical predictions. To achieve a more natural model for $p$ that keeps the predicted values within the right domain between 0 and 1, it is common to  transform $p$ to the log-odds (also known as logit) scale before applying a linear model to the transformed variable. The resulting model is then
+
+$$\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta}$$
+
+This is called a **logit link** function. To understand why this is a good choice, we first need to define odds and consider how the domain of functions change depending on their scale.
+
+<br>
+
+## Odds, odds ratios and the logit link
+
+Odds are simply an alternate way of expressing probability, as in when we informally say "the chances are one in a million for this to happen" instead of saying "the probability is 0.000001". Formally, the **odds** of an event with success probability $p$ are defined as 
+
+$$\text{odds}(p)=\frac{p} {1 - p},$$
+
+which is the ratio of the probability of success to the probability of non-success. For example, if a betting agency states that the odds of a specific horse winning a race are $1/3$ ("one to three"), the probability that this horse will win is  $p = 1/4 = 0.25$ (the probability of not winning is three times as high as the probability of winning; odds = $0.25/(1-0.25) = 1/3$). Note that the odds are just a sample transformation of the probability.
+
+While the probability $p$ is defined on the unit interval (0 to 1), the odds are defined on the positive part of the real line: the odds are close to zero when $p$ is low and toward $+\infty$ as $p$ approaches 1. 
+
+If we log-transform the odds we get the "logit" function 
+
+$$\text{logit}(p)=\log\left(\frac{p}{1-p}\right),$$ 
+
+which is defined the entire real line from $-\infty$ to $\infty$.   
+
+<div class="green">
+To get a better understanding of the odds and logit-functions and how they look, we encourage you to stop here and make some plots in R. Plot each as a function of $p$ (from 0 to 1).
+</div>
+
+<br>
+
+When $p$ becomes close to zero $\text{logit}(p)$ will approach $-\infty$, when $p = 0.5$ $\text{logit}(p)$ will be zero (which is equivalent to $p / (1 - p) = 1$), and when $p$ approaches 1 $\text{logit}(p)$ appraoches  $+\infty$. This means that $\text{logit}(p)$ is better suited to be modelled by a weighted sum of the continuous predictor variables, since these values can in principle take any real-numbered value (i.e., from $-\infty$ to $+\infty$). 
+
+The **odds ratio** is the ratio of two different odds, for instance the ratio of the odds of getting an infection when vaccinated and the odds of getting the infection if not vaccinated. If the former has the probability $p_V$ and the latter $p_N$, the odds ratio is given by
+
+$$\left(\frac{p_V}{1-p_V}\right)/\left(\frac{p_N}{1-p_N}\right).$$ 
+<div class="green">
+Note that the logarithm of the odds ratio is the difference between the log-odds, since in general $\log\left(\frac{A}{B}\right)=\log(A)-\log(B)$. Verify this using the example above. Understanding this property is very important to understand outputs of glm's for many binomial models.
+</div>
+
+
+
+<br>
+
+<div class = "blue">
+**FOR A DEEPER UNDERSTANDING (may be skipped)**
+
+### <span style="color:red">*</span>Maximum likelihood estimation of $p$ 
+
+This box explains the main principle behind estimating $p$ from a sample of size $n$, and how the certainty of the estimate varies with $n$. Assume that we have a sample of $n=10$ individuals and the true prevalence of a disease is 35% ($p=0.35$). The expected number of successes $y$ (positive for the disease) in the sample is 3.5 individuals ($E[Y]=np$). However, we will only observe integer outcomes, and in one particular sample we may get any number from 0 to 10 testing positive (getting 3 or 4 is much more likely than 10). We can use the expression for the binomial distribution above to calculate the probability of getting any integer number between 0 and 10. In R we can do this with the `dbinom()` function. Let's do that and make a plot:
+
+```{r}
+x = 0:10
+Prob_x = dbinom(x, size=10, prob=0.35)
+plot(x, Prob_x, type="h", xlab="Successes x out of 10", ylab="P(X=x)")
+```
+
+If we had used the `rbinom()` function to sample a large number of values from this distribution this is the expected frequency of each value from 0 to 10 (you can confirm that these values sum to 1 with `sum(Prob_x)`).
+
+Let's say we get $y=5$ positive individuals in our sample. Our best estimate of $p$ is then obviously $5/10 = 0.5$. We will now obtain this estimate through the maximum likelihood estimation method to see how it works. This method can be applied generally to a wide range of estimation problems, also when we cannot derive a mathematical expression for the estimate and have to use numerical computation.
+
+According to the maximum likelihood principle we should pick the value of $p$ that maximizes the likelihood of getting the observed data. This value is the *maximum likelihood estimate* of $p$. To find this value, we can first plot the probability $Pr(Y=5)$ as a function of $p$:
+
+```{r}
+y = 5 # observed data
+n = 10
+p = seq(0, 1, by = 0.01) # values of p ranging from 0 to 1
+L <- function(y, n, p){#define likelihood function, same as binomial
+  dbinom(x=y, size=n, prob=p) 
+  }
+plot(p, L(y, n, p)) # include argument type = "l" to get a line instead
+```
+
+Note that this nice bell-shaped curve is not a probability distribution (the area under the curve is not 1). It is simply the probability of getting the data we have got for each hypothetical (candidate) value of $p$ plotted on the x-axis. Since the outcome $y$ is here an integer, we can use the word "probability" instead of "likelihood". We generally write this function as $L(\Theta; \text{Data})$ which can be read as "the likelihood of the parameters ($\Theta$) given the data". In this case the likelihood function is  
+
+$$L(p; y, n)=Pr(Y=y)=\binom{n}{y} p^{y} (1-p)^{n-y}$$
+
+Instead of viewing the expression as a function of $y$ with known $p$, we see it as a function of the parameter $p$ with known $y$.
+
+In this example we can find the maximum likelihood estimate of $p$ by picking out the value of the `p` vector where `L(p, y, n)` is at maximum:
+
+```{r}
+likelihood =  L(p, y=5, n=10)
+p[likelihood == max(likelihood)]
+```
+
+The plot above indicates that there is quite a bit of uncertainty in this estimate; if the true value of the parameter is 0.4 or 0.6, then we are almost as likely to get the observed data. Naturally, if we had more data, we would have gotten a narrower peak of the likelihood curve, indicating a more certain estimate.
+
+Let's see what the likelihood looks like if we had observed 50 positive individuals in a sample of 100. Below, we add this as a blue line in the plot:
+
+```{r}
+plot(p, L(p, y=5, n=10), type="l", col="red") 
+abline(v=y/n, col="red")
+lines(p, L(p, y=50, n=100), col="blue") 
+```
+
+<br>
+
+As expected, the peak of the blue curve is a lot narrower, indicating a higher certainty of the maximum likelihood estimate. The values are much lower in the blue curve, but this only reflects that we are less likely to get exactly $y=50$ successes in a sample of 100 than to get $y=5$ successes in a sample of 10. All we care about here is the location of the peak (at $p=0.5$) and the width of the peak (not the specific values of the likelihood). We will later show that we can create a confidence interval for $\hat{p}$ based on the shape of the likelihood curve (or generally a multi-dimensional surface when we have more then one parameter in the model).
+
+For several reasons one usually maximizes the log of the likelihood instead of the likelihood itself (what maximizes the log of the likelihood also maximizes the likelihood itself). We can also ignore constant terms (terms that do not include the parameter) because these do not affect the location of the peak. Hence, since $\log \left( p^y (1-p)^{(n-y)} \right) = y\log(p) + (n-y)\log(1-p)$ we maximize the log-likelihood function $\ell (p; y,n) = y\log(p) + (n-y)\log(1-p)$. Let us plot this function as well when $y=5$ and $n=10$:
+
+```{r}
+logL = function(p, y=5, n=10) y*log(p) + (n-y)*log(1-p)
+plot(p, logL(p, y, n), type="l") 
+abline(v=y/n, col="red")
+```
+
+<br>
+
+Again, if we instead had observed 50 positives in a sample of 100, the curve would have been more pointy. Actually, we can use the negative inverse of the second derivative, evaluated at $\hat{p}$, as an estimate of the standard error of the estimate.
+
+In this case the likelihood function is so simple that you could have found the peak analytically by setting the first derivative of the function to zero and then solve for $p$ (i.e., solve $\frac{\partial \ell (p)}{\partial p} = 0$; we leave this for you to try on your own). However, with more complex likelihood functions with many parameters, we need to find the peak on a multidimensional surface, and it is often necessary to find the maximum by numerical computation (cannot be solved analytically). We will return to that later.
+
+</div>
+
+<br>
+
+
+
+## Example: Vaccine trial
+
+In February 2021, [The New York Times](https://www.nytimes.com/2021/02/07/world/south-africa-astrazeneca-vaccine.html) wrote an article about the AstraZeneca-Oxford trial in South Africa. In this [randomized controlled trial study](https://en.wikipedia.org/wiki/Randomized_controlled_trial), patients were randomly divided into two groups: 
+* The **vaccine group** was injected with 2 doses of the AstraZeneca-Oxford vaccine 
+* The **placebo group** was injected with 2 doses of a placebo that looked identical to the vaccine. 
+
+At the end of the study, 19 of the 748 people in the vaccine group were infected with the [B.1.351 variant of SARS-CoV-2 virus](https://en.wikipedia.org/wiki/Variants_of_SARS-CoV-2), compared with 20 of 714 people in the placebo group. This outcome can be tallied into a 2 by 2 **contingency table** representing the 4 possible outcomes with respect to the B.1.351 infection for the two treatments:
+
+```{r}
+# https://www.nytimes.com/2021/02/07/world/south-africa-astrazeneca-vaccine.html
+
+az <- matrix(c(19, 748-19, 20, 714-20), ncol=2)
+rownames(az) <- c("Infected", "Not Infected")
+colnames(az) <- c("Vaccine", "Placebo")
+
+#Make table
+az2 <- as.table(az) 
+#Add names to the categorical variables:
+names(attributes(az2)$dimnames) <- c("DiseaseStatus","TreatmentGroup")
+
+az2
+
+plot(az2, main="Outcomes of vaccine trial")
+```
+
+<div class="purple">
+In R the best approach to construct a contingency table is the function `table()`, or to make a matrix as we did above and then use `as.table()` (note how we added names to the categorical variables as well).  More generally, a contingency table in R is an **array** of integer values (in this case we had a 2 by 2 array, but arrays can have other dimensions, for instance 2 by 2 by 3. If we want to convert a contingency table to a dataframe (which is sometimes useful), we can use the function `as.data.frame()` on the table. 
+
+```{r}
+#Convert to data frame:
+as.data.frame(az2)
+```
+
+In this case R puts the numbers of the table in a third column named `Freq`. 
+
+The plot above is called a **mosaic plot** and is the default plot type in R for  arrays (you can learn more about it on the help pages using `?mosaicplot`). It provides a visual representation of the contingency table, where each rectangle is proportional to the number of outcomes in each category combination.
+</div >
+
+<br>
+
+One key question in studies like this is how much of an effect the treatment has on the risk of infection (note that here we talk about 'treatment' in the statistical rather than medical sense: The group given the vaccine is a treatment group, while the placebo group is the control group). Another relevant question, which is not considered here, is how well the vaccine protects against developing severe symptoms or dying if infected.  
+
+From the mosaic plot above we suspect that the effect of the AstraZeneca-Oxford vaccine against being infected by B.1.351  is small, since the 'Infected' areas for Vaccine and Placebo look quite similar. We can start by calculating the probabilities of infection in the 2 treatment groups. Even if this may sound a bit morbid, we will consider 'Infected' as the 'success' in this trial.
+
+```{r}
+(p.inf <- az["Infected", ] / colSums(az))
+```
+
+<div class="purple">
+Note how we used the rowname "Infected" to extract the corresponding row of the contingency table. We can also use column names to extract columns (try e.g. `as.table(az)[,"Vaccine"]`). More generally, with an array of more than two dimensions, we use the same syntax as above to extract levels from each dimension.
+</div >
+
+
+<br>
+
+
+We see that there is a slightly higher chance of getting infected in the placebo group:  For the vaccine group around 25 per 1000 people gets infected, while for the placebo group around 28 per 1000 gets infected. We can also calculate the odds of infection for the two treatments as 
+
+```{r}
+(odds.inf <- p.inf / (1 - p.inf))
+```
+
+Since the probabilities for infection and non-infection in the same treatment group have the same denominator (`colSums(az)`),  we can also calculate the odds directly from the counts (`az["Infected", ] / az["Not Infected", ]`); check it out and take a moment to think about why this has to be so. 
+
+The odds tell us that in the vaccine group the ratio of infected to uninfected is about 26/1000, while in the placebo group this ratio is about 29/1000. 
+
+Finally, we can calculate the odds ratio of the treatments, which represents the relative difference in odds between the treatment and the placebo:
+
+```{r}
+(odds.ratio <- odds.inf["Vaccine"] / odds.inf["Placebo"])
+```
+
+Note that we can also calculate this directly from the contingency table:
+
+```{r}
+(odds.ratio <- az["Infected","Vaccine"]*az["Not Infected","Placebo"] / (az["Infected","Placebo"]*az["Not Infected","Vaccine"])) #Alternatively extract the diagonals: prod(diag(az))/prod(diag(az[1:2,2:1]))
+```
+
+The ratio is close to 1, meaning the odds of infection are similar in the two treatments but around 10% lower in the vaccine group. Note that we cannot say anything about the absolute risk from the odds ratio, only the relative risk.  
+
+We would also like to quantify the uncertainty in the odds ratio before we conclude anything about the efficacy of the AstraZeneca-Oxford vaccine against the new variant. We can approach this in many ways, but here we will show how to get this information by fitting the contingency table to a **binomial generalized linear model** (`glm`).
+
+Binomial `glm`'s are different from other linear models we have encountered in the sense that the response variable need to consist of two columns (the exception is *binary* binomial models where each observation is just a binary TRUE/FALSE variable); one for number of successes and one for number of failures. In R we usually apply the `cbind` function to make a two-column data frame and use this as the response variable. In this example the data are already in a 2 by 2 table, but we need to transpose this table to have one column for the number of successes (infected) and another column for the number of failures (not infected). The predictor variable will  be a factor representing the treatments (`Vaccine` or `Placebo`), which we extract from the column names of the contingency table. We also notice that `Placebo` will become the reference level by the default alphabetical ordering of factor levels. 
+
+```{r}
+(outcome <- cbind(Infected=az["Infected", ], Not.Infected=az["Not Infected", ]))
+(treatment <- factor(colnames(az)))
+```
+
+We then fit `y` (the number of successes and non-successes) to `x` (treatment) using a `glm` of the binomial family with a logit link:
+
+```{r}
+summary(m <- glm(outcome ~ treatment, family=binomial(link="logit")))
+```
+
+By the default factor level ordering, the `(Intercept)` parameter is the estimate of log(odds) (i.e. the logit) for infection in the placebo treatment: $\alpha =\log(\text{odds})$ = `coef(m)[1]` = `r round(coef(m)[1], 3)`, which is equivalent to a probability $p = \frac{\exp(\alpha)} {1 + \exp(\alpha)}$ 
+= `exp(coef(m)[1]) / (1 + exp(coef(m)[1]))` = `r round(exp(coef(m)[1]) / (1 + exp(coef(m)[1])), 3)`, which is identical to the probability that we computed above, directly from the contingency table. 
+
+The parameter `treatmentVaccine` is the difference between the $\log(\text{odds})$ for the placebo and the vaccine treatment. Remember that the difference between two logarithms is the same as the logarithm of the ratio of each argument ($\log(A) - \log(B)=\log(A/B)$), such that the contrast can be interpreted as the logarithm of the *odds ratio* between the vaccine and placebo treatments:  
+
+$\beta =\log(\text{odds ratio})$= `coef(m)[2]` = `r round(coef(m)[2], 5)`. The reverse logarithm of this coefficient, $\exp(\beta)$ = `exp(coef(m)[2])` = `r round(exp(coef(m)[2]), 3)`, thus represents the odds ratio between treatments, which is the odds ratio we calculated directly from the contingency table (`r round(odds.ratio, 3)`). 
+
+The advantage of doing this estimation with a `glm` is that we can also get confidence intervals for the estimates using the `confint` function; 
+
+```{r}
+exp(confint(m)) 
+```
+
+Looking at the vaccine treatment effect we have 95% confidence that the odds of infection could be from `r round(exp(confint(m)) [2,][1],3)`  to `r round(exp(confint(m)) [2,][2],3)` in the vaccine treatment relative to the placebo, spanning 1 which represents no difference. Hence, we have little support for claiming that the AstraZeneca-Oxford vaccine substantially prevented infection by the B.1.351 variant of the SARS-CoV-2 virus -- the vaccine may reduce the odds of infection by about 50%, but it is unlikely that the vaccine has a much stronger effect than that. If we get more data, the confidence interval will become narrower, but the estimated odds ratio might also change then.
+
+## Other link functions
+
+The logit (log-odds) link function we have used so far,
+
+$$
+\log \left( \frac{p_i}{1-p_i} \right) = \mathbf{x}_i \mathbf{\beta},
+$$
+
+is the default link function when specifying `family = binomial` in the `glm` function, and is probably also the most used link function for binomial models. This is a choice based on tradition and convenience and is not based on any biological theory (it actually originates from gambling theory). The logit link (and hence interpreting contrasts as odds-ratios) is a good choice when the probability we estimate represents something  that does *not* accumulate over time, but rather something similar to a coin flip.  However, when we model probabilities for something occurring or not occurring within a certain time period (or in a sample of a defined area or volume),  the socalled 'loglog link' function is a more natural choice: Defining $p$ as the the probability of something *not* occurring in an interval/volume, the loglog link is given by
+
+$$
+\log \left( -\log \left( p_i \right) \right) = \mathbf{x}_i \mathbf{\beta}
+$$
+
+If we instead want to define $p$ as the probability of something occurring at least once in an interval/volume, we can use the 'complementary loglog link' 
+
+$$
+\log \left( -\log \left( 1-p_i \right) \right) = \mathbf{x}_i \mathbf{\beta}
+$$
+
+The latter is often called the 'cloglog' link.
+
+For example, if we want to estimate the probability that individuals survive (not die) during a time interval of a fixed length, it would make sense to use the 'loglog' link  (the longer the interval, the lower the probability of survival will be). If we instead want to model the probability of dying during the interval, we should use the 'cloglog' link. With these link functions, contrasts in the linear predictors become the log of hazard ratios -- i.e., the reverse logarithm of a contrast is the ratio of two hazard rates, where a hazard rate is the "instantaneous failure rate" (defined more exactly below). We don't prioritize time to work with these link-functions in this course, but this is something you should read up on if you later need to model the probabilities of survival or death (or any other event occurring or not occurring within a time interval, such as maturation). We provide some more details for those interested in the box below.
+
+
+
+<div class = "blue">
+
+**FOR A DEEPER UNDERSTANDING (may be skipped)**
+
+### <span style="color:red">*</span>Modelling $p$ with the (complementary) log-log link
+
+We will here walk trough a couple of examples using the complementary log-log (cloglog) link in binomial models. First we will look into estimation of survival probabilities and mortality hazard rates. Thereafter, we will look into an ingenious method for estimating the density of bacteria in water samples.
+
+#### Hazard rates and survival probabilities
+
+The age at death (or time to any type of event) $t$ of an individual or study unit is described by a probability density function $f(t)$. The probability that an individual is alive at age $t$ is then $1-F(t)$, where $F(t)$ is the cumulative density function:  $F(t) = \int_{x=t_0}^{t}{f(x)}dx$. The instantaneous mortality hazard rate is then defined by
+
+$$
+\lambda(t) = \frac{f(t)}{1-F(t)}
+$$
+
+You can think of this formula for the hazard rate as meaning "the probability of dying during a short time interval after time $t$ given that the individual is still alive at time $t$.
+
+When the hazard rate is constant, $\lambda(t) = \lambda$, the time to death is exponentially distributed, and the probability of surviving from age $0$ to age $t$ is 
+
+$$
+S(t) = \exp(-\lambda t).
+$$
+
+If the hazard rate is a function of age, $\lambda(t)$, we have
+
+$$
+S(t) = \exp \left( -\int_0^t \lambda(t) dt \right)
+$$
+
+You can see the relationship between this function and the Poisson distribution by imagining an immortal individual exposed to random mortality events at an intensity of $\lambda$. The expected number of such events experienced during an interval of length $t$ is then $\bar\lambda t$, where $\bar\lambda$ is the time-averaged hazard rate in the interval, and the probability of experiencing zero events (i.e. surviving) in the interval is  $\exp(-\bar\lambda t)$ (recall the Poisson probability mass function, $P(X=x) = {\bar\lambda}^x \exp(-\bar\lambda)/x!$, and insert $x=0$, then multiply the expression t times to get t time units).
+
+The hazard rate $h$ is a ratio-scaled metric, which is natural to model using a log-linear model (i.e.,  assume multiplicative effects of various covariates on $h$). Hence, inserting $\bar\lambda = \exp(\eta)$, and considering survival probability over one time unit, we get the inverse of the log-log link,
+
+$$
+S = \exp(-\exp(\eta))
+$$
+which is equivalent to $\log(-\log(S)) = \eta$. If we instead model the probability of mortality, $P=1-S$, we get the complementary log-log link, $\log(-\log(1-P)) = \eta$.
+
+When modelling the probability of mortality, or any type of event that occurs to study units over time, it is essential to account for individuals that are removed or disappear from the sample as the individuals age (removed individuals are said to be "censored"). Typically, individuals that live for a long time have a higher chance of becoming censored simply because they are exposed to censoring for a longer time (note also that individuals that are alive at the end of the study are also censored). Hence, if we ignore censoring, we will get biased estimates of survival and mortality.
+
+When studying other events occurring to individuals over time, such as maturation, getting infected by a pathogen or developing a medical condition such as cancer or diabetes, mortality is a natural cause of censoring. It is therefore not possible to study the hazard rates for such events (or their corresponding event time distribution ($f(t)$) or survival function ($S(t)$)) without accounting for mortality in one way or another.
+
+A further complication is that mortality hazard rates are typically heterogeneous in a population: Some individuals have a lower or higher hazard rate than others due to e.g. genetic differences or differences in the amount of resources they possess. When this is the case, a sample of individuals will be dominated more and more by the "high quality" individuals over time (i.e., those with low mortality hazard rates) as the "low quality" individuals tend to die early and disappear from the remaining sample. Hence, it is not uncommon to see that the mean (or overall) mortality hazard rate in the population *decreases* at higher ages even when the hazard rate for each individual *increases* as they age (this is often referred to as a "frailty" effect -- frail individuals disappear earlier from the sample/population).
+
+It is outside the scope of this course to  go any deeper into these issues, but they are important to understand if you are going to work with survival data, or data on events occurring to individuals over time, in the future.
+
+#### Most Probable Number (MPN)
+
+The Most Probable Number (MPN) method has been used in microbiology since at least the 1930's to estimate the number of organisms in a sample. The method is particularly useful for quantifying organisms which cannot be identified by morphology, but rather by their ability to grow in specific media, which was the case for much of bacterial systematics before the emergence of modern DNA-based classification. The MPN method has, for example, remained a standard method for estimating the number of fecal coliform bacteria in water samples. Fecal coliforms, which live exclusively in the guts of endothermic animals, are considered good indicators of fresh sewage pollution, and thus an important hygienic quality parameter for assessing the suitability of a water source for consumption and recreation.
+
+The basic principle for the MPN method is to make a dilution series of the original sample and record whether growth can be detected or not at the different dilution levels. Dilution levels are typically chosen as a geometric series on powers of 2 or 10. One may for example add 1, 1/2, 1/4, 1/8, 1/16, etc millilitres (mL) of the sample to tubes containing a volume of sterile growth medium that is selective for fecal coliforms. The tubes are then incubated at optimal growth conditions (37º C for fecal coliforms) and growth recorded as visible turbidity in a tube. The different dilution levels are typically replicated several times to increase the precision of the method.
+
+The statistical basis for the MPN method was worked out by R. A. Fisher, and he used this as an example of maximum likelihood estimation. We will here use simulation to illustrate Fisher’s analysis of the method, and show how the MPN estimate can be found using a particular kind of generalized linear model.
+
+Assume that we have a sample that contains an average of $\lambda$ bacterial cells per mL of liquid. The average number of bacteria in 1/2 mL, 1/4 mL, 1/8 mL, etc will then be $\lambda/2$, $\lambda/4$ $\lambda/8$, respectively. In general, there will be $\lambda 2^{-i}$ bacteria in  $2^{-i}$ mL of liquid. If the bacteria are randomly distributed in the original sample, then the number of bacteria ($N$) in a 1 mL subsample from the same source can be described by a Poisson distribution with intensity parameter $\lambda$ ($N \sim \text{Poisson}(\lambda)$), while the distribution of bacterial cells in a $2^{-i}$ mL subsample will be $\sim \text{Poisson}(\lambda 2^{-i})$.
+
+A certain subsample will only give growth if it contains at least 1 bacterial cell, which means that $P(\text{growth}) = P(N>0)$. Since the domain of $N$ is the natural numbers (0, 1, 2, ... ) then the law of complementary probability tells us that $P(N>0) = 1 - P(N=0)$. Since Poisson probability for $N=0$ is simply $exp(-\lambda)$ (check this out yourself using the definition of the Poisson distribution), the probability of growth in dilution $i$ becomes $p_i = 1 - \exp(-\lambda 2^{-i})$. By rearranging the terms and log-transforming both sides twice (check this yourself!) we can show that this equation can be rewritten as
+
+$$\log(-\log(1 - p_i)) = \log(\lambda) - \log(2) i$$
+In other words, the complementary log-log of the probability of growth should be a linear function of the dilution level $i$ with slope $-\log(2)$ and intercept equal to the logarithm of the initial bacterial abundance ($\lambda$), which is what we sought to estimate.
+
+We can simulate the MPN method using the `rpois()` function to generate random, Poisson-distributed numbers. We assume that the true number of bacteria is $\lambda$ = 2 / mL, and use 7 dilution levels (1/1, 1/2, 1/4 ... 1/64) with 8 replicates for each dilution level.
+
+```{r}
+Lambda <- 2 #Expected number of bacteria per mL
+i <- 0:6 #Dilution numbers
+i.k <- rep(i, each = 8) #Replicates
+lambda.k <- Lambda * (2^(-i.k)) #Expected bacterial number in each replicate
+
+set.seed(123456) # So we get the same numbers every time...
+N.k <- rpois(length(i.k), lambda = lambda.k) #Draw actual number of bacteria per replicate
+```
+
+This gives us 7 * 8 = 56 integers in 7 dilution level groups. We can use the `aggregate()` function to count the number of non-zeros (=growth) in each  the dilution groups, and make a matrix that shows number of growths for the different dilution levels:
+
+```{r}
+growth <- tapply(N.k>0, i.k, sum) #No. 'growth' in each dilution group
+no.growth <- (8 - growth)         #No. 'no growth' in each dilution group
+
+rbind(growth, no.growth) # Looking at the generated data
+```
+
+This means that we can see the MPN method as a set of binomial experiments where each group of 8 replicates has the same probability of growth, and where the complementary log-log of each growth probability is linearly related to the dilution level (i). In other words, we should be able to describe the MPN experiment by a generalized linear model with the default link function of the binomial family (the logit link) replaced by a complementary log-log link. 
+
+```{r}
+summary(m <- glm(cbind(growth, no.growth) ~ i, family = binomial(link = "cloglog")))
+```
+
+The `(Intercept)` is an estimate for $\log(\lambda)$, such that its reverse logarithm becomes an estimate of to original bacterial abundance `exp(coef(m)[1]` = `r round(exp(coef(m)[1]), 3)` which in this particular simulation is slightly above the true value (2). The slope is fairly close to the theoretical value $-\log(2)$ = `r round(-log(2), 3)`.
+
+We can also compute 95% confidence intervals for the estimates and back-transform:
+
+```{r}
+exp(confint(m))
+```
+
+From this we see that both confidence intervals enclose the true values: 2 for the intercept and $\exp(-\log(2))$ = 1/2 for the slope.
+
+
+</div>
+
+
+
+<!-- ## <span style="color:red">*</span>Model fitting by maximum likelihood from scratch  -->
+
+<!-- Dette er basert på noen simuleringer jeg gjorde over som nå er tatt bort under revideringen. Jeg kommenterer dette derfor bort for nå. Uansett er dette litt vel avansert for dette kurset, og denne tutorialen blir lang nok so den er (med en del annet stoff som er "valgfritt") -->
+
+
+<!-- If you've had enough of maximum likelihood estimation for now, you can skip ahead to the exercises. If you want to know what goes on under the hood in the `glm()`, read on! -->
+
+<!-- Above, we derived the binomial log-likelihood function when $p$ is the same for all individuals in the sample. This log-likelihood also applies when $n=1$. How do we go about constructing a likelihood function when each individual has its own $p_i$ and $y_i$? -->
+
+<!-- Remember that the probability of a series of **independent** events is the product of the probability of each event, $\Pr(A \cap B \cap C) = \Pr(A) \Pr(B) \Pr(C)$ (the assumption of independence is essential here). This means that the likelihood for the data on all individuals is the product of the likelihood for each individual. In the log-likelihood, the product becomes a sum (remember that $\log(xy) = \log(x) + \log(y)$). Hence, the log-likelihood for the data is -->
+
+<!-- $$ -->
+<!-- \ell (\mathbf{p} ; \mathbf{y}) = \sum_{i=1}^{N} \left( y_i\log(p_i) + (1-y_i)\log(1-p_i) \right) -->
+<!-- $$ -->
+
+<!-- Note that we have here replaced $n$ with $1$ for all individuals and $N$ is the number of individuals. -->
+
+<!-- It is quite straightforward to modify the code for simulating data that we used above to become a log-likelihood function for the particular model. We basically just need to replace the random drawing of individual values with a calculation of the likelihood. We do this below while calculating the linear predictor in the general way as $\eta = \mathbf{X} \mathbf{\beta}$ (see last tutorial). We also compute the negative of the log-likelihood function because optimization routines in R (and elsewhere) do minimization and not maximization.  -->
+
+<!-- ```{r} -->
+<!-- inv_cloglog = function(x) 1-exp(-exp(x)) # The inverse cloglog link function -->
+<!-- nll_cloglog = function(beta, y, X, inv_link = inv_cloglog){ -->
+<!--   eta = X %*% beta -->
+<!--   p = inv_link(eta) -->
+<!--   nll = -sum(y*log(p) + (1-y)*log(1-p)) -->
+<!-- } -->
+
+<!-- ``` -->
+
+<!-- This is the general negative log-likelihood function for a binomial model with a cloglog link where the arguments `beta` is the parameter vector, `y` is the observed binary response and `X` is the design matrix for cloglog(p). We can find the values in the parameter vector that minimize this function by using the `optim()` function in R. We do this below with the specific model we formulated above for our simulated data: -->
+
+<!-- ```{r} -->
+<!-- # Sim_data = data.frame(y=y, Age=Age) -->
+<!-- # X = model.matrix(~log(Age), Sim_data) -->
+<!-- # beta_start = c(0,0) # starting values for the numerical optimization (starting at 0 usually works well for glm's) -->
+<!-- # (fit = optim(beta_start, fn=nll_cloglog, y=Sim_data$y, X=X, hessian = TRUE)) -->
+<!-- ``` -->
+
+<!-- Here, `$par` holds the parameter estimates (you can confirm that these are the same as what we get from `glm()`) and `$value` is the negative log likelihood at minimum. The next three outputs is a summary of the optimization process; as long as `$convergence` is 0 (indicating convergence) and there are no messages, we as happy. The last output, `$hessian`, is given to us because we asked for it in the call to `optim()` by specifying `hessian = TRUE`. The hessian matrix is a matrix of second order partial derivatives of the negative log likelihood with respect to the parameters, evaluated at the optimum. Specifically, the element in row $i$ and column $j$ equals $\frac{\partial^2 \ell}{\partial \beta_i \partial \beta_j}$. This matrix is very useful because the inverse of the hessian is an estimate of the variance-covariance matrix of the parameter estimators. The square-root of the diagonal of this is the standard errors of the parameter estimates: -->
+
+<!-- ```{r} -->
+<!-- # vc = solve(fit$hessian) -->
+<!-- # (SE = sqrt(diag(vc))) -->
+<!-- ``` -->
+
+<!-- Again, we can confirm that these values are practically the same as the standard errors returned by `glm()`. -->
+
+<!-- Let's wrap up these procedures in our own glm function: -->
+
+<!-- ```{r} -->
+<!-- my_glm = function(formula, data, y, start=NULL, inv_link = inv_cloglog){ -->
+<!--   X = model.matrix(formula, data = data) -->
+<!--   if(is.null(start)) start = rep(0, ncol(X)) # Setting starting values unless supplied -->
+<!--   names(start) = dimnames(X)[[2]] -->
+<!--   fit = optim(start, fn=nll_cloglog, y=Sim_data$y, X=X, inv_link=inv_link, hessian = TRUE) -->
+<!--   vcov = solve(fit$hessian) -->
+<!--   return( -->
+<!--     list( -->
+<!--       optim_output = fit, -->
+<!--       par = fit$par, -->
+<!--       se = sqrt(diag(vc)), -->
+<!--       vcov = vcov, -->
+<!--       inv_link = inv_cloglog, -->
+<!--       formula = formula -->
+<!--     ) -->
+<!--   ) -->
+<!-- } -->
+<!-- # fit_my_glm = my_glm(~log(Age), Sim_data, Sim_data$y) -->
+<!-- ``` -->
+
+<!-- The output is not shown here, but you can type `fit_my_glm` in the console window to see it. -->
+
+<!-- We have now made our own function for fitting a generalized linear model in R! This function doesn't (yet) do anything that we cannot do with `glm()`. However, we can easily modify it to e.g. include non-linear components (e.g., we could include several additive (rather than multiplicative) components of the disorder hazard rate). -->
+
+<!-- For completeness, we can also make a function for computing predictions from the model fit: -->
+
+<!-- ```{r} -->
+<!-- predict_my_glm = function(fit, newdata){ -->
+<!--     X = model.matrix(fit$formula, data = newdata) -->
+<!--     eta = X %*% fit$par -->
+<!--     vc = X %*% fit$vcov %*% t(X) -->
+<!--     se = sqrt(diag(vc)) -->
+<!--     pred = data.frame( -->
+<!--       p_hat = fit$inv_link(eta), -->
+<!--       lwr = fit$inv_link(eta - 2*se), -->
+<!--       upr = fit$inv_link(eta + 2*se) -->
+<!--     ) -->
+<!--     return(cbind(newdata, pred)) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- We can use this for plotting the predictions with 95% confidence interval: -->
+
+<!-- ```{r} -->
+<!-- # newdata = data.frame(Age = 20:90) -->
+<!-- # pred = predict_my_glm(fit_my_glm, newdata) -->
+<!-- # plot(pred$Age, pred$p_hat, type="l", ylim=c(0,1), xlab="Age", ylab="Probability of disorder") -->
+<!-- # lines(pred$Age, pred$lwr, lty=2) -->
+<!-- # lines(pred$Age, pred$upr, lty=2) -->
+<!-- ``` -->
+
+<br>
+
+# Exercise: Side-effects in the AstraZeneca vaccine
+
+During 2021, concerns were raised regarding rare but severe side-effects of the AstraZeneca vaccine against covid-19 disease. The occurrence of sometimes fatal blood clots in otherwise healthy individuals given the AstraZeneca vaccine lead several countries to pause its use, especially for younger individuals. According to an article in Norwegian newspaper [Aftenposten](https://www.aftenposten.no/norge/i/yRxgga/legemiddelverket-lite-realistisk-at-vi-kan-plukke-ut-hvem-som-ikke-boe) on March 23 2021, 30 cases of serious blood clot complications were reported among the 20 million who had been injected with this vaccine worldwide, while this condition  developed in 6 cases among the 130 000 who  had so far received the vaccine in Norway. 
+
+<div class="green">
+Use the four numbers given in the article to compute the side-effect probabilities in Norway and worldwide, and calculate the odds ratio for developing side-effects between the two groups. Estimate the same odds ratio with a generalized linear model of the binomial family, and use this model to extract a 95% confidence interval for the odds ratio. Is this result in support of the odds being different between Norway and the world in general? If so, what could be the cause? Discuss possible explanations including:
+
+* Different age groups vaccinated (mainly health-care workers in Norway)?
+* Differences between populations (genetics, nutrition, life style, etc.)?
+* A bad vaccine batch shipped to Norway?
+* Differences in detection / reporting of blood clots?
+
+</div>
+
+<br>
+
+
+<div class = "cornsilk">
+
+We can construct a contingency table for the numbers
+
+```{r}
+SideEffects <- cbind(c(6,130000-6),c(30,2e7-30))
+rownames(SideEffects) <- c("Yes", "No")
+colnames(SideEffects) <- c("Norway", "Worldwide")
+SETable <- as.table(SideEffects)
+names(attributes(SETable)$dimnames) <- c("SideEffect","Group")
+SETable
+```
+
+<br>
+
+Probability of side effects in Norway and the World:
+```{r}
+(p_Norw <- SETable["Yes","Norway"] / sum(SETable[,"Norway"]))
+(p_world <-SETable["Yes","Worldwide"] / sum(SETable[,"Worldwide"]))  
+```
+
+<br>
+
+Corresponding odds of side effects:
+
+```{r}
+(odds_Norw <- SETable["Yes","Norway"] / SETable["No","Norway"]) 
+(odds_world <-SETable["Yes","Worldwide"] / SETable["No","Worldwide"]) 
+```
+
+When p is very small, then the odds will be very similar to p (because we divide by a number that is only very slightly below 1).
+
+<br>
+
+
+Odds ratio:
+```{r}
+(OR <- odds_Norw/odds_world)
+```
+The odds of getting side effects are more than 30 times higher in Norway compared to the world.
+
+<br>
+
+Make a glm to obtain confidence intervals. The response variable will be the proportion of successes (side effects) and the proportion of failures in different groups (Norway or Worldwide). We need to create a data frame including the proportions (or numbers) as columns.
+
+```{r}
+#Construct data frame
+Data <- data.frame(
+    group = c("Norway", "World"),
+    y = c(6, 30),
+    ny = c(130000-6, 20*10^6-30)
+)
+
+fit <- glm(cbind(y,ny) ~ group, data=Data, family = binomial)
+
+summary(fit)
+```
+
+<br>
+
+To find the odds ratio (for world to Norway) we take the exponent of the slope (the "world" effect), which represents the difference $\log(World)-\log(Norway)$.
+
+```{r}
+exp(coef(fit)[2])
+```
+
+The odds ratio for Norway compared to the world is the inverse:
+
+```{r}
+1/exp(coef(fit)[2])
+```
+
+
+Confidence intervals for the odds ratio:
+
+```{r}
+#For world to Norway
+exp(confint(fit)) 
+
+#For Norway to World:
+exp(-confint(fit)[2, 2:1]) 
+
+#Or alternatively
+1/exp(confint(fit)[2, 2:1])
+```
+
+ 
+
+</div>
+
+<br>
+
+<br>
+
+
+# Assignment: Diabetes in the Pima
+
+The Akimel O'odham or Pima are a group of Native Americans living in an area consisting of what is now central and southern Arizona (USA) and Sonora (Mexico). The name "Pima" apparently resembles the phrase "I don't know" in the language of the Akimel O'odham, used repeatedly in their initial meeting with Spanish colonists (see more info on [Wikipedia](https://en.wikipedia.org/wiki/Akimel_O%27odham)).
+
+![](Pima map.png)
+
+As with other Native Americans, the Pima have a higher prevalence of type 2 diabetes than is observed in Caucasian populations. While they do not have a greater risk than other tribes, the Pima have been the subject of intensive study of diabetes, in part because they form a homogeneous group. The general increased diabetes prevalence among Native Americans has been hypothesized as the result of the interaction of genetic predisposition (the "thrifty phenotype" or "thrifty genotype" as suggested by anthropologist Robert Ferrell in 1984) and a sudden shift in diet from traditional agricultural food towards processed foods in the past century. 
+
+The National Institute of Diabetes and Digestive and Kidney Diseases conducted a study on 768 adult Pima women, living near Phoenix. The following variables were recorded: 
+
+*  `npreg`: Number of times pregnant
+*  `glu`: Oral glucose tolerance test 
+*  `bp`: Diastolic blood pressure (mm Hg)
+*  `skin`: Triceps skin fold thickness (mm)
+*  `bmi`: Body mass index (kg / m^2^)
+*  `ped`: Diabetes pedigree function
+*  `age`: Age (years)
+*  `diabetes`: Diabetes diagnosed ("No" or "Yes")
+
+The original data set contained numerous missing values which apparently were encoded as zeros, such that there were a number of cases with e.g. blood pressure = 0. The file "PimaDiabetes.csv" contains only the 332 complete cases in the original data set (i.e., no missing values). The Diabetes Pedigree Function (`ped`) was developed by [Smith et al. (1988)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2245318/pdf/procascamc00018-0276.pdf) to provide a synthesis of the diabetes history in relatives and the genetic relationship of those relatives to the subject. It uses information from parents, grandparents, siblings, aunts and uncles, and first cousins, and provides a measure of the expected genetic influence of affected and unaffected relatives on the subject's eventual diabetes risk. The oral glucose tolerance test is a standard test for diabetes involving measuring plasma glucose 2 hours after oral intake of an amount of glucose. The triceps skin fold test is a standard measure of subcutaneous fat, and as such, an indicator of obesity similar to the body mass index. The other variables are largely self-explanatory. The last variable is a binary indicator for whether the person has been diagnosed with diabetes or not.
+
+<div class="green">
+A. Read the file "PimaDiabetes.csv" into R. Make sure the `diabetes` response variable is a factor by using `as.factor(d$diabetes)` (where `d` is the data frame). You should also make a new variable `diabetes2` which is equal to 1 if the person has diabetes and 0 if not (here you can use for instance `d$diabetes2 <- ifelse(d$diabetes=="Yes",1,0)`.  Use `head()` and `summary()` to assure yourself the file has been read properly and the data frame has the right variables.
+
+</div>
+
+<br>
+
+<div class = "cornsilk">
+```{r}
+d <- read.csv("PimaDiabetes.csv")
+d$diabetes <- as.factor(d$diabetes)
+
+#Make 0/1 variable for diabetes
+d$diabetes2 <- ifelse(d$diabetes=="Yes",1,0)
+
+head(d)
+summary(d)
+```
+</div>
+
+<br>
+
+<div class="green">
+B. Your task is to predict the probability of `diabetes` depending on other variables. It is therefore a good idea to first look at relationships between the predictor variables by making scatterplots and correlation matrices (hint: `plot()` on a `data.frame` object is identical to using the `pairs()` function). *Are there any predictor variables that are closely related? If so, can you think of explanations for this?* (hint: look at for example `bmi` vs. `skin`, or `age` vs. `npreg`). *Which considerations should we make when using any of these pairs in a model?*
+</div>
+
+<br>
+
+<div class = "cornsilk">
+```{r}
+# Leave out the response variable "diabetes" ("diabetes2")  
+plot(d[,-c(8,9)],pch=19,cex=.2,col=4)
+
+# Correlation matrix
+round(cor(d[, -c(8,9)]), 3)
+```
+
+From this we see that the two predictor variables `bmi` and `skin`  are strongly correlated (r = 0.659) which is not unexpected as both are measures of obesity. In addition, `npreg` and `age` also strongly correlated (r = 0.667), also not surprising as the total number of pregnancies increases with age. We should suspect multi-collinearity (another word for dependence) between `bmi` and `skin`, and between `npreg` and `age`, and  therefore avoid using these variable pairs together in the regression model.
+
+</div>
+
+<br>
+
+<div class="green">
+
+C. Use boxplots to investigate the distributions of the predictor variables grouped by diabetes status. You can use the `boxplot()` function with a formula like `glu ~ factor(diabetes)`. 
+
+
+<div class="purple">
+Tip (optional): You can also use ggplot syntax to make the plot, as in the assignment for week 7 and 8. In that case, it is a good idea to convert the dataframe to long format first.  To do this you can use 
+
+```{r,eval=FALSE}
+library(tidyverse)
+d_longformat <- d %>% 
+  pivot_longer(c(-diabetes), #apply to all columns except the response variable
+               names_to = "Predictor", values_to = "Value")
+```  
+
+This creates a new column "Predictor" containing all the different predictor variables, and their values are moved to the column "Value". Now you can make a facet boxplot for all the predictor variables at once.   
+
+</div>
+
+</div>
+
+<br>
+
+
+<div class = "cornsilk">
+
+Using the first option:
+
+```{r}
+par(mfrow=c(3,3))
+boxplot(npreg ~ diabetes, data=d)
+boxplot(glu ~ diabetes, data=d)
+boxplot(bp ~ diabetes, data=d)
+boxplot(skin ~ diabetes, data=d)
+boxplot(bmi ~ diabetes, data=d)
+boxplot(ped ~ diabetes, data=d)
+boxplot(age ~ diabetes, data=d)
+
+```
+
+Second option (ggplot syntax):
+```{r,message=FALSE, warning=FALSE}
+library(tidyverse)
+d_longformat <- d %>% 
+  pivot_longer(c(-diabetes),
+               names_to = "Predictor", values_to = "Value")
+
+
+ggplot(d_longformat, aes(x=diabetes,y=Value)) +
+  geom_boxplot(aes(fill=Predictor),alpha=.5) +
+   theme_bw()+
+  facet_wrap(vars(Predictor),scales="free_y")+
+   labs(x="Diabetes", y="Value") +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45,hjust=1))
+
+```
+ 
+The glucose tolerance test (`glu`) shows the largest difference between diabetic and non-diabetic individuals, which is perhaps not surprising since this test is a key element in the diabetes diagnosis. It is also the only predictor variable that requires special equipment and medical competence.
+
+</div>
+
+<br>
+
+<div class="green">
+D. Fit a multivariate binomial generalized linear model (a `glm`) with a logit link function to the predictor variables (for simplicity, assume no interactions), excluding any predictors found to be highly correlated with others. Note that since the response variable is binary, you do not need to use `cbind()` to make a 2-column vector for the response variable. *Explain how you interpret the intercept and slope estimates in this model.* *Construct 95% confidence intervals for the relative change in odds per unit change in the predictor variables*.
+
+</div>
+
+<br>
+
+<div class="cornsilk">
+A logit link glm model for diabetes risk, excluding the predictors `npreg` which is correlated with `age`, and `skin` which is correlated with `bmi`. 
+
+```{r}
+summary(m <- glm(diabetes ~ ped+bmi+glu+bp+age, data=d, family=binomial))
+```
+
+
+`(Intercept)` is the log(odds) of diabetes for a person with all predictor variables set to 0, which is somehow totally irrelevant. If we had centered the predictor variables (e.g. `bmi - mean(bmi)` etc) the intercept would have represented the log(odds) of an average person, which certainly seems more biologically relevant! If we take `bmi` as an example, log(odds) of diabetes increases with 0.086 $\pm$ 0.022 units per unit increase in `bmi`.
+
+We can back-transform to look at the odds of diabetes for each predictor:
+```{r}
+round(exp(coef(m)),3)
+```
+
+
+<br>
+Looking at `bmi`, this indicates a 1.09-fold increase in odds of diabetes per  `bmi` unit.
+
+ 
+
+To calculate the confidence intervals:
+
+```{r}
+
+exp(confint(m))
+
+```
+
+The 95% confidence interval for the slope of bmi indicates that the odds of developing diabetes increases 1.04 to 1.14 times with a unit increase in `bmi`. In other words, obesity has a strong effect on diabetes risk.
+
+
+
+
+</div>
+
+<br>
+
+<!-- Tror vi blei enige om å ta bort denne, så jeg har kommentert den bort foreløpig: E. Use the `predict()` function on your model. If your model is called `m` then `predict(m)` gives model predictions for all observations in link function units (i.e., logit units), while `predict(m, type="response")` gives predictions in probability units. Make a new variable `diabetes.true` equal to the `diabetes` column in your data frame, and a variable `diabetes.pred = (p > 0.5)` where `p` is a variable  containing the predicted probabilities from your model. Make a contingency table for true and predicted diabetes status (`table(diabetes.true, diabetes.pred`). *How do you interpret the diagonal and off-diagonal elements in this matrix? How many false positives and false negatives does your model predict?* Compute the Positive Prediction Value (PPV) for your model as the number of true positives divided by total positive predictions. *How useful would you consider your model to be for the predicting risk of diabetes in Pima?* -->
+
+<div class="green">
+
+E. Make a visualization of predicted values from your model for **one of the predictor variables in the model** (you choose which one) while setting the others to their observed mean.  You can make predictions using the `newdata=` argument in the `predict()` function. `newdata` must specify a data frame that includes exactly the same variable names as in the model. For instance, if we use `age` as predictor variable, and we are interested in predicting diabetes status over the age interval spanned by the data (`d`) for a model including age and bmi, we can set `newdata=data.frame(age = seq(min(d$age), max(d$age)), bmi=mean(d$bmi))`. You probably have more predictors in your model as well so you need to include the mean of all in the `newdata` object (except for the chosen variable for which you will make the prediction). If you set `se.fit=TRUE` in the `predict()` function, it will return a list with predicted log(odds) (called `$fit`) and corresponding standard errors (called `$se.fit`). 
+
+Use this information to produce a plot of predicted probability of diabetes with a 95% confidence band for your chosen predictor variable. Notice that you need to make predictions on link-function scale first (`type="link"`) and then back-transform the confidence limits with the inverse logit function: $1/(1+\exp(-\alpha))$. You can make the final plot using ggplot syntax or base R syntax. With base R syntax you can use the `rug()` function to add the observations of the predictor variable along the x-axis.
+</div>
+
+<br>
+
+
+<div class="cornsilk">
+
+We choose to make predictions for `bmi`-values ranging from 20 to 70. For this, we will call `predict` but this time with `newdata` as a data frame with a single variable named the same as the predictor in the model (`bmi`). Since we want to construct confidence limits, we ask for predictions on the default logit link scale and with standard errors (`se.fit=TRUE`). These are then used to make prediction and confidence limits on the logit scale, which are back-transformed to the original scale using the formula $1/(1+\exp(-\alpha)$.
+
+Finally the result is plotted (here using ggplot syntax).
+
+```{r}
+#Predict for BMI
+predBMI <-  predict(m, newdata=data.frame(glu=mean(d$glu),bp=mean(d$bp),bmi=20:70,ped=mean(d$ped),age=mean(d$age)), se.fit=TRUE, type="link")
+
+#Data frame to store prediction
+predframe <- data.frame(bmi=20:70)
+predframe$predicted <- 1/(1+exp(-predBMI$fit))
+predframe$lower <- 1/(1+exp(-(predBMI$fit-1.96*predBMI$se.fit)))
+predframe$upper <- 1/(1+exp(-(predBMI$fit+1.96*predBMI$se.fit)))
+
+ 
+ggplot(d, aes(x = bmi, y = diabetes2)) +
+      geom_point(alpha = 0.5) +
+      theme_bw() +
+    geom_line(data=predframe,aes(x=bmi,y=predicted), color=4,size=1.2)+  
+  geom_ribbon(data=predframe,aes(x=bmi,y=predicted,ymin = lower, ymax=upper), fill=4,alpha=.3,color=NA) + 
+    labs(x="BMI", y="P(Diabetes)")+
+      theme(legend.position = "none")
+```
+
+
+<br>
+
+We see that the `bmi` distribution is quite skewed with few individuals having `bmi` > 50 (BMI > 40 is often considered "extreme obesity"), so it could seem that our model is quite heavily influenced by a few extreme cases. 
+
+Alternatively, with base R syntax we can use the `rug` function to draw short vertical lines representing the actual `bmi` measurements that the model was based on. 
+
+
+
+<br>
+
+```{r}
+plot(predframe$bmi, predframe$predicted, type="l", lwd=3, col="red", 
+     ylim=c(0,1), xlab="Body Mass Index (BMI)", ylab="Pr(diabetes)")
+lines(predframe$bmi, predframe$upper, lty=2, col="red")
+lines(predframe$bmi, predframe$lower, lty=2, col="red")
+abline(h=0.5, lty=2)
+rug(d$bmi)
+```
+</div>
