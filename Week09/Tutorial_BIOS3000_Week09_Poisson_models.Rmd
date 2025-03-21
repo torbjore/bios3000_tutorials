@@ -1,5 +1,5 @@
 ---
-title: Tutorial Week 10 and 11 - Log-linear Poisson models
+title: Tutorial Week 9 and 10 - Log-linear Poisson models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
@@ -24,7 +24,9 @@ knitr::opts_chunk$set(echo = TRUE)
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
 </style>
 ```
-This tutorial is a fairly comprehensive (but not in-depth) overview of Poisson models commonly used in Biology. Sections (or parts of sections) marked with a "<span style="color:red">\*</span>" are not part of the syllabus but are included to give you an overview of related topics that you likely have to read up on later in your career. It may also be that some of the groups can use this in their research project.
+This tutorial gives an overview of Poisson models commonly used in Biology.
+
+Sections (or parts of sections) marked with a "<span style="color:red">\*</span>" are not part of the syllabus but are included to give you an overview of topics that you likely have to read up on later in your career. It may also be that some of the groups can use this in their research project.
 
 ## Key terms and concepts covered in this tutorial
 
@@ -341,7 +343,7 @@ Note that the text "`(Dispersion parameter for poisson family taken to be 1)`" i
 
 At this stage it would have been nice to make a plot of the prediction of tick infestation intensity ($\hat{\lambda}$) from this model, but we leave that for you to do in the Assignment.
 
-### <span style="color:red">\*</span> GLMM
+### Including random effects (GLMM)
 
 Ending our analysis with the quasi-Poisson model is somewhat unsatisfactory because we can get a lot more information out of the data from a GLMM. With a quasi-Poisson model we just compute a "fudge factor" (a term from physics) to adjust the variance-covariance matrix (and thereby standard errors, confidence intervals and p-values) to account for over-dispersion. With a GLMM we could decompose the extra-Poisson variation in the data into variation among locations, among broods within locations and among chicks within broods. With a GLMM we can fit the following model:
 
@@ -396,5 +398,3 @@ ii. Imagine you are asked by a group of researchers to comment on their project 
 -   To make predictions for the median among locations, broods and chicks in the whole population (and not for specific or random locations, broods or chicks), include `LOCATION`, `BROOD` and `INDEX` as variables with only `NA` values in `newdata` and include the argument `re.form=~0` in `predict.glmmTMB`.
 
 -   To get predictions for the *mean* among locations, broods and chicks in the whole population you need to multiply the predictions of the median with `exp(Var/2)` (see Week 8 tutorial) where `Var` is the sum of the three random effects variances (the three variance components are assumed to be independent in the model).
-
-[]]{style="color:red"}

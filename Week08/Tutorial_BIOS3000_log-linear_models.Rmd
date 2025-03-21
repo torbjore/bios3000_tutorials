@@ -1,5 +1,5 @@
 ---
-title: Tutorial Week 9 - Log-linear log-normal models
+title: Tutorial Week 8 - Log-linear log-normal models
 author: Torbjørn Ergon
 date: '`r Sys.Date()`'
 output:
@@ -294,7 +294,7 @@ $$
 * To compute confidence intervals for the predictions of the *median* $y$s, you can just compute the confidence intervals for the $\mu$s in the same way you do for ordinary linear models fitted with `lm()` (e.g., use `confint()`), and then transform the confidence limits with `exp()`.
 * To compute confidence intervals for the predictions of the *mean* $y$s, you can use bootstrapping (as in Week 3).
 * The relative difference (contrasts) between two predictions of the mean is the same as the relative difference between the predicted medians; $\exp(\hat\mu_2) / \exp(\hat\mu_1)$.
-* To compute confidence intervals for relative contrasts (with respect to means or medians), just compute the regular linear contrast in `\mu` as the same way we did in the Week 4 tutorial, and then transform the confidence limits with $\exp()$.
+* To compute confidence intervals for relative contrasts (with respect to means or medians), just compute the regular linear contrast in $\mu$ as the same way we did in the Week 4 tutorial, and then transform the confidence limits with $\exp()$.
 
 ## Worked example 1 - Wheat data
 
@@ -398,7 +398,7 @@ Thus, this suggests that doubling body size (i.e., increasing it with 100%) will
 
 ## Worked example 3 - Bears data
 
-In this example, we will look at body proportions of wild black bears (*Ursus americanus*). Some of you used these data in STK1000 - this is a data set that has been used in examples in several books. Many packages in R also include example data, and this 'bears' data set comes with the 'Bolstad' package. When you open the Rmd-file for this document, R Studio will ask you if you want to install the package - choose 'yes' here (or you can type `install.packages("Bolstad")` in the Console window). Then load the package and the data:
+In this example, we will look at body proportions of wild black bears (*Ursus americanus*). Some of you may have used these data in STK1000 - this is a data set that has been used in examples in several books. Many packages in R also include example data, and this 'bears' data set comes with the 'Bolstad' package. When you open the Rmd-file for this document, R Studio will ask you if you want to install the package - choose 'yes' here (or you can type `install.packages("Bolstad")` in the Console window). Then load the package and the data:
 
 ```{r message = FALSE}
 library(Bolstad)
@@ -530,21 +530,18 @@ In this week's assignment you will estimate the allometric proportions of studen
 
 If you work together with other students, you should pick different variables to estimate the allometric relationship for.
 
-To use all the data we have available, you should combine the "vitruvian" data (BIO2150 students) you used during the R course of Week 1 with the mean measurements of BIOS3000/4000 students. Start by reading in these data and look at their summary:
+To use all the data we have available, we will combine data from BIO2150 (the predecessor of BIOS3000/4000) the mean measurements of BIOS3000/4000 students from Week 3 (which includes your own data). Start by reading in these data and look at their summary:
 
 ```{r}
-bio2150 = read.table("../Week01/vitruvian.txt", header = TRUE, stringsAsFactors = TRUE)
+bio2150 = read.table("bio2150_students.txt", header = TRUE, stringsAsFactors = TRUE)
 bios3000 = read.csv("../Week03/student_means.csv", stringsAsFactors = TRUE)
 summary(bio2150)
-```
-
-```{r}
 summary(bios3000)
 ```
 
 The `read.csv`function is just a special version of the `read.table` function with different default arguments, made for easy import of comma delimited files. In this function the default is `header = TRUE`, so we don't need to specify that. Using the argument `stringsAsFactors = TRUE` when we read the data makes sure that the variables that contain character strings (i.e., text) will be defined as factors. In the summaries above we then get a tally of data points per factor level. Some other functions, like `table()` and various plotting functions will also treat factor variables differently from simple character variables. By default, factor levels are sorted alphabetically, but the order can be specified as you wish with the `levels` argument in `factor()`.
 
-Combining data sets can be a bit tricky, so we'll walk you through it. Notice that the same variables have been given different names (if you open up the "virtuvian.txt" file in a text editor (such as Notepad), you will see the definition of each variable commented out with '#'). Also notice that the sexes are labeled "F" and "M" in the first data set and "female" and "male" in the second data set. Note that all measurements are in centimeters, so we don't have to make any adjustments there.
+Combining data sets can be a bit tricky, so we'll walk you through it. Notice that the same variables have been given different names (if you open up the "bio2150_students.txt" file in a text editor (such as Notepad), you will see the definition of each variable commented out with '#'). Also notice that the sexes are labeled "F" and "M" in the first data set and "female" and "male" in the second data set. Note that all measurements are in centimeters, so we don't have to make any adjustments there.
 
 The strategy we will use to combine the data is to first make the BIO2150 data look like the BIOS3000/4000 data, then stack the two data frames on top of each other by using the `rbind` function.
 
