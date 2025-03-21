@@ -102,6 +102,7 @@ students_2025$ID = paste(students_2025$ID, "2025", sep="_")
 # all(names(students_2025) == names(students_2023)) # Checking that column names are identical
 students = rbind(students_2020, students_2023, students_2025)
 # summary(students)
+# save(students, file = "students.RData")
 ```
 Note that before we combine the three data sets with `rbind()` ("row bind") we make a new variable called `Year` and we add year to the ID so that there are unique IDs for each person also in the combined data. We also check that the column names in the data sets are identical. You should also check again that the summary looks as expected (commented out with "#" here).
 
