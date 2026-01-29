@@ -1,0 +1,61 @@
+ID	Sex	Measurement_number	Eye_colour	Hair_colour	Height	Length_of_right_underarm	Length_of_right_underarm_and_hand	Length_of_right_foot	Length_of_left_foot	Neck_circumference	Height_of_mother	Height_of_father	Comments
+g1p1	male	1	green	light	178.2	28.3	44.8	25.2	25.3	38.8	157	187	
+g1p1	male	2	grey	light	177.4	29.5	44.7	24	25.2	41.4	157	187	
+g1p1	male	3	grey	light	180	28.6	45.9	25.5	25.4	41.2	157	187	
+g1p2	female	1	brown	light	159.9	25.7	42.1	23.6	23.5	42.6	166	167	
+g1p2	female	2	brown	light	160.3	26.1	41.9	23.3	23.4	42.5	166	167	
+g1p2	female	3	brown	light	160	25.4	41.9	23.9	23.9	42.3	166	167	
+g1p3	female	1	grey	light	163.4	26.8	43	23.5	23.4	31	167	175	
+g1p3	female	2	blue	light	162.5	26	42.5	23.4	23.2	31.5	167	175	
+g1p3	female	3	blue	dark	161.1	26	43.4	23.8	23.8	31.1	167	175	
+g1p4	female	1	blue	dark	164.7	26.8	44.8	24.6	24.6	31.1	160	190	
+g1p4	female	2	grey	dark	167	26.8	44.5	24.4	24.3	32	160	190	
+g1p4	female	3	blue	dark	164.5	27	44.4	24.1	24.3	31.7	160	190	
+g2p1	female	1	hazel	dark	166.6	24.8	43.6	24.5	24.7	33.8	162	172	
+g2p1	female	2	green	light	166.5	24.3	43.3	24.5	24.3	32.9	162	172	
+g2p1	female	3	grey	light	166.00	24.5	43.3	24.3	24.5	34.5	162	172	
+g2p2	female	1	blue	dark	167.8	23.5	40.5	23.6	24.4	32.5	163.8	181.0	
+g2p2	female	2	grey	dark	166.7	23.7	41.5	24.2	23.6	31.7	163.8	181.0	
+g2p2	female	3	grey	dark	167.00	24.0	41.6	24.6	24.5	32.4	163.8	181.0	
+g2p3	female	1	brown	dark	156.2	25.0	40.8	23.6	23.1	33.0	NA	NA	
+g2p3	female	2	brown	dark	156.8	24.5	40.2	23.4	23.5	32.6	NA	NA	
+g2p3	female	3	brown	dark	156.6	25.5	42.0	23.9	23.6	33.8	NA	NA	
+g2p4	male	1	brown	dark	194.5	30.0	51.0	29.8	29.9	40.0	174.0	186.0	
+g2p4	male	2	brown	dark	194.9	30.1	51.0	29.7	29.9	37.3	174.0	186.0	
+g2p4	male	3	brown	dark	194.8	29.9	51.5	29.6	29.8	39.2	174.0	186.0	
+g3p1	male	1	brown	dark	176	21.5	42.5	20.3	19.8	37.0	NA	181.0	handsome
+g3p1	male	2	brown	dark	177	21.0	42.0	20.2	19.8	37.0	NA	181.0	NA
+g3p1	male	3	brown	dark	176	21.0	42.0	20.6	19.5	37.5	NA	181.0	NA
+g3p2	male	1	green	light	191	29.0	49.2	26.7	27.6	36.0	170.0	185.0	legend
+g3p2	male	2	green	light	190	29.0	49.0	27.0	26.8	36.2	170.0	185.0	NA
+g3p2	male	3	green	light	190	29.0	49.5	26.8	27.0	36.3	170.0	185.0	NA
+g3p3	female	1	brown	dark	174	25.5	43.0	24.0	23.0	34.0	178.0	193.0	NA
+g3p3	female	2	brown	dark	174.5	25.0	42.5	23.5	23.5	33.5	178.0	193.0	NA
+g3p3	female	3	brown	dark	174	24.5	43.0	23.5	24.0	34.0	178.0	193.0	NA
+g3p4	female	1	blue	dark	166	26.0	46.5	26.0	25.5	37.0	170.0	180.0	NA
+g3p4	female	2	blue	dark	169	26.0	45.5	26.0	26.5	36.0	170.0	180.0	NA
+g3p4	female	3	blue	dark	169	25.5	45.5	26.0	26.0	35.5	170.0	180.0	NA
+gAp1	female	1	blue	dark	174.6	28.8	47.5	26.8	25.5	35.0	173.0	185.0	Changed between who did what measurements
+gAp1	female	2	blue	dark	173.6	28.8	47.3	26.9	25.9	34.8	173.0	185.0	Changed between who did what measurements
+gAp1	female	3	blue	dark	173.5	28.8	47.5	25.6	25.6	35.5	173.0	185.0	Changed between who did what measurements
+qAp2	female	1	blue	light	187.5	30.5	50.6	27.9	27.8	39.6	174.5	184.0	Changed between who did what measurements
+qAp2	female	2	blue	light	186.3	30.2	50.5	27.5	27.7	38.0	174.5	184.0	Changed between who did what measurements
+qAp2	female	3	blue	light	186.3	30.4	50.8	27.7	27.8	38.7	174.5	184.0	Changed between who did what measurements
+gAp3	female	1	brown	dark	159.7	24.7	43.1	23.0	22.8	32.1	150.0	172.0	Changed between who did what measurements
+gAp3	female	2	brown	dark	159.2	25.1	43.3	22.9	22.8	32.9	150.0	172.0	Changed between who did what measurements
+gAp3	female	3	brown	dark	159.7	25.4	43.1	22.7	22.9	31.5	150.0	172.0	Changed between who did what measurements
+gBp1	female	1	blue	dark	164.9	25.2	41.7	23.1	23.1	34.5	167.0	177.0	
+gBp1	female	2	blue	dark	163.5	26.9	42.4	24.2	24.5	34.3	167.0	177.0	
+gBp1	female	3	blue	dark	163.8	25.7	41.3	23.5	24.1	33.4	167.0	177.0	
+gBp2	female	1	green	dark	168.8	25.6	42.3	24.7	24.3	35.4	167.6	179.8	
+gBp2	female	2	green	dark	167.9	26.1	43.4	25.9	25.2	33.2	167.6	179.8	
+gBp2	female	3	green	dark	169.4	25.6	41.9	24.8	24.3	32.7	167.6	179.8	
+gCp1	female	1	blue	light	161.8	25.2	42.0	24.1	24.3	33.4	170.0	183.0	
+gCp1	female	2	blue	light	161.3	25.5	43.0	23.9	24.3	33.2	170.0	183.0	
+gCp1	female	3	blue	light	161.9	24.5	41.7	23.3	24.1	32.8	170.0	183.0	
+gCp2	female	1	hazel	dark	166.3	24.5	45.0	25.5	25.8	34.4	160.0	180.0	
+gCp2	female	2	hazel	dark	167.2	26.5	44.7	26.6	26.8	35.2	160.0	180.0	
+gCp2	female	3	hazel	dark	166	25.3	44.4	26.0	25.7	34.3	160.0	180.0	
+gCp3	female	1	blue	light	168.1	24.3	43.3	24.4	24.0	30.5	160.0	182.0	
+gCp3	female	2	blue	light	168.9	24.7	43.1	23.2	24.9	30.0	160.0	182.0	
+gCp3	female	3	blue	light	168.4	24.8	43.1	24.8	23.9	29.9	160.0	182.0	
