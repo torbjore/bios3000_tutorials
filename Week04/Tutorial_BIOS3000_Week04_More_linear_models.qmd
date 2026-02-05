@@ -20,7 +20,7 @@ div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-<span style="color:blue"> This tutorial includes some questions in blue text. You should try to answer them for yourself as you read, and we will go through them during the Wednesday lecture. You may also of course ask for help to understand at Help desk.</span>
+<span style="color:blue"> This tutorial includes some questions in blue text. You should try to answer them for yourself as you read, and we will go through them during the Wednesday lecture. You may also of course ask for help to understand at Helpdesk.</span>
 
 ## Key terms and concepts covered in this tutorial
 
