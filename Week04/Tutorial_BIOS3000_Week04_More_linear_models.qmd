@@ -20,7 +20,7 @@ div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-<span style="color:blue"> This tutorial includes some questions in blue text. You should try to answer them for yourself as you read, and we will go through them during the Wednesday lecture. You may also of course ask for help to understand at Helpdesk.</span>
+<span style="color:blue"> This tutorial includes some questions in blue text. You should try to answer them for yourself as you read, and we will go through them during the Wednesday lecture. You may also of course ask for help to understand at Help desk.</span>
 
 ## Key terms and concepts covered in this tutorial
 
@@ -210,7 +210,7 @@ Here $\mathbf{\Sigma}$ is the variance-covariance matrix (this is the capital Gr
 
 The nice thing about writing this with matrices is that it applies to any length of the vectors $\mathbf{x}$ and $\boldsymbol{\beta}$! (you would have to write down a very long sum of variances and covariances if these vectors are long).
 
-We may also replace the vector $\mathbf{x}$ above with the whole design matrix $\mathbf{X}$. We then get the variance-covariance matrix of the predictions. The diagonal of this matrix holds the variances of the predictions (the square-root of these are the standard errors of the predictions), and the off-diagoal elements are covariances.
+We may also replace the vector $\mathbf{x}$ above with the whole design matrix $\mathbf{X}$. We then get the variance-covariance matrix of the predictions. The diagonal of this matrix holds the variances of the predictions (the square-root of these are the standard errors of the predictions), and the off-diagonal elements are covariances.
 
 In R, we can extract the variance-covariance matrix of the parameters for most fitted model objects with the `vcov` function:
 
@@ -438,7 +438,7 @@ head(wheat)
   
 3.
 
-  To start with, we will for simplicity ignore `student_gr` and `fertype` (all fertilizer types mainly contained nitrogen, but differed with respect to concentrations of some micro-nutrients). Note that the levels of these two factor variables were distributed equally among the levels of the other factors (`variety` and `conc`), so ignoring these two factors (`student_gr` and `fertype`) will not induce any bias. We will also just use the length of the plants at the end of the experiment (`length`) as the response variable. <span style="color:blue"> Start by making boxplots of `length` for each combination of `variety` and `conc`.</span> There are many ways you can do this is in R. If you use `plot()` and have a factor on the x-axis, you'll get a boxplot for each factor level. Hence, you may repeat the example below for each of the six varieties:
+  To start with, we will for simplicity ignore `student_gr` and `fertype` (all fertilizer types mainly contained nitrogen, but differed with respect to concentrations of some micro-nutrients). Note that the levels of these two factor variables were distributed equally among the levels of the other factors (`variety` and `conc`), so ignoring these two factors (`student_gr` and `fertype`) will not induce any bias. We will also just use the length of the plants at the end of the experiment (`length`) as the response variable. <span style="color:blue"> Start by making box plots of `length` for each combination of `variety` and `conc`.</span> There are many ways you can do this is in R. If you use `plot()` and have a factor on the x-axis, you'll get a box plot for each factor level. Hence, you may repeat the example below for each of the six varieties:
 
   ```{r eval=FALSE}
   plot(length ~ conc, data = wheat, subset = variety=="Bjarne")
@@ -520,4 +520,4 @@ Specifically, you should do the following and submit a short report (pdf created
 
 4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
 
-5. (**Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentagewise) difference between the fertilizer type with the lowest and highest growth)
+5. (**Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentage-wise) difference between the fertilizer type with the lowest and highest growth)
