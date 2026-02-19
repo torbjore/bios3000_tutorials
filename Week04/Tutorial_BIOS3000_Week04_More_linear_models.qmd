@@ -518,6 +518,6 @@ Specifically, you should do the following and submit a short report (pdf created
 
 3. Which student group had the lowest measurements when accounting for the differences between treatments (fertilizer type) and varieties, and which group had the highest measurements? How large is the difference? What do you think could be the reasons for the differences among student groups?
 
-4. Make a plot (or several plots) of predictions with confidence intervals and compute relevant contrasts, with confidence intervals, to assess the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
+4. Make a plot (or several plots) of predictions with confidence intervals. Compute also the relevant contrast, with confidence intervals, for assessing the difference between the fertilizer type with the lowest and highest growth. What inferences can you make about the effects of these fertilizer types?
 
 5. (**Optional:** Use the delta-method to compute a confidence interval for the *relative* (percentage-wise) difference between the fertilizer type with the lowest and highest growth)
